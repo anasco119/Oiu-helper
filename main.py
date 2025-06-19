@@ -1,15 +1,16 @@
 import os
 import re
 import sqlite3
+from datetime import datetime, timedelta
+from flask import Flask
 import telebot
 from telebot.types import ChatPermissions
-from datetime import datetime, timedelta
 
-# إعداد المتغيرات من البيئة
+# متغيرات البيئة
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 GROUP_ID = int(os.getenv("GROUP_ID"))
 ADMIN_IDS = list(map(int, os.getenv("ADMIN_IDS", "").split(",")))
-MAIN_ADMIN_ID = int(os.getenv("MAIN_ADMIN_ID"))  # معرفك الشخصي
+MAIN_ADMIN_ID = int(os.getenv("MAIN_ADMIN_ID"))
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
@@ -22,7 +23,6 @@ CREATE TABLE IF NOT EXISTS warnings (
     count INTEGER
 )
 """)
-
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS reported_groups (
     group_id INTEGER PRIMARY KEY
@@ -30,46 +30,43 @@ CREATE TABLE IF NOT EXISTS reported_groups (
 """)
 conn.commit()
 
-# أنماط الروابط والإشارات
+# أنماط
 LINK_PATTERN = re.compile(r"(http|https|t\.me|bit\.ly|\.com|\.net|\.org)")
 MENTION_PATTERN = re.compile(r"@\w+")
-
 MAX_WARNINGS = 2
 
 def notify_new_group(message):
     group_id = message.chat.id
     group_title = message.chat.title or "بدون اسم"
-
     cursor.execute("SELECT group_id FROM reported_groups WHERE group_id = ?", (group_id,))
     if cursor.fetchone() is None:
-        # لم يتم التبليغ عن هذه المجموعة من قبل
         try:
             bot.send_message(
                 MAIN_ADMIN_ID,
-                f"📌 تم إضافة البوت إلى مجموعة جديدة:\n\n📍 الاسم: {group_title}\n🆔 ID: `{group_id}`",
+                f"📌 تم إضافة البوت إلى مجموعة جديدة:\n📍 الاسم: {group_title}\n🆔 ID: `{group_id}`",
                 parse_mode="Markdown"
             )
             cursor.execute("INSERT INTO reported_groups (group_id) VALUES (?)", (group_id,))
             conn.commit()
         except Exception as e:
             print(f"⚠️ فشل إرسال إشعار للمشرف: {e}")
-            
+
 def is_spam(text, mentioned_usernames, group_members_usernames):
     reasons = []
     if LINK_PATTERN.search(text):
         reasons.append("روابط")
-
     for mention in mentioned_usernames:
         if mention not in group_members_usernames:
             reasons.append("إشارات خارجية")
             break
-
     return reasons
 
 @bot.message_handler(func=lambda message: True, content_types=['text'])
 def handle_message(message):
     if message.chat.type != "supergroup":
         return
+
+    notify_new_group(message)
 
     if message.chat.id != GROUP_ID:
         return
@@ -79,10 +76,8 @@ def handle_message(message):
         return
 
     text = message.text or ""
-
     mentioned_usernames = re.findall(r"@(\w+)", text)
 
-    # الحصول على قائمة الأعضاء الحاليين في المجموعة
     try:
         admins = bot.get_chat_administrators(GROUP_ID)
         members = [admin.user.username for admin in admins if admin.user.username]
@@ -90,7 +85,6 @@ def handle_message(message):
         members = []
 
     reasons = is_spam(text, mentioned_usernames, members)
-
     if not reasons:
         return
 
@@ -101,7 +95,6 @@ def handle_message(message):
 
     cursor.execute("SELECT count FROM warnings WHERE user_id = ?", (user_id,))
     row = cursor.fetchone()
-
     until = datetime.utcnow() + timedelta(seconds=10)
 
     if row is None:
@@ -147,12 +140,14 @@ def handle_message(message):
         )
         cursor.execute("DELETE FROM warnings WHERE user_id = ?", (user_id,))
         conn.commit()
-@bot.message_handler(func=lambda message: True, content_types=['text'])
-def handle_message(message):
-    if message.chat.type != "supergroup":
-        return
 
-    notify_new_group(message)  # 👈 ترسل للمشرف فقط أول مرة
+# واجهة Flask للفحص
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "✅ البوت يعمل الآن"
+
 # بدء البوت
-print("✅ Bot is running...")
-bot.infinity_polling()
+import threading
+threading.Thread(target=bot.infinity_polling).start()
