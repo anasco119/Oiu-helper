@@ -150,4 +150,15 @@ def home():
 
 # بدء البوت
 import threading
-threading.Thread(target=bot.infinity_polling).start()
+
+# تشغيل بوت تيليغرام في Thread منفصل
+def run_bot():
+    print("🤖 Bot polling started...")
+    bot.infinity_polling()
+
+threading.Thread(target=run_bot).start()
+
+# تشغيل خادم Flask على المنفذ الذي تحدده Render
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))  # Render يوفر PORT كمتغير بيئة
+    app.run(host="0.0.0.0", port=port)
