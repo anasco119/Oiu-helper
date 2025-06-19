@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 GROUP_ID = int(os.getenv("GROUP_ID"))
 ADMIN_IDS = list(map(int, os.getenv("ADMIN_IDS", "").split(",")))
+MAIN_ADMIN_ID = int(os.getenv("MAIN_ADMIN_ID"))  # معرفك الشخصي
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
@@ -21,6 +22,12 @@ CREATE TABLE IF NOT EXISTS warnings (
     count INTEGER
 )
 """)
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS reported_groups (
+    group_id INTEGER PRIMARY KEY
+)
+""")
 conn.commit()
 
 # أنماط الروابط والإشارات
@@ -29,6 +36,24 @@ MENTION_PATTERN = re.compile(r"@\w+")
 
 MAX_WARNINGS = 2
 
+def notify_new_group(message):
+    group_id = message.chat.id
+    group_title = message.chat.title or "بدون اسم"
+
+    cursor.execute("SELECT group_id FROM reported_groups WHERE group_id = ?", (group_id,))
+    if cursor.fetchone() is None:
+        # لم يتم التبليغ عن هذه المجموعة من قبل
+        try:
+            bot.send_message(
+                MAIN_ADMIN_ID,
+                f"📌 تم إضافة البوت إلى مجموعة جديدة:\n\n📍 الاسم: {group_title}\n🆔 ID: `{group_id}`",
+                parse_mode="Markdown"
+            )
+            cursor.execute("INSERT INTO reported_groups (group_id) VALUES (?)", (group_id,))
+            conn.commit()
+        except Exception as e:
+            print(f"⚠️ فشل إرسال إشعار للمشرف: {e}")
+            
 def is_spam(text, mentioned_usernames, group_members_usernames):
     reasons = []
     if LINK_PATTERN.search(text):
@@ -122,7 +147,12 @@ def handle_message(message):
         )
         cursor.execute("DELETE FROM warnings WHERE user_id = ?", (user_id,))
         conn.commit()
+@bot.message_handler(func=lambda message: True, content_types=['text'])
+def handle_message(message):
+    if message.chat.type != "supergroup":
+        return
 
+    notify_new_group(message)  # 👈 ترسل للمشرف فقط أول مرة
 # بدء البوت
 print("✅ Bot is running...")
 bot.infinity_polling()
