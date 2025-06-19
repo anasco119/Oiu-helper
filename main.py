@@ -3,6 +3,7 @@ import re
 import sqlite3
 import telebot
 from telebot.types import ChatPermissions
+from datetime import datetime, timedelta
 
 # إعداد المتغيرات من البيئة
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -28,12 +29,16 @@ MENTION_PATTERN = re.compile(r"@\w+")
 
 MAX_WARNINGS = 2
 
-def is_spam(text):
+def is_spam(text, mentioned_usernames, group_members_usernames):
     reasons = []
     if LINK_PATTERN.search(text):
         reasons.append("روابط")
-    if MENTION_PATTERN.search(text):
-        reasons.append("إشارات")
+
+    for mention in mentioned_usernames:
+        if mention not in group_members_usernames:
+            reasons.append("إشارات خارجية")
+            break
+
     return reasons
 
 @bot.message_handler(func=lambda message: True, content_types=['text'])
@@ -49,7 +54,17 @@ def handle_message(message):
         return
 
     text = message.text or ""
-    reasons = is_spam(text)
+
+    mentioned_usernames = re.findall(r"@(\w+)", text)
+
+    # الحصول على قائمة الأعضاء الحاليين في المجموعة
+    try:
+        admins = bot.get_chat_administrators(GROUP_ID)
+        members = [admin.user.username for admin in admins if admin.user.username]
+    except:
+        members = []
+
+    reasons = is_spam(text, mentioned_usernames, members)
 
     if not reasons:
         return
@@ -59,32 +74,52 @@ def handle_message(message):
     except:
         pass
 
-    # عدد التحذيرات
     cursor.execute("SELECT count FROM warnings WHERE user_id = ?", (user_id,))
     row = cursor.fetchone()
+
+    until = datetime.utcnow() + timedelta(seconds=10)
 
     if row is None:
         cursor.execute("INSERT INTO warnings (user_id, count) VALUES (?, ?)", (user_id, 1))
         conn.commit()
         try:
-            bot.restrict_chat_member(message.chat.id, user_id, ChatPermissions(can_send_messages=False))
+            bot.restrict_chat_member(
+                message.chat.id,
+                user_id,
+                ChatPermissions(can_send_messages=False),
+                until_date=until
+            )
         except:
             pass
-        bot.send_message(message.chat.id, f"🚫 @{message.from_user.username or message.from_user.first_name} تم كتمك بسبب: {', '.join(reasons)}. (تحذير أول)")
+        bot.send_message(
+            message.chat.id,
+            f"🚫 @{message.from_user.username or message.from_user.first_name} تم كتمك لمدة 10 ثوانٍ بسبب: {', '.join(reasons)}. (تحذير أول)"
+        )
     elif row[0] < MAX_WARNINGS - 1:
         cursor.execute("UPDATE warnings SET count = count + 1 WHERE user_id = ?", (user_id,))
         conn.commit()
         try:
-            bot.restrict_chat_member(message.chat.id, user_id, ChatPermissions(can_send_messages=False))
+            bot.restrict_chat_member(
+                message.chat.id,
+                user_id,
+                ChatPermissions(can_send_messages=False),
+                until_date=until
+            )
         except:
             pass
-        bot.send_message(message.chat.id, f"⚠️ @{message.from_user.username or message.from_user.first_name} هذا هو التحذير الثاني. التكرار سيؤدي إلى الحظر.")
+        bot.send_message(
+            message.chat.id,
+            f"⚠️ @{message.from_user.username or message.from_user.first_name} تم كتمك لمدة 10 ثوانٍ (تحذير ثاني). التكرار سيؤدي إلى الحظر."
+        )
     else:
         try:
             bot.ban_chat_member(message.chat.id, user_id)
         except:
             pass
-        bot.send_message(message.chat.id, f"❌ @{message.from_user.username or message.from_user.first_name} تم حظرك بسبب تكرار المخالفات.")
+        bot.send_message(
+            message.chat.id,
+            f"❌ @{message.from_user.username or message.from_user.first_name} تم حظرك بسبب تكرار المخالفات."
+        )
         cursor.execute("DELETE FROM warnings WHERE user_id = ?", (user_id,))
         conn.commit()
 
