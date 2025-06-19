@@ -1,18 +1,18 @@
 import os
 import re
 import sqlite3
-from aiogram import Bot, Dispatcher, types
-from aiogram.types import ChatPermissions
-from aiogram.utils import executor
+import telebot
+from telebot.types import ChatPermissions
 
+# إعداد المتغيرات من البيئة
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 GROUP_ID = int(os.getenv("GROUP_ID"))
 ADMIN_IDS = list(map(int, os.getenv("ADMIN_IDS", "").split(",")))
 
-bot = Bot(token=BOT_TOKEN)
-dp = Dispatcher(bot)
+bot = telebot.TeleBot(BOT_TOKEN)
 
-conn = sqlite3.connect("warnings.db")
+# قاعدة البيانات
+conn = sqlite3.connect("warnings.db", check_same_thread=False)
 cursor = conn.cursor()
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS warnings (
@@ -22,17 +22,25 @@ CREATE TABLE IF NOT EXISTS warnings (
 """)
 conn.commit()
 
+# أنماط الروابط والإشارات
 LINK_PATTERN = re.compile(r"(http|https|t\.me|bit\.ly|\.com|\.net|\.org)")
 MENTION_PATTERN = re.compile(r"@\w+")
 
 MAX_WARNINGS = 2
 
-async def restrict_user(chat_id: int, user_id: int, can_send_messages: bool):
-    permissions = ChatPermissions(can_send_messages=can_send_messages)
-    await bot.restrict_chat_member(chat_id, user_id, permissions=permissions)
+def is_spam(text):
+    reasons = []
+    if LINK_PATTERN.search(text):
+        reasons.append("روابط")
+    if MENTION_PATTERN.search(text):
+        reasons.append("إشارات")
+    return reasons
 
-@dp.message_handler(content_types=types.ContentTypes.TEXT, chat_type=types.ChatType.GROUP)
-async def monitor_messages(message: types.Message):
+@bot.message_handler(func=lambda message: True, content_types=['text'])
+def handle_message(message):
+    if message.chat.type != "supergroup":
+        return
+
     if message.chat.id != GROUP_ID:
         return
 
@@ -41,42 +49,45 @@ async def monitor_messages(message: types.Message):
         return
 
     text = message.text or ""
+    reasons = is_spam(text)
 
-    is_spam = False
-    reasons = []
+    if not reasons:
+        return
 
-    if LINK_PATTERN.search(text):
-        is_spam = True
-        reasons.append("روابط خارجية")
+    try:
+        bot.delete_message(message.chat.id, message.message_id)
+    except:
+        pass
 
-    if MENTION_PATTERN.search(text):
-        is_spam = True
-        reasons.append("إشارات غير مصرّح بها")
+    # عدد التحذيرات
+    cursor.execute("SELECT count FROM warnings WHERE user_id = ?", (user_id,))
+    row = cursor.fetchone()
 
-    if is_spam:
+    if row is None:
+        cursor.execute("INSERT INTO warnings (user_id, count) VALUES (?, ?)", (user_id, 1))
+        conn.commit()
         try:
-            await message.delete()
+            bot.restrict_chat_member(message.chat.id, user_id, ChatPermissions(can_send_messages=False))
         except:
             pass
+        bot.send_message(message.chat.id, f"🚫 @{message.from_user.username or message.from_user.first_name} تم كتمك بسبب: {', '.join(reasons)}. (تحذير أول)")
+    elif row[0] < MAX_WARNINGS - 1:
+        cursor.execute("UPDATE warnings SET count = count + 1 WHERE user_id = ?", (user_id,))
+        conn.commit()
+        try:
+            bot.restrict_chat_member(message.chat.id, user_id, ChatPermissions(can_send_messages=False))
+        except:
+            pass
+        bot.send_message(message.chat.id, f"⚠️ @{message.from_user.username or message.from_user.first_name} هذا هو التحذير الثاني. التكرار سيؤدي إلى الحظر.")
+    else:
+        try:
+            bot.ban_chat_member(message.chat.id, user_id)
+        except:
+            pass
+        bot.send_message(message.chat.id, f"❌ @{message.from_user.username or message.from_user.first_name} تم حظرك بسبب تكرار المخالفات.")
+        cursor.execute("DELETE FROM warnings WHERE user_id = ?", (user_id,))
+        conn.commit()
 
-        cursor.execute("SELECT count FROM warnings WHERE user_id = ?", (user_id,))
-        row = cursor.fetchone()
-
-        if row is None:
-            cursor.execute("INSERT INTO warnings (user_id, count) VALUES (?, ?)", (user_id, 1))
-            conn.commit()
-            await restrict_user(message.chat.id, user_id, False)
-            await message.reply(f"🚫 @{message.from_user.username or message.from_user.first_name} تم كتمك بسبب: {', '.join(reasons)}. (تحذير أول)")
-        elif row[0] < MAX_WARNINGS - 1:
-            cursor.execute("UPDATE warnings SET count = count + 1 WHERE user_id = ?", (user_id,))
-            conn.commit()
-            await restrict_user(message.chat.id, user_id, False)
-            await message.reply(f"⚠️ @{message.from_user.username or message.from_user.first_name} هذا هو التحذير الثاني. تكرار ذلك سيؤدي للحظر.")
-        else:
-            await message.reply(f"❌ @{message.from_user.username or message.from_user.first_name} تم حظرك بسبب تكرار المخالفات.")
-            await bot.ban_chat_member(message.chat.id, user_id)
-            cursor.execute("DELETE FROM warnings WHERE user_id = ?", (user_id,))
-            conn.commit()
-
-if __name__ == "__main__":
-    executor.start_polling(dp, skip_updates=True)
+# بدء البوت
+print("✅ Bot is running...")
+bot.infinity_polling()
