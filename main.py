@@ -94,6 +94,26 @@ def extract_text_from_pdf(path: str) -> str:
     # fallback to PyMuPDF text extraction
     doc = fitz.open(path)
     return "\n".join([page.get_text() for page in doc])
+# أضف هذه الدالة في قسم Text Extraction & OCR
+def extract_text_from_docx(path: str) -> str:
+    try:
+        doc = docx.Document(path)
+        full_text = []
+        for para in doc.paragraphs:
+            full_text.append(para.text)
+        return '\n'.join(full_text)
+    except Exception as e:
+        logging.error(f"Error extracting DOCX text: {e}")
+        return ""
+
+# ويجب أيضاً تعريف دالة لملفات txt
+def extract_text_from_txt(path: str) -> str:
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            return f.read()
+    except Exception as e:
+        logging.error(f"Error extracting TXT text: {e}")
+        return ""
 
 # -------------------------------------------------------------------
 #                     Quota Management
