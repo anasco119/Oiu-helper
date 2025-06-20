@@ -51,10 +51,7 @@ def generate_gemini_response(prompt):
 # -------------------------------------------------------------------
 #         Helper to call your Gemini/OpenRouter API
 # -------------------------------------------------------------------
-from ai_api import generate_gemini_response
-# ai_api.py should define:
-# def generate_gemini_response(prompt: str) -> str:
-#     # call Gemini or OpenRouter, return text response
+
 #     ...
 
 # -------------------------------------------------------------------
