@@ -297,9 +297,7 @@ def handle_text(msg):
 # -------------------------------------------------------------------
 #                           Run Bot
 # -------------------------------------------------------------------
-if __name__ == "__main__":
-    logging.info("بوت الاختبارات التعليمي بدأ العمل...")
-    bot.infinity_polling()
+
 # واجهة Flask للفحص
 app = Flask(__name__)
 
@@ -307,4 +305,16 @@ app = Flask(__name__)
 def home():
     return "✅ البوت يعمل الآن"
 
+# بدء البوت
 
+# تشغيل بوت تيليغرام في Thread منفصل
+def run_bot():
+    print("🤖 Bot polling started...")
+    bot.infinity_polling()
+
+threading.Thread(target=run_bot).start()
+
+# تشغيل خادم Flask على المنفذ الذي تحدده Render
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))  # Render يوفر PORT كمتغير بيئة
+    app.run(host="0.0.0.0", port=port)
