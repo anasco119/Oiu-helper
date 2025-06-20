@@ -11,18 +11,42 @@ from dotenv import load_dotenv
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 import docx
 import fitz                     # PyMuPDF
+import google.generativeai as genai
 
 # متغيرات البيئة
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 GROUP_ID = int(os.getenv("GROUP_ID"))
 ADMIN_ID = int(os.getenv("ADMIN_ID"))
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+# تهيئة مكتبة Gemini
+try:
+    genai.configure(api_key=GEMINI_API_KEY)
+    logging.info("Gemini configured successfully")
+except Exception as e:
+    logging.error(f"Error configuring Gemini: {e}")
+
+
+# إنشاء نموذج GenerativeModel
+model = genai.GenerativeModel('gemini-2.0-flash')
+
+def generate_gemini_response(prompt):
+    try:
+        response = model.generate_content(prompt)
+        if response.text:
+            return response.text
+        else:
+            logging.error("No response text from Gemini.")
+            return "No response from Gemini."
+    except Exception as e:
+        logging.error(f"Error in generate_gemini_response: {e}")
+        return f"Error: {str(e)}"
 
 # -------------------------------------------------------------------
 #         Helper to call your Gemini/OpenRouter API
