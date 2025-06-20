@@ -8,5 +8,4 @@ google-generativeai
 google-auth
 google-api-core
 googleapis-common-protos
-cohere
 groq
