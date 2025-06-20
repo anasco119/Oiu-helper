@@ -12,6 +12,9 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 import docx
 import fitz                     # PyMuPDF
 import google.generativeai as genai
+import requests
+import cohere
+from groq import Groq
 
 # متغيرات البيئة
 load_dotenv()
@@ -19,34 +22,148 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 GROUP_ID = int(os.getenv("GROUP_ID"))
 ADMIN_ID = int(os.getenv("ADMIN_ID"))
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+COHERE_API_KEY = os.getenv("COHERE_API_KEY")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# تهيئة مكتبة Gemini
-try:
-    genai.configure(api_key=GEMINI_API_KEY)
-    logging.info("Gemini configured successfully")
-except Exception as e:
-    logging.error(f"Error configuring Gemini: {e}")
 
+# --- إعداد المفاتيح والعملاء ---
 
-# إنشاء نموذج GenerativeModel
-model = genai.GenerativeModel('gemini-2.0-flash')
+# استدعاء المفاتيح من متغيرات البيئة
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-def generate_gemini_response(prompt):
+# 1. إعداد Google Gemini
+gemini_model = None
+if GEMINI_API_KEY:
     try:
-        response = model.generate_content(prompt)
-        if response.text:
-            return response.text
-        else:
-            logging.error("No response text from Gemini.")
-            return "No response from Gemini."
+        genai.configure(api_key=GEMINI_API_KEY)
+        gemini_model = genai.GenerativeModel('gemini-1.5-flash')
+        logging.info("✅ 1. Gemini configured successfully")
     except Exception as e:
-        logging.error(f"Error in generate_gemini_response: {e}")
-        return f"Error: {str(e)}"
+        logging.warning(f"⚠️ Could not configure Gemini: {e}")
+
+# 2. إعداد Groq
+groq_client = None
+if GROQ_API_KEY:
+    try:
+        groq_client = Groq(api_key=GROQ_API_KEY)
+        logging.info("✅ 2. Groq configured successfully")
+    except Exception as e:
+        logging.warning(f"⚠️ Could not configure Groq: {e}")
+
+# 3. إعداد OpenRouter (سيتم استخدامه لنموذجين مختلفين)
+if OPENROUTER_API_KEY:
+    logging.info("✅ 3. OpenRouter is ready")
+
+# 4. إعداد Cohere
+cohere_client = None
+if COHERE_API_KEY:
+    try:
+        cohere_client = cohere.Client(COHERE_API_KEY)
+        logging.info("✅ 4. Cohere configured successfully")
+    except Exception as e:
+        logging.warning(f"⚠️ Could not configure Cohere: {e}")
+
+
+# --- الدالة الموحدة لتوليد الردود ---
+
+def generate_gemini_response(prompt: str) -> str:
+    """
+    Tries to generate a response by attempting a chain of services for maximum reliability:
+    1. Google Gemini (Primary)
+    2. Groq (Fastest Fallback)
+    3. OpenRouter w/ Mistral (Diverse Fallback)
+    4. OpenRouter w/ Gemma (Second Diverse Fallback)
+    5. Cohere (Final Fallback)
+    """
+
+    # 1️⃣ المحاولة الأولى: Google Gemini (الأساسي والمتوازن)
+    if gemini_model:
+        try:
+            logging.info("Attempting request with: 1. Google Gemini...")
+            response = gemini_model.generate_content(prompt)
+            if response.text:
+                logging.info("✅ Success with Gemini.")
+                return response.text
+            else:
+                logging.warning("❌ Gemini returned no text. Trying fallback...")
+        except Exception as e:
+            logging.warning(f"❌ Gemini failed: {e}. Trying fallback...")
+
+    # 2️⃣ المحاولة الثانية: Groq (للأداء فائق السرعة)
+    if groq_client:
+        try:
+            logging.info("Attempting request with: 2. Groq (Llama 3)...")
+            chat_completion = groq_client.chat.completions.create(
+                messages=[{"role": "user", "content": prompt}],
+                model="llama3-8b-8192", # نموذج قوي وسريع جداً
+                temperature=0.7
+            )
+            if chat_completion.choices[0].message.content:
+                logging.info("✅ Success with Groq.")
+                return chat_completion.choices[0].message.content
+            else:
+                logging.warning("❌ Groq returned no text. Trying fallback...")
+        except Exception as e:
+            logging.warning(f"❌ Groq failed: {e}. Trying fallback...")
+
+    # 3️⃣ المحاولة الثالثة: OpenRouter (مع نموذج MistralAI)
+    if OPENROUTER_API_KEY:
+        try:
+            logging.info("Attempting request with: 3. OpenRouter (Mistral)...")
+            response = requests.post(
+                url="https://openrouter.ai/api/v1/chat/completions",
+                headers={"Authorization": f"Bearer {OPENROUTER_API_KEY}"},
+                json={
+                    "model": "mistralai/mistral-7b-instruct-free", # نموذج Mistral مجاني وفعال
+                    "messages": [{"role": "user", "content": prompt}]
+                }
+            )
+            response.raise_for_status()
+            result_text = response.json()['choices'][0]['message']['content']
+            logging.info("✅ Success with OpenRouter (Mistral).")
+            return result_text
+        except Exception as e:
+            logging.warning(f"❌ OpenRouter (Mistral) failed: {e}. Trying fallback...")
+
+    # 4️⃣ المحاولة الرابعة: OpenRouter (مع نموذج Google Gemma)
+    if OPENROUTER_API_KEY:
+        try:
+            logging.info("Attempting request with: 4. OpenRouter (Gemma)...")
+            response = requests.post(
+                url="https://openrouter.ai/api/v1/chat/completions",
+                headers={"Authorization": f"Bearer {OPENROUTER_API_KEY}"},
+                json={
+                    "model": "google/gemma-7b-it-free", # خيار احتياطي مجاني آخر
+                    "messages": [{"role": "user", "content": prompt}]
+                }
+            )
+            response.raise_for_status()
+            result_text = response.json()['choices'][0]['message']['content']
+            logging.info("✅ Success with OpenRouter (Gemma).")
+            return result_text
+        except Exception as e:
+            logging.warning(f"❌ OpenRouter (Gemma) failed: {e}. Trying fallback...")
+
+    # 5️⃣ المحاولة الخامسة: Cohere (الخيار الاحتياطي الأخير)
+    if cohere_client:
+        try:
+            logging.info("Attempting request with: 5. Cohere...")
+            response = cohere_client.chat(model='command-r', message=prompt)
+            logging.info("✅ Success with Cohere.")
+            return response.text
+        except Exception as e:
+            logging.error(f"❌ Cohere failed: {e}. All fallbacks exhausted.")
+
+    # في حال فشل جميع المحاولات
+    logging.error("❌ All API providers failed.")
+    return "⚠️ للأسف، فشل الاتصال بجميع نماذج الذكاء الاصطناعي المتاحة. يرجى المحاولة مرة أخرى لاحقًا."
+
 
 # -------------------------------------------------------------------
 #         Helper to call your Gemini/OpenRouter API
