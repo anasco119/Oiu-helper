@@ -9,3 +9,4 @@ google-auth
 google-api-core
 googleapis-common-protos
 groq
+cohere
