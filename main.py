@@ -80,26 +80,39 @@ def generate_gemini_response(prompt: str, chat_id: int) -> str:
     timeout_seconds = 45
 
     # 1️⃣ OpenRouter - Mistral
-    if OPENROUTER_API_KEY:
-        try:
-            bot.send_message(chat_id, "🤖 1. محاولة الاتصال بـ OpenRouter (Mistral)...")
-            response = requests.post(
-                url="https://openrouter.ai/api/v1/chat/completions",
-                headers={"Authorization": f"Bearer {OPENROUTER_API_KEY}"},
-                json={
-                    "model": "mistralai/mistral-7b-instruct-free",
-                    "messages": [{"role": "user", "content": prompt}]
-                },
-                timeout=timeout_seconds
-            )
-            response.raise_for_status()
-            result_text = response.json()['choices'][0]['message']['content']
-            bot.send_message(chat_id, "✅ 1. نجح الاتصال بـ OpenRouter (Mistral).")
-            return result_text
-        except Exception as e:
-            bot.send_message(chat_id, f"❌ 1. فشل OpenRouter (Mistral): {str(e)[:300]}")
-            logging.warning(f"❌ OpenRouter (Mistral) failed: {e}")
+if OPENROUTER_API_KEY:
+    try:
+        bot.send_message(chat_id, "🤖 1. محاولة الاتصال بـ OpenRouter (Mistral)...")
 
+        ### --- بداية التعديل --- ###
+        headers = {
+            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+            # ترويسة ضرورية لمنصة OpenRouter لتجنب خطأ 400
+            "HTTP-Referer": "https://t.me/YourBotName", # استبدله باسم بوتك أو رابط مشروعك
+            "X-Title": "AI Quiz Bot" # اسم وصفي لتطبيقك (جيد إضافته)
+        }
+        
+        # معرف النموذج الصحيح غالبًا ما يستخدم ":" للنسخ المجانية
+        model_identifier = "mistralai/mistral-7b-instruct:free"
+        ### --- نهاية التعديل --- ###
+
+        response = requests.post(
+            url="https://openrouter.ai/api/v1/chat/completions",
+            headers=headers, # <-- استخدام الترويسات الجديدة
+            json={
+                "model": model_identifier, # <-- استخدام المعرف الصحيح
+                "messages": [{"role": "user", "content": prompt}]
+            },
+            timeout=timeout_seconds
+        )
+        response.raise_for_status()
+        result_text = response.json()['choices'][0]['message']['content']
+        bot.send_message(chat_id, "✅ 1. نجح الاتصال بـ OpenRouter (Mistral).")
+        return result_text
+    except Exception as e:
+        bot.send_message(chat_id, f"❌ 1. فشل OpenRouter (Mistral): {str(e)[:300]}")
+        logging.warning(f"❌ OpenRouter (Mistral) failed: {e}")
+        
     # 2️⃣ Groq (LLaMA 3)
     if groq_client:
         try:
@@ -120,26 +133,38 @@ def generate_gemini_response(prompt: str, chat_id: int) -> str:
             logging.warning(f"❌ Groq failed: {e}")
 
     # 3️⃣ OpenRouter - Gemma
-    if OPENROUTER_API_KEY:
-        try:
-            bot.send_message(chat_id, "🤖 3. محاولة الاتصال بـ OpenRouter (Gemma)...")
-            response = requests.post(
-                url="https://openrouter.ai/api/v1/chat/completions",
-                headers={"Authorization": f"Bearer {OPENROUTER_API_KEY}"},
-                json={
-                    "model": "google/gemma-7b-it-free",
-                    "messages": [{"role": "user", "content": prompt}]
-                },
-                timeout=timeout_seconds
-            )
-            response.raise_for_status()
-            result_text = response.json()['choices'][0]['message']['content']
-            bot.send_message(chat_id, "✅ 3. نجح الاتصال بـ OpenRouter (Gemma).")
-            return result_text
-        except Exception as e:
-            bot.send_message(chat_id, f"❌ 3. فشل OpenRouter (Gemma): {str(e)[:300]}")
-            logging.warning(f"❌ OpenRouter (Gemma) failed: {e}")
+if OPENROUTER_API_KEY:
+    try:
+        bot.send_message(chat_id, "🤖 3. محاولة الاتصال بـ OpenRouter (Gemma)...")
 
+        ### --- بداية التعديل --- ###
+        headers = {
+            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+            "HTTP-Referer": "https://t.me/YourBotName", # استخدم نفس الرابط هنا
+            "X-Title": "AI Quiz Bot"
+        }
+
+        # معرف النموذج الصحيح لـ Gemma
+        model_identifier = "google/gemma-7b-it:free"
+        ### --- نهاية التعديل --- ###
+
+        response = requests.post(
+            url="https://openrouter.ai/api/v1/chat/completions",
+            headers=headers, # <-- استخدام الترويسات الجديدة
+            json={
+                "model": model_identifier, # <-- استخدام المعرف الصحيح
+                "messages": [{"role": "user", "content": prompt}]
+            },
+            timeout=timeout_seconds
+        )
+        response.raise_for_status()
+        result_text = response.json()['choices'][0]['message']['content']
+        bot.send_message(chat_id, "✅ 3. نجح الاتصال بـ OpenRouter (Gemma).")
+        return result_text
+    except Exception as e:
+        bot.send_message(chat_id, f"❌ 3. فشل OpenRouter (Gemma): {str(e)[:300]}")
+        logging.warning(f"❌ OpenRouter (Gemma) failed: {e}")
+        
     # 4️⃣ Google Gemini
     if gemini_model:
         try:
