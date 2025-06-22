@@ -261,12 +261,29 @@ def reset_if_needed(user_id: int):
         conn.commit()
 
 def can_generate(user_id: int) -> bool:
+    # --- بداية التعديل ---
+    # إذا كان المستخدم هو الأدمن، اسمح له دائمًا بالتوليد
+    if user_id == ADMIN_ID:
+        return True
+    # --- نهاية التعديل ---
+
     reset_if_needed(user_id)
     cursor.execute("SELECT quiz_count FROM users WHERE user_id = ?", (user_id,))
-    count = cursor.fetchone()[0]
+    row = cursor.fetchone()
+    # تأكد من أن المستخدم موجود قبل محاولة الوصول إلى العد
+    if not row:
+        return True # مستخدم جديد، يمكنه التوليد
+    count = row[0]
     return count < 3
 
 def increment_count(user_id: int):
+    # --- بداية التعديل ---
+    # لا تقم بزيادة العداد إذا كان المستخدم هو الأدمن
+    if user_id == ADMIN_ID:
+        bot.send_message(ADMIN_ID, "✨ (وضع الأدمن: لم يتم احتساب هذه المحاولة)")
+        return
+    # --- نهاية التعديل ---
+    
     cursor.execute("UPDATE users SET quiz_count = quiz_count + 1 WHERE user_id = ?", (user_id,))
     conn.commit()
 
