@@ -1,5 +1,3 @@
-import os
-import re
 import sqlite3
 from datetime import datetime, timedelta
 from flask import Flask
@@ -15,6 +13,7 @@ import google.generativeai as genai
 import requests
 import cohere
 from groq import Groq
+import json
 
 # متغيرات البيئة
 load_dotenv()
@@ -166,17 +165,6 @@ def generate_gemini_response(prompt: str) -> str:
 
 
 # -------------------------------------------------------------------
-#         Helper to call your Gemini/OpenRouter API
-# -------------------------------------------------------------------
-
-#     ...
-
-# -------------------------------------------------------------------
-#                       Configuration
-# -------------------------------------------------------------------
-
-
-# -------------------------------------------------------------------
 #                  Logging & Database Setup
 # -------------------------------------------------------------------
 logging.basicConfig(level=logging.INFO,
@@ -259,57 +247,43 @@ def increment_count(user_id: int):
 # -------------------------------------------------------------------
 #                 Quiz Generation & Formatting
 # -------------------------------------------------------------------
+
 def generate_quizzes_from_text(text: str, major: str, num_quizzes: int = 10):
     prompt = (
-        f"Create {num_quizzes} quizzes for this student "
-        f"based on the following content. The questions should be tailored to {major} students. "
-        "Each quiz should have 4 options and one correct answer. The quizzes should vary in style: "
-        "fill-in-the-blank, multiple-choice, and sentence completion and with the same language of the content.\n\n"
-        "Format:\n"
-        "Question: ...\n"
-        "Option 1: ...\n"
-        "Option 2: ...\n"
-        "Option 3: ...\n"
-        "Option 4: ...\n"
-        "Correct Answer: ...\n\n"
-        f"Content:\n{text}"
+        f"You are an AI quiz generator. Generate a JSON array of {num_quizzes} quiz questions "
+        f"suitable for students majoring in {major}, based on the following content.\n\n"
+        "Each question must be an object with:\n"
+        "- 'question': the question string\n"
+        "- 'options': a list of exactly 4 answer options\n"
+        "- 'correct_index': the index (0-3) of the correct answer in the options list\n\n"
+        "⚠️ Important Instructions:\n"
+        "- ONLY return a raw JSON array. No markdown, no explanation, no formatting.\n"
+        "- Do not include any introductory or closing text.\n"
+        "- Ensure the JSON is valid and parsable.\n\n"
+        f"Content:\n{text[:3000]}"
     )
+
     raw = generate_gemini_response(prompt)
-    # extract via regex
-    pattern = (
-        r"Question:\s*(.*?)\n"
-        r"Option 1:\s*(.*?)\n"
-        r"Option 2:\s*(.*?)\n"
-        r"Option 3:\s*(.*?)\n"
-        r"Option 4:\s*(.*?)\n"
-        r"Correct Answer:\s*(.*?)(?=\n\n|$)"
-    )
-    matches = re.findall(pattern, raw, re.DOTALL)
-    quizzes = []
-    for q, a1, a2, a3, a4, corr in matches:
-        opts = [a1.strip(), a2.strip(), a3.strip(), a4.strip()]
-        try:
-            corr_idx = opts.index(corr.strip())
-        except ValueError:
-            continue
-        quizzes.append((q.strip(), opts, corr_idx))
-    return quizzes
 
-def send_quizzes_as_polls(chat_id: int, quizzes: list):
-    for q, opts, corr_idx in quizzes:
-        bot.send_poll(
-            chat_id=chat_id,
-            question=q,
-            options=opts,
-            type="quiz",
-            correct_option_id=corr_idx,
-            is_anonymous=True
-        )
-    # final info message
-    bot.send_message(chat_id,
-        "🧪 📌 قريبًا: ميزة إنشاء اختبار تفاعلي تلقائي من هذه الأسئلة! 💡"
-    )
+    try:
+        quizzes_json = json.loads(raw)
+        quizzes = []
 
+        for item in quizzes_json:
+            q = item.get("question", "").strip()
+            opts = item.get("options", [])
+            corr = item.get("correct_index", -1)
+
+            if isinstance(q, str) and isinstance(opts, list) and len(opts) == 4 and isinstance(corr, int) and 0 <= corr < 4:
+                quizzes.append((q, [opt.strip() for opt in opts], corr))
+            else:
+                logging.warning(f"❌ Skipping invalid question: {item}")
+
+        return quizzes
+
+    except Exception as e:
+        logging.error(f"❌ JSON parsing failed: {e}\nRaw output was:\n{raw}")
+        return []
 # -------------------------------------------------------------------
 #                  Telegram Bot Handlers
 # -------------------------------------------------------------------
@@ -377,11 +351,15 @@ def set_custom_major(msg):
 
 @bot.message_handler(content_types=['document'])
 def handle_document(msg):
-    uid = msg.chat.id
+    uid = msg.from_user.id
     if not can_generate(uid):
         return bot.send_message(uid, "⚠️ لقد استنفدت 3 اختبارات مجانية هذا الشهر.")
 
     file_info = bot.get_file(msg.document.file_id)
+    MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+
+    if file_info.file_size > MAX_FILE_SIZE:
+        return bot.send_message(uid, "❌ الملف كبير جدًا. الحد الأقصى هو 5 ميجابايت.")
     data      = bot.download_file(file_info.file_path)
     os.makedirs("downloads", exist_ok=True)
     path = os.path.join("downloads", msg.document.file_name)
