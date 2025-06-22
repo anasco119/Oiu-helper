@@ -136,23 +136,20 @@ if OPENROUTER_API_KEY:
 if OPENROUTER_API_KEY:
     try:
         bot.send_message(chat_id, "🤖 3. محاولة الاتصال بـ OpenRouter (Gemma)...")
-
-        ### --- بداية التعديل --- ###
+        
         headers = {
             "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-            "HTTP-Referer": "https://t.me/YourBotName", # استخدم نفس الرابط هنا
+            "HTTP-Referer": "https://t.me/YourBotName",  # <-- استبدله لاحقًا باسم البوت الحقيقي
             "X-Title": "AI Quiz Bot"
         }
 
-        # معرف النموذج الصحيح لـ Gemma
         model_identifier = "google/gemma-7b-it:free"
-        ### --- نهاية التعديل --- ###
 
         response = requests.post(
             url="https://openrouter.ai/api/v1/chat/completions",
-            headers=headers, # <-- استخدام الترويسات الجديدة
+            headers=headers,
             json={
-                "model": model_identifier, # <-- استخدام المعرف الصحيح
+                "model": model_identifier,
                 "messages": [{"role": "user", "content": prompt}]
             },
             timeout=timeout_seconds
@@ -160,7 +157,7 @@ if OPENROUTER_API_KEY:
         response.raise_for_status()
         result_text = response.json()['choices'][0]['message']['content']
         bot.send_message(chat_id, "✅ 3. نجح الاتصال بـ OpenRouter (Gemma).")
-        return result_text
+        return result_text  # ✅ داخل try وليس بعده
     except Exception as e:
         bot.send_message(chat_id, f"❌ 3. فشل OpenRouter (Gemma): {str(e)[:300]}")
         logging.warning(f"❌ OpenRouter (Gemma) failed: {e}")
