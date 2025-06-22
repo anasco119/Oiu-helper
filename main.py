@@ -283,7 +283,7 @@ def generate_quizzes_from_text(text: str, major: str, num_quizzes: int = 10):
         return quizzes
 
     except Exception as e:
-    logging.error(f"❌ JSON parsing failed: {e}\nRaw output was:\n{raw}")
+        logging.error(f"❌ JSON parsing failed: {e}\nRaw output was:\n{raw}")
         return [{"question": "❌ حدث خطأ في تحليل JSON. أعد المحاولة أو أخبر المطور.", "options": ["-"] * 4, "correct_index": 0}]
     
 # -------------------------------------------------------------------
