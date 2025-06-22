@@ -70,98 +70,103 @@ if COHERE_API_KEY:
 
 # --- الدالة الموحدة لتوليد الردود ---
 
-def generate_gemini_response(prompt: str) -> str:
+def generate_gemini_response(prompt: str, chat_id: int) -> str:
     """
-    Tries to generate a response by attempting a chain of services for maximum reliability:
-    1. Google Gemini (Primary)
-    2. Groq (Fastest Fallback)
-    3. OpenRouter w/ Mistral (Diverse Fallback)
-    4. OpenRouter w/ Gemma (Second Diverse Fallback)
-    5. Cohere (Final Fallback)
+    توليد استجابة باستخدام عدة نماذج ذكاء اصطناعي، مع إرسال رسائل توضيحية للمستخدم عبر chat_id.
     """
+    timeout_seconds = 45
 
-    # 1️⃣ المحاولة الأولى: Google Gemini (الأساسي والمتوازن)
+    # 1️⃣ Google Gemini
     if gemini_model:
         try:
-            logging.info("Attempting request with: 1. Google Gemini...")
-            response = gemini_model.generate_content(prompt)
+            bot.send_message(chat_id, "🤖 1. محاولة الاتصال بـ Google Gemini...")
+            request_options = {"timeout": timeout_seconds}
+            response = gemini_model.generate_content(prompt, request_options=request_options)
             if response.text:
-                logging.info("✅ Success with Gemini.")
+                bot.send_message(chat_id, "✅ 1. نجح الاتصال بـ Gemini.")
                 return response.text
             else:
-                logging.warning("❌ Gemini returned no text. Trying fallback...")
+                bot.send_message(chat_id, "⚠️ 1. لم يرجع Gemini أي نص. ننتقل إلى الخيار التالي...")
         except Exception as e:
-            logging.warning(f"❌ Gemini failed: {e}. Trying fallback...")
+            bot.send_message(chat_id, f"❌ 1. فشل Gemini: {str(e)[:300]}")
+            logging.warning(f"❌ Gemini failed: {e}")
 
-    # 2️⃣ المحاولة الثانية: Groq (للأداء فائق السرعة)
+    # 2️⃣ Groq (Llama 3)
     if groq_client:
         try:
-            logging.info("Attempting request with: 2. Groq (Llama 3)...")
+            bot.send_message(chat_id, "🤖 2. محاولة الاتصال بـ Groq (LLaMA 3)...")
             chat_completion = groq_client.chat.completions.create(
                 messages=[{"role": "user", "content": prompt}],
-                model="llama3-8b-8192", # نموذج قوي وسريع جداً
-                temperature=0.7
+                model="llama3-8b-8192",
+                temperature=0.7,
+                timeout=timeout_seconds
             )
             if chat_completion.choices[0].message.content:
-                logging.info("✅ Success with Groq.")
+                bot.send_message(chat_id, "✅ 2. نجح الاتصال بـ Groq.")
                 return chat_completion.choices[0].message.content
             else:
-                logging.warning("❌ Groq returned no text. Trying fallback...")
+                bot.send_message(chat_id, "⚠️ 2. لم يرجع Groq أي محتوى. ننتقل إلى الخيار التالي...")
         except Exception as e:
-            logging.warning(f"❌ Groq failed: {e}. Trying fallback...")
+            bot.send_message(chat_id, f"❌ 2. فشل Groq: {str(e)[:300]}")
+            logging.warning(f"❌ Groq failed: {e}")
 
-    # 3️⃣ المحاولة الثالثة: OpenRouter (مع نموذج MistralAI)
+    # 3️⃣ OpenRouter - Mistral
     if OPENROUTER_API_KEY:
         try:
-            logging.info("Attempting request with: 3. OpenRouter (Mistral)...")
+            bot.send_message(chat_id, "🤖 3. محاولة الاتصال بـ OpenRouter (Mistral)...")
             response = requests.post(
                 url="https://openrouter.ai/api/v1/chat/completions",
                 headers={"Authorization": f"Bearer {OPENROUTER_API_KEY}"},
                 json={
-                    "model": "mistralai/mistral-7b-instruct-free", # نموذج Mistral مجاني وفعال
+                    "model": "mistralai/mistral-7b-instruct-free",
                     "messages": [{"role": "user", "content": prompt}]
-                }
+                },
+                timeout=timeout_seconds
             )
             response.raise_for_status()
             result_text = response.json()['choices'][0]['message']['content']
-            logging.info("✅ Success with OpenRouter (Mistral).")
+            bot.send_message(chat_id, "✅ 3. نجح الاتصال بـ OpenRouter (Mistral).")
             return result_text
         except Exception as e:
-            logging.warning(f"❌ OpenRouter (Mistral) failed: {e}. Trying fallback...")
+            bot.send_message(chat_id, f"❌ 3. فشل OpenRouter (Mistral): {str(e)[:300]}")
+            logging.warning(f"❌ OpenRouter (Mistral) failed: {e}")
 
-    # 4️⃣ المحاولة الرابعة: OpenRouter (مع نموذج Google Gemma)
+    # 4️⃣ OpenRouter - Gemma
     if OPENROUTER_API_KEY:
         try:
-            logging.info("Attempting request with: 4. OpenRouter (Gemma)...")
+            bot.send_message(chat_id, "🤖 4. محاولة الاتصال بـ OpenRouter (Gemma)...")
             response = requests.post(
                 url="https://openrouter.ai/api/v1/chat/completions",
                 headers={"Authorization": f"Bearer {OPENROUTER_API_KEY}"},
                 json={
-                    "model": "google/gemma-7b-it-free", # خيار احتياطي مجاني آخر
+                    "model": "google/gemma-7b-it-free",
                     "messages": [{"role": "user", "content": prompt}]
-                }
+                },
+                timeout=timeout_seconds
             )
             response.raise_for_status()
             result_text = response.json()['choices'][0]['message']['content']
-            logging.info("✅ Success with OpenRouter (Gemma).")
+            bot.send_message(chat_id, "✅ 4. نجح الاتصال بـ OpenRouter (Gemma).")
             return result_text
         except Exception as e:
-            logging.warning(f"❌ OpenRouter (Gemma) failed: {e}. Trying fallback...")
+            bot.send_message(chat_id, f"❌ 4. فشل OpenRouter (Gemma): {str(e)[:300]}")
+            logging.warning(f"❌ OpenRouter (Gemma) failed: {e}")
 
-    # 5️⃣ المحاولة الخامسة: Cohere (الخيار الاحتياطي الأخير)
+    # 5️⃣ Cohere
     if cohere_client:
         try:
-            logging.info("Attempting request with: 5. Cohere...")
+            bot.send_message(chat_id, "🤖 5. محاولة الاتصال بـ Cohere...")
             response = cohere_client.chat(model='command-r', message=prompt)
-            logging.info("✅ Success with Cohere.")
+            bot.send_message(chat_id, "✅ 5. نجح الاتصال بـ Cohere.")
             return response.text
         except Exception as e:
-            logging.error(f"❌ Cohere failed: {e}. All fallbacks exhausted.")
+            bot.send_message(chat_id, f"❌ 5. فشل Cohere: {str(e)[:300]}")
+            logging.warning(f"❌ Cohere failed: {e}")
 
-    # في حال فشل جميع المحاولات
-    logging.error("❌ All API providers failed.")
-    return "⚠️ للأسف، فشل الاتصال بجميع نماذج الذكاء الاصطناعي المتاحة. يرجى المحاولة مرة أخرى لاحقًا."
-
+    # 🚫 كل النماذج فشلت
+    logging.error("❌ All models failed.")
+    bot.send_message(chat_id, "⚠️ فشلت جميع المحاولات للاتصال بالنماذج. الرجاء المحاولة لاحقًا أو التواصل مع المطور.")
+    return ""
 
 # -------------------------------------------------------------------
 #                  Logging & Database Setup
@@ -302,7 +307,7 @@ def generate_quizzes_from_text(text: str, major: str, num_quizzes: int = 10):
         f"Content:\n{text}"
     )
 
-    raw_response = generate_gemini_response(prompt)
+    raw_response = generate_gemini_response(prompt٫ chat_id)
     
     # --- التعديل يبدأ هنا ---
     # 1. تنظيف الاستجابة لاستخراج الـ JSON
