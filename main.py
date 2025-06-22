@@ -261,7 +261,7 @@ def generate_quizzes_from_text(text: str, major: str, num_quizzes: int = 10):
         "- ONLY return a raw JSON array. No markdown, no explanation, no formatting.\n"
         "- Do not include any introductory or closing text.\n"
         "- Ensure the JSON is valid and parsable.\n\n"
-        f"Content:\n{text[:3000]}"
+        f"Content:\n{text}"
     )
 
     raw = generate_gemini_response(prompt)
