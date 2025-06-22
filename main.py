@@ -74,7 +74,7 @@ if COHERE_API_KEY:
 # --- الدالة الموحدة لتوليد الردود ---
 
 
-def generate_gemini_response_silent(prompt: str) -> str:
+def generate_gemini_response(prompt: str) -> str:
     """
     توليد استجابة باستخدام عدة نماذج ذكاء اصطناعي بدون إرسال رسائل للمستخدم.
     """
