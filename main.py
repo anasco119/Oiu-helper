@@ -1,5 +1,6 @@
 import os
 import sqlite3
+import time # <--- أضف هذا السطر
 from datetime import datetime, timedelta
 from flask import Flask
 import telebot
@@ -16,6 +17,8 @@ import cohere
 from groq import Groq
 import json
 import re
+
+
 
 # متغيرات البيئة
 load_dotenv()
@@ -339,6 +342,49 @@ def generate_quizzes_from_text(text: str, major: str, chat_id: int, num_quizzes:
         logging.error(f"❌ JSON parsing failed: {e}\nCleaned string was:\n{clean_json_str}\nRaw output was:\n{raw_response}")
         return [] # أرجع قائمة فارغة عند الفشل
     # --- التعديل ينتهي هنا ---
+
+
+def send_quizzes_as_polls(chat_id: int, quizzes: list):
+    """
+    Sends a list of quizzes to a user as separate Telegram polls.
+    
+    :param chat_id: The user's chat ID.
+    :param quizzes: A list of quiz tuples, where each tuple is
+                    (question, options_list, correct_index).
+    """
+    # نرسل رسالة للمستخدم نخبره فيها بعدد الأسئلة
+    bot.send_message(chat_id, f"تم تجهيز {len(quizzes)} سؤالًا. استعد للاختبار!")
+    time.sleep(2) # ننتظر ثانيتين قبل بدء الاختبار
+
+    for i, quiz_data in enumerate(quizzes):
+        try:
+            question, options, correct_index = quiz_data
+            
+            # التأكد من أن طول السؤال والخيارات ضمن حدود تليجرام
+            question_text = f"❓ السؤال {i+1}:\n\n{question}"
+            if len(question_text) > 300: # حد تليجرام لطول السؤال هو 300 حرف
+                question_text = question_text[:297] + "..."
+
+            bot.send_poll(
+                chat_id=chat_id,
+                question=question_text,
+                options=options,
+                type='quiz',
+                correct_option_id=correct_index,
+                is_anonymous=False, # في الاختبارات، عادة ما تكون الإجابات غير مجهولة
+                explanation=f"الإجابة الصحيحة هي: {options[correct_index]}"
+            )
+            
+            # ننتظر ثانية واحدة بين كل سؤال لتجنب مشاكل الإرسال السريع
+            time.sleep(1)
+
+        except Exception as e:
+            logging.error(f"Could not send poll for quiz: {quiz_data}. Error: {e}")
+            bot.send_message(chat_id, f"عذرًا، حدث خطأ أثناء إرسال السؤال رقم {i+1}. سنتجاوزه ونكمل.")
+            continue # ننتقل للسؤال التالي في حالة حدوث خطأ
+
+    bot.send_message(chat_id, "🎉 انتهى الاختبار! بالتوفيق.")
+
 
 # -------------------------------------------------------------------
 #                  Telegram Bot Handlers
