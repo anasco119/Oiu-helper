@@ -15,6 +15,7 @@ import requests
 import cohere
 from groq import Groq
 import json
+import re
 
 # متغيرات البيئة
 load_dotenv()
@@ -32,10 +33,7 @@ bot = telebot.TeleBot(BOT_TOKEN)
 # -*- coding: utf-8 -*-
 
 
-# --- إعداد المفاتيح والعملاء ---
-
-# استدعاء المفاتيح من متغيرات البيئة
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+# --- إعداد المفاتيح والعمل
 
 # 1. إعداد Google Gemini
 gemini_model = None
@@ -249,6 +247,46 @@ def increment_count(user_id: int):
 #                 Quiz Generation & Formatting
 # -------------------------------------------------------------------
 
+def extract_json_from_string(text: str) -> str:
+    """
+    Extracts a JSON string from a text that might contain markdown code blocks or other text.
+    """
+    # البحث عن بلوك JSON داخل ```json ... ```
+    match = re.search(r'```json\s*([\s\S]*?)\s*```', text)
+    if match:
+        return match.group(1).strip()
+
+    # إذا لم يجد بلوك، ابحث عن أول '{' أو '[' وآخر '}' أو ']'
+    start = -1
+    end = -1
+    
+    # البحث عن بداية القائمة أو الكائن
+    first_brace = text.find('{')
+    first_bracket = text.find('[')
+    
+    if first_brace == -1:
+        start = first_bracket
+    elif first_bracket == -1:
+        start = first_brace
+    else:
+        start = min(first_brace, first_bracket)
+
+    # إذا لم يتم العثور على بداية، أرجع النص الأصلي
+    if start == -1:
+        return text
+
+    # البحث عن نهاية القائمة أو الكائن
+    last_brace = text.rfind('}')
+    last_bracket = text.rfind(']')
+    end = max(last_brace, last_bracket)
+
+    # إذا تم العثور على بداية ونهاية، أرجع ما بينهما
+    if end > start:
+        return text[start:end+1].strip()
+        
+    # كخيار أخير، أرجع النص كما هو
+    return text
+    
 def generate_quizzes_from_text(text: str, major: str, num_quizzes: int = 10):
     prompt = (
         f"You are an AI quiz generator. Generate a JSON array of {num_quizzes} quiz questions "
@@ -264,10 +302,20 @@ def generate_quizzes_from_text(text: str, major: str, num_quizzes: int = 10):
         f"Content:\n{text}"
     )
 
-    raw = generate_gemini_response(prompt)
+    raw_response = generate_gemini_response(prompt)
+    
+    # --- التعديل يبدأ هنا ---
+    # 1. تنظيف الاستجابة لاستخراج الـ JSON
+    clean_json_str = extract_json_from_string(raw_response)
+    
+    # 2. التحقق مما إذا كانت الاستجابة فارغة بعد التنظيف
+    if not clean_json_str:
+        logging.error(f"❌ JSON extraction failed. Raw output was:\n{raw_response}")
+        return [] # أرجع قائمة فارغة بدلاً من رسالة خطأ
 
     try:
-        quizzes_json = json.loads(raw)
+        # 3. محاولة تحليل السلسلة النظيفة
+        quizzes_json = json.loads(clean_json_str)
         quizzes = []
 
         for item in quizzes_json:
@@ -275,17 +323,18 @@ def generate_quizzes_from_text(text: str, major: str, num_quizzes: int = 10):
             opts = item.get("options", [])
             corr = item.get("correct_index", -1)
 
-            if isinstance(q, str) and isinstance(opts, list) and len(opts) == 4 and isinstance(corr, int) and 0 <= corr < 4:
-                quizzes.append((q, [opt.strip() for opt in opts], corr))
+            if isinstance(q, str) and q and isinstance(opts, list) and len(opts) == 4 and isinstance(corr, int) and 0 <= corr < 4:
+                quizzes.append((q, [str(opt).strip() for opt in opts], corr))
             else:
-                logging.warning(f"❌ Skipping invalid question: {item}")
+                logging.warning(f"❌ Skipping invalid question structure: {item}")
 
         return quizzes
 
-    except Exception as e:
-        logging.error(f"❌ JSON parsing failed: {e}\nRaw output was:\n{raw}")
-        return [{"question": "❌ حدث خطأ في تحليل JSON. أعد المحاولة أو أخبر المطور.", "options": ["-"] * 4, "correct_index": 0}]
-    
+    except json.JSONDecodeError as e:
+        logging.error(f"❌ JSON parsing failed: {e}\nCleaned string was:\n{clean_json_str}\nRaw output was:\n{raw_response}")
+        return [] # أرجع قائمة فارغة عند الفشل
+    # --- التعديل ينتهي هنا ---
+
 # -------------------------------------------------------------------
 #                  Telegram Bot Handlers
 # -------------------------------------------------------------------
@@ -383,7 +432,7 @@ def handle_document(msg):
 
     bot.send_message(uid, "🧠 جاري توليد الاختبارات... الرجاء الانتظار")
     quizzes = generate_quizzes_from_text(text[:3000], major, num_quizzes=10)
-    if quizzes:
+    if quizzes and len(quizzes) > 0:
         send_quizzes_as_polls(uid, quizzes)
         increment_count(uid)
     else:
@@ -405,7 +454,7 @@ def handle_text(msg):
 
     bot.send_message(uid, "🧠 جاري توليد الاختبارات من النص... الرجاء الانتظار")
     quizzes = generate_quizzes_from_text(text[:3000], major, num_quizzes=10)
-    if quizzes:
+    if quizzes and len(quizzes) > 0:
         send_quizzes_as_polls(uid, quizzes)
         increment_count(uid)
     else:
