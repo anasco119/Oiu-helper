@@ -315,7 +315,7 @@ def extract_json_from_string(text: str) -> str:
     
 def generate_quizzes_from_text(text: str, major: str, chat_id: int, num_quizzes: int = 10):
     prompt = (
-        f"You are an AI quiz generator. Generate a JSON array of {num_quizzes} quiz questions "
+        f"You are an AI quiz generator. Generate a JSON array of {num_quizzes} quiz questions with the same language of the content"
         f"suitable for students majoring in {major}, based on the following content.\n\n"
         "Each question must be an object with:\n"
         "- 'question': the question string\n"
