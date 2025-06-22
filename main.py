@@ -307,7 +307,7 @@ def generate_quizzes_from_text(text: str, major: str, num_quizzes: int = 10):
         f"Content:\n{text}"
     )
 
-    raw_response = generate_gemini_response(prompt٫ chat_id)
+    raw_response = generate_gemini_response(prompt, chat_id)
     
     # --- التعديل يبدأ هنا ---
     # 1. تنظيف الاستجابة لاستخراج الـ JSON
