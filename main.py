@@ -80,28 +80,31 @@ def generate_gemini_response(prompt: str) -> str:
     """
     timeout_seconds = 45
 
-    # 1️⃣ OpenRouter - Mistral
+    # 1️⃣ OpenRouter - Nous Hermes 2 (أفضل دعم للعربية)
     if OPENROUTER_API_KEY:
         try:
-            logging.info("Attempting request with: 1. OpenRouter (Mistral)...")
+            logging.info("Attempting request with: 1. OpenRouter (Nous Hermes 2)...")
             headers = {
-                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                "HTTP-Referer": "https://t.me/YourBotName",  # Replace with your bot's link
-                "X-Title": "AI Quiz Bot"
+            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+            "HTTP-Referer": "https://t.me/Oiuhelper_bot",  # ← غيّر هذا إلى رابط البوت
+            "X-Title": "AI Quiz Bot"
             }
-            model_identifier = "mistralai/mistral-7b-instruct:free"
+            model_identifier = "nousresearch/nous-hermes-2-mistral:free"
             response = requests.post(
-                url="https://openrouter.ai/api/v1/chat/completions",
-                headers=headers,
-                json={"model": model_identifier, "messages": [{"role": "user", "content": prompt}]},
-                timeout=timeout_seconds
+            url="https://openrouter.ai/api/v1/chat/completions",
+            headers=headers,
+                json={
+                "model": model_identifier,
+                "messages": [{"role": "user", "content": prompt}]
+            },
+            timeout=timeout_seconds
             )
             response.raise_for_status()
             result_text = response.json()['choices'][0]['message']['content']
-            logging.info("✅ Success with OpenRouter (Mistral).")
+            logging.info("✅ Success with OpenRouter (Nous Hermes 2).")
             return result_text
         except Exception as e:
-            logging.warning(f"❌ OpenRouter (Mistral) failed: {e}")
+            logging.warning(f"❌ OpenRouter (Nous Hermes 2) failed: {e}")
 
     # 2️⃣ Groq (LLaMA 3)
     if groq_client:
@@ -127,7 +130,7 @@ def generate_gemini_response(prompt: str) -> str:
             logging.info("Attempting request with: 3. OpenRouter (Gemma)...")
             headers = {
                 "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                "HTTP-Referer": "https://t.me/YourBotName",  # Replace with your bot's link
+                "HTTP-Referer": "https://t.me/Oiuhelper_bot",  # Replace with your bot's link
                 "X-Title": "AI Quiz Bot"
             }
             model_identifier = "google/gemma-7b-it:free"
