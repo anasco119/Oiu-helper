@@ -174,7 +174,87 @@ def generate_gemini_response(prompt: str) -> str:
     # 🚫 All models failed
     logging.error("❌ All API providers failed. Returning empty string.")
     return ""
-            
+
+
+def generate_smart_response(prompt: str) -> str:
+    """
+    Tries to generate a response by attempting a chain of services silently.
+    It logs errors for the developer but does not send progress messages to the user.
+    """
+    timeout_seconds = 45
+
+
+    #  1️⃣ Cohere
+    if cohere_client:
+        try:
+            logging.info("Attempting request with: 5. Cohere...")
+            response = cohere_client.chat(model='command-r', message=prompt)
+            logging.info("✅ Success with Cohere.")
+            return response.text
+        except Exception as e:
+            logging.warning(f"❌ Cohere failed: {e}")
+
+
+
+    # 2️⃣ Google Gemini
+    if gemini_model:
+        try:
+            logging.info("Attempting request with: 4. Google Gemini...")
+            request_options = {"timeout": timeout_seconds}
+            response = gemini_model.generate_content(prompt, request_options=request_options)
+            if response.text:
+                logging.info("✅ Success with Gemini.")
+                return response.text
+            else:
+                logging.warning("❌ Gemini returned no text. Trying fallback...")
+        except Exception as e:
+            logging.warning(f"❌ Gemini failed: {e}")
+
+
+    #  3️⃣  Groq (LLaMA 3)
+    if groq_client:
+        try:
+            logging.info("Attempting request with: 2. Groq (LLaMA 3)...")
+            chat_completion = groq_client.chat.completions.create(
+                messages=[{"role": "user", "content": prompt}],
+                model="llama3-8b-8192",
+                temperature=0.7,
+                timeout=timeout_seconds
+            )
+            if chat_completion.choices[0].message.content:
+                logging.info("✅ Success with Groq.")
+                return chat_completion.choices[0].message.content
+            else:
+                logging.warning("❌ Groq returned no text. Trying fallback...")
+        except Exception as e:
+            logging.warning(f"❌ Groq failed: {e}")
+
+    # 4️⃣# 5️⃣ OpenRouter - Gemma
+    if OPENROUTER_API_KEY:
+        try:
+            logging.info("Attempting request with: 3. OpenRouter (Gemma)...")
+            headers = {
+                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                "HTTP-Referer": "https://t.me/Oiuhelper_bot",  # Replace with your bot's link
+                "X-Title": "AI Quiz Bot"
+            }
+            model_identifier = "google/gemma-7b-it:free"
+            response = requests.post(
+                url="https://openrouter.ai/api/v1/chat/completions",
+                headers=headers,
+                json={"model": model_identifier, "messages": [{"role": "user", "content": prompt}]},
+                timeout=timeout_seconds
+            )
+            response.raise_for_status()
+            result_text = response.json()['choices'][0]['message']['content']
+            logging.info("✅ Success with OpenRouter (Gemma).")
+            return result_text
+        except Exception as e:
+            logging.warning(f"❌ OpenRouter (Gemma) failed: {e}")
+
+    # 🚫 All models failed
+    logging.error("❌ All API providers failed. Returning empty string.")
+    return ""
 # -------------------------------------------------------------------
 #                  Logging & Database Setup
 # -------------------------------------------------------------------
