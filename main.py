@@ -412,11 +412,10 @@ def generate_quizzes_from_text(text: str, major: str, user_id: int, num_quizzes:
     )
 
     # تحديد الدالة بناءً على صلاحية المستخدم
-    if user_id == ADMIN_ID or can_generate(uid):  # <-- التحقق هنا
+    if can_generate(user_id):
         raw_response = generate_smart_response(prompt)
     else:
         raw_response = generate_gemini_response(prompt)
-
     
     # --- التعديل يبدأ هنا ---
     # 1. تنظيف الاستجابة لاستخراج الـ JSON
