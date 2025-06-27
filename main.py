@@ -496,8 +496,10 @@ def send_quizzes_as_polls(chat_id: int, quizzes: list):
 #                  Telegram Bot Handlers
 # -------------------------------------------------------------------
 
-@bot.message_handler(commands=['start'])
-def cmd_start(msg):
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+# دالة مساعدة لإظهار الواجهة الرئيسية (إرسال أو تعديل حسب السياق)
+def show_main_menu(chat_id, message_id=None):
     keyboard = InlineKeyboardMarkup(row_width=2)
     buttons = [
         InlineKeyboardButton("📝 توليد اختبار", callback_data="go_generate"),
@@ -509,8 +511,7 @@ def cmd_start(msg):
     ]
     keyboard.add(*buttons)
 
-    bot.send_message(
-        msg.chat.id,
+    text = (
         "👋 أهلاً بك في TestGenie ✨\n\n"
         "🎯 أدوات تعليمية ذكية:\n"
         "- اختبارات من ملفاتك\n"
@@ -518,13 +519,25 @@ def cmd_start(msg):
         "- ملخصات PDF/Word\n"
         "- ألعاب تعليمية *(قريبًا)*\n\n"
         "📌 لديك 3 اختبارات مجانية شهريًا.\n\n"
-        "اختر ما يناسبك 👇",
-        reply_markup=keyboard
+        "اختر ما يناسبك 👇"
     )
 
-@bot.callback_query_handler(func=lambda c: c.data.startswith("go_") or c.data.startswith("soon_") or c.data == "go_back_home")
-def handle_main_menu(c):
-    if c.data == "go_generate":
+    if message_id:
+        bot.edit_message_text(text, chat_id=chat_id, message_id=message_id, reply_markup=keyboard)
+    else:
+        bot.send_message(chat_id, text, reply_markup=keyboard)
+
+
+@bot.message_handler(commands=['start'])
+def cmd_start(msg):
+    show_main_menu(chat_id=msg.chat.id)
+
+
+@bot.callback_query_handler(func=lambda c: True)
+def handle_callbacks(c):
+    data = c.data
+
+    if data == "go_generate":
         keyboard = InlineKeyboardMarkup()
         buttons = [
             ("🩺 الطب", "major_الطب"),
@@ -533,10 +546,8 @@ def handle_main_menu(c):
             ("🗣️ اللغات", "major_اللغات"),
             ("❓ غير ذلك...", "major_custom"),
         ]
-        for text, data in buttons:
-            keyboard.add(InlineKeyboardButton(text, callback_data=data))
-        
-        # زر الرجوع للواجهة الرئيسية
+        for text, callback in buttons:
+            keyboard.add(InlineKeyboardButton(text, callback_data=callback))
         keyboard.add(InlineKeyboardButton("⬅️ رجوع", callback_data="go_back_home"))
 
         bot.edit_message_text(
@@ -548,86 +559,35 @@ def handle_main_menu(c):
             reply_markup=keyboard
         )
 
-    elif c.data == "go_back_home":
-        keyboard = InlineKeyboardMarkup(row_width=2)
-        buttons = [
-            InlineKeyboardButton("📝 توليد اختبار", callback_data="go_generate"),
-            InlineKeyboardButton("📚 مراجعة سريعة", callback_data="soon_review"),
-            InlineKeyboardButton("📄 ملخص PDF", callback_data="soon_summary"),
-            InlineKeyboardButton("🧠 بطاقات Anki", callback_data="soon_anki"),
-            InlineKeyboardButton("🎮 ألعاب تعليمية", callback_data="soon_games"),
-            InlineKeyboardButton("⚙️ حسابي", callback_data="soon_account"),
-    ]
-        keyboard.add(*buttons)
+    elif data == "go_back_home":
+        show_main_menu(chat_id=c.message.chat.id, message_id=c.message.message_id)
 
-        bot.edit_message_text(
-        "👋 أهلاً بك في TestGenie ✨\n\n"
-        "🎯 أدوات تعليمية ذكية:\n"
-        "- اختبارات من ملفاتك\n"
-        "- بطاقات مراجعة (Anki)\n"
-        "- ملخصات PDF/Word\n"
-        "- ألعاب تعليمية *(قريبًا)*\n\n"
-        "📌 لديك 3 اختبارات مجانية شهريًا.\n\n"
-        "اختر ما يناسبك 👇",
-        chat_id=c.message.chat.id,
-        message_id=c.message.message_id,
-        reply_markup=keyboard
-    )
-
-    else:
+    elif data.startswith("soon_"):
         feature_name = {
             "soon_review": "📚 ميزة المراجعة السريعة",
             "soon_summary": "📄 ملخصات PDF",
             "soon_anki": "🧠 بطاقات Anki",
             "soon_games": "🎮 الألعاب التعليمية",
             "soon_account": "⚙️ إدارة الحساب",
-        }.get(c.data, "هذه الميزة")
+        }.get(data, "هذه الميزة")
 
         bot.answer_callback_query(c.id)
         bot.send_message(c.message.chat.id, f"{feature_name} ستكون متاحة قريبًا... 🚧")
 
-
-    if c.data == "go_generate":
-        keyboard = InlineKeyboardMarkup()
-        buttons = [
-            ("🩺 الطب", "major_الطب"),
-            ("🛠️ الهندسة", "major_الهندسة"),
-            ("💊 الصيدلة", "major_الصيدلة"),
-            ("🗣️ اللغات", "major_اللغات"),
-            ("❓ غير ذلك...", "major_custom"),
-    ]
-    for text, data in buttons:
-        keyboard.add(InlineKeyboardButton(text, callback_data=data))
-
-    # زر الرجوع
-    keyboard.add(InlineKeyboardButton("⬅️ رجوع", callback_data="go_back_home"))
-
-    bot.edit_message_text(
-        "🎯 هذا البوت يساعدك على توليد اختبارات ذكية من ملفاتك الدراسية أو النصوص، حسب تخصصك.\n"
-        "📌 متاح لك 3 اختبارات مجانية شهريًا.\n"
-        "اختر تخصصك للبدء 👇",
-        chat_id=c.message.chat.id,
-        message_id=c.message.message_id,
-        reply_markup=keyboard
+    elif data.startswith("major_"):
+        sel = data.split("_", 1)[1]
+        uid = c.from_user.id
+        if sel == "custom":
+            user_states[uid] = "awaiting_major"
+            bot.send_message(uid, "✏️ من فضلك أرسل اسم تخصصك بدقة.")
+        else:
+            cursor.execute("INSERT OR REPLACE INTO users(user_id, major) VALUES(?, ?)", (uid, sel))
+            conn.commit()
+            bot.send_message(uid,
+                f"✅ تم تحديد تخصصك: {sel}\n"
+                "الآن أرسل ملف (PDF/DOCX/TXT) أو نصًا مباشرًا لتوليد اختبارك."
     )
-
-@bot.callback_query_handler(func=lambda c: c.data.startswith("major_"))
-def cb_major(c):
-    sel = c.data.split("_", 1)[1]
-    uid = c.from_user.id
-
-    if sel == "custom":
-        user_states[uid] = "awaiting_major"
-        bot.send_message(uid, "✏️ من فضلك أرسل اسم تخصصك بدقة.")
-    else:
-        # set directly
-        cursor.execute("INSERT OR REPLACE INTO users(user_id, major) VALUES(?, ?)", (uid, sel))
-        conn.commit()
-        bot.send_message(uid,
-            f"✅ تم تحديد تخصصك: {sel}\n"
-            "الآن أرسل ملف (PDF/DOCX/TXT) أو نصًا مباشرًا لتوليد اختبارك."
-        )
-    
+            
 
 @bot.message_handler(func=lambda m: user_states.get(m.from_user.id) == "awaiting_major", content_types=['text'])
 def set_custom_major(msg):
