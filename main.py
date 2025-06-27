@@ -549,18 +549,18 @@ def handle_main_menu(c):
         )
 
     elif c.data == "go_back_home":
-    keyboard = InlineKeyboardMarkup(row_width=2)
-    buttons = [
-        InlineKeyboardButton("📝 توليد اختبار", callback_data="go_generate"),
-        InlineKeyboardButton("📚 مراجعة سريعة", callback_data="soon_review"),
-        InlineKeyboardButton("📄 ملخص PDF", callback_data="soon_summary"),
-        InlineKeyboardButton("🧠 بطاقات Anki", callback_data="soon_anki"),
-        InlineKeyboardButton("🎮 ألعاب تعليمية", callback_data="soon_games"),
-        InlineKeyboardButton("⚙️ حسابي", callback_data="soon_account"),
+        keyboard = InlineKeyboardMarkup(row_width=2)
+        buttons = [
+            InlineKeyboardButton("📝 توليد اختبار", callback_data="go_generate"),
+            InlineKeyboardButton("📚 مراجعة سريعة", callback_data="soon_review"),
+            InlineKeyboardButton("📄 ملخص PDF", callback_data="soon_summary"),
+            InlineKeyboardButton("🧠 بطاقات Anki", callback_data="soon_anki"),
+            InlineKeyboardButton("🎮 ألعاب تعليمية", callback_data="soon_games"),
+            InlineKeyboardButton("⚙️ حسابي", callback_data="soon_account"),
     ]
-    keyboard.add(*buttons)
+        keyboard.add(*buttons)
 
-    bot.edit_message_text(
+        bot.edit_message_text(
         "👋 أهلاً بك في TestGenie ✨\n\n"
         "🎯 أدوات تعليمية ذكية:\n"
         "- اختبارات من ملفاتك\n"
