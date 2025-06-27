@@ -605,10 +605,7 @@ def cb_major(c):
             f"✅ تم تحديد تخصصك: {sel}\n"
             "الآن أرسل ملف (PDF/DOCX/TXT) أو نصًا مباشرًا لتوليد اختبارك."
         )
-    elif c.data == "go_back_home":
-    # إعادة عرض واجهة البداية
-        cmd_start(c.message)
-
+    
 
 @bot.message_handler(func=lambda m: user_states.get(m.from_user.id) == "awaiting_major", content_types=['text'])
 def set_custom_major(msg):
