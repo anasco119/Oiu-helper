@@ -352,9 +352,8 @@ def increment_count(user_id: int):
     cursor.execute("UPDATE users SET quiz_count = quiz_count + 1 WHERE user_id = ?", (user_id,))
     conn.commit()
 
-def is_private_chat(msg):
-    return msg.chat.type == "private"
-
+def is_private_chat(obj):
+    return obj.chat.type == "private"
 
 # -------------------------------------------------------------------
 #                 Quiz Generation & Formatting
@@ -503,8 +502,7 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 # دالة مساعدة لإظهار الواجهة الرئيسية (إرسال أو تعديل حسب السياق)
 def show_main_menu(chat_id, message_id=None):
-    if not is_private_chat(msg):
-        return  # تجاهل الرسائل من المجموعات أو القنوات
+    
     keyboard = InlineKeyboardMarkup(row_width=2)
     buttons = [
         InlineKeyboardButton("📝 توليد اختبار", callback_data="go_generate"),
@@ -542,8 +540,8 @@ def cmd_start(msg):
 
 @bot.callback_query_handler(func=lambda c: True)
 def handle_callbacks(c):
-    if not is_private_chat(msg):
-        return  # تجاهل الرسائل من المجموعات أو القنوات
+    if not is_private_chat(c.message):
+        return
     data = c.data
 
     if data == "go_generate":
