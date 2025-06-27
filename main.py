@@ -522,8 +522,7 @@ def cmd_start(msg):
         reply_markup=keyboard
     )
 
-
-@bot.callback_query_handler(func=lambda c: c.data.startswith("go_") or c.data.startswith("soon_"))
+@bot.callback_query_handler(func=lambda c: c.data.startswith("go_") or c.data.startswith("soon_") or c.data == "go_back_home")
 def handle_main_menu(c):
     if c.data == "go_generate":
         keyboard = InlineKeyboardMarkup()
@@ -536,6 +535,9 @@ def handle_main_menu(c):
         ]
         for text, data in buttons:
             keyboard.add(InlineKeyboardButton(text, callback_data=data))
+        
+        # زر الرجوع للواجهة الرئيسية
+        keyboard.add(InlineKeyboardButton("⬅️ رجوع", callback_data="go_back_home"))
 
         bot.edit_message_text(
             "🎯 هذا البوت يساعدك على توليد اختبارات ذكية من ملفاتك الدراسية أو النصوص، حسب تخصصك.\n"
@@ -545,6 +547,11 @@ def handle_main_menu(c):
             message_id=c.message.message_id,
             reply_markup=keyboard
         )
+
+    elif c.data == "go_back_home":
+        # الرجوع للواجهة الرئيسية
+        cmd_start(c.message)
+
     else:
         feature_name = {
             "soon_review": "📚 ميزة المراجعة السريعة",
