@@ -412,7 +412,7 @@ def generate_quizzes_from_text(text: str, major: str, user_id: int, num_quizzes:
     )
 
     # تحديد الدالة بناءً على صلاحية المستخدم
-    if user_id == ADMIN_ID or can_generate(user_id):  # <-- التحقق هنا
+    if user_id == ADMIN_ID or can_generate(uid):  # <-- التحقق هنا
         raw_response = generate_smart_response(prompt)
     else:
         raw_response = generate_gemini_response(prompt)
@@ -586,7 +586,7 @@ def handle_callbacks(c):
             bot.send_message(uid,
                 f"✅ تم تحديد تخصصك: {sel}\n"
                 "الآن أرسل ملف (PDF/DOCX/TXT) أو نصًا مباشرًا لتوليد اختبارك."
-    )
+                            )
             
 
 @bot.message_handler(func=lambda m: user_states.get(m.from_user.id) == "awaiting_major", content_types=['text'])
