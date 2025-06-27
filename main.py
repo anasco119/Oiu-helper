@@ -352,6 +352,10 @@ def increment_count(user_id: int):
     cursor.execute("UPDATE users SET quiz_count = quiz_count + 1 WHERE user_id = ?", (user_id,))
     conn.commit()
 
+def is_private_chat(msg):
+    return msg.chat.type == "private"
+
+
 # -------------------------------------------------------------------
 #                 Quiz Generation & Formatting
 # -------------------------------------------------------------------
@@ -499,6 +503,8 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 # دالة مساعدة لإظهار الواجهة الرئيسية (إرسال أو تعديل حسب السياق)
 def show_main_menu(chat_id, message_id=None):
+    if not is_private_chat(msg):
+        return  # تجاهل الرسائل من المجموعات أو القنوات
     keyboard = InlineKeyboardMarkup(row_width=2)
     buttons = [
         InlineKeyboardButton("📝 توليد اختبار", callback_data="go_generate"),
@@ -529,11 +535,15 @@ def show_main_menu(chat_id, message_id=None):
 
 @bot.message_handler(commands=['start'])
 def cmd_start(msg):
+    if not is_private_chat(msg):
+        return  # تجاهل الرسائل من المجموعات أو القنوات
     show_main_menu(chat_id=msg.chat.id)
 
 
 @bot.callback_query_handler(func=lambda c: True)
 def handle_callbacks(c):
+    if not is_private_chat(msg):
+        return  # تجاهل الرسائل من المجموعات أو القنوات
     data = c.data
 
     if data == "go_generate":
@@ -590,6 +600,8 @@ def handle_callbacks(c):
 
 @bot.message_handler(func=lambda m: user_states.get(m.from_user.id) == "awaiting_major", content_types=['text'])
 def set_custom_major(msg):
+    if not is_private_chat(msg):
+        return  # تجاهل الرسائل من المجموعات أو القنوات
     major = msg.text.strip()
     uid   = msg.from_user.id
 
@@ -613,6 +625,8 @@ def set_custom_major(msg):
 
 @bot.message_handler(content_types=['document'])
 def handle_document(msg):
+    if not is_private_chat(msg):
+        return  # تجاهل الرسائل من المجموعات أو القنوات
     uid = msg.from_user.id
     if not can_generate(uid):
         return bot.send_message(uid, "⚠️ لقد استنفدت 3 اختبارات مجانية هذا الشهر.")
@@ -656,6 +670,8 @@ def handle_document(msg):
 
 @bot.message_handler(content_types=['text'])
 def handle_text(msg):
+    if not is_private_chat(msg):
+        return  # تجاهل الرسائل من المجموعات أو القنوات
     uid = msg.chat.id
     # skip if awaiting major
     if user_states.get(uid) == "awaiting_major":
