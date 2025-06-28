@@ -711,6 +711,8 @@ def cmd_start(msg):
         "اختر ما يناسبك 👇",
         reply_markup=keyboard
     )
+
+
 @bot.callback_query_handler(func=lambda c: True)
 def handle_all_callbacks(c):
     uid = c.from_user.id
@@ -739,15 +741,17 @@ def handle_all_callbacks(c):
         except Exception as e:
             logging.exception("❌ حدث خطأ في game_private")
             bot.send_message(uid, "❌ حدث خطأ أثناء عرض الألعاب.")
-   elif data.startswith("game_"):
-        game_type = data.split("_")[1]
+
+    elif c.data.startswith("game_"):
+        game_type = c.data.split("_")[1]
         uid = c.from_user.id
+
         if game_type == "vocab":
             if not can_play_game_today(uid, "vocab"):
                 return bot.send_message(uid, "❌ لقد لعبت هذه اللعبة اليوم. جرب لعبة أخرى أو انتظر للغد.")
             record_game_attempt(uid, "vocab")
 
-            raw = generate_vocabulary_game(c.from_user.id, get_user_major(c.from_user.id))  # ← استدعاء الذكاء الاصطناعي
+            raw = generate_vocabulary_game(uid, get_user_major(uid))
             try:
                 q = json.loads(raw)
                 question = q["question"]
@@ -763,11 +767,13 @@ def handle_all_callbacks(c):
             except Exception as e:
                 logging.warning(f"❌ فشل توليد سؤال AI: {e}")
                 bot.send_message(c.message.chat.id, "❌ تعذر توليد السؤال الآن. حاول لاحقًا.")
+
         elif game_type == "speed":
             if not can_play_game_today(uid, "speed"):
                 return bot.send_message(uid, "❌ لقد لعبت هذه اللعبة اليوم. جرب لعبة أخرى أو انتظر للغد.")
-            record_game_attempt(uid, "vocab")
-            raw = generate_speed_challenge(c.from_user.id, get_user_major(c.from_user.id))  # ← استدعاء الذكاء الاصطناعي
+            record_game_attempt(uid, "speed")
+
+            raw = generate_speed_challenge(uid, get_user_major(uid))
             try:
                 q = json.loads(raw)
                 question = q["question"]
@@ -782,11 +788,13 @@ def handle_all_callbacks(c):
             except Exception as e:
                 logging.warning(f"❌ فشل توليد سؤال AI: {e}")
                 bot.send_message(c.message.chat.id, "❌ تعذر توليد السؤال الآن. حاول لاحقًا.")
-        elif game_type == "errors":
-            if not can_play_game_today(uid, "errors"):
+
+        elif game_type == "mistakes":
+            if not can_play_game_today(uid, "mistakes"):
                 return bot.send_message(uid, "❌ لقد لعبت هذه اللعبة اليوم. جرب لعبة أخرى أو انتظر للغد.")
-            record_game_attempt(uid, "vocab")
-            raw = generate_common_mistakes_game(c.from_user.id, get_user_major(c.from_user.id))  # ← استدعاء الذكاء الاصطناعي
+            record_game_attempt(uid, "mistakes")
+
+            raw = generate_common_mistakes_game(uid, get_user_major(uid))
             try:
                 q = json.loads(raw)
                 question = q["question"]
@@ -795,7 +803,7 @@ def handle_all_callbacks(c):
 
                 keyboard = InlineKeyboardMarkup()
                 for i, option in enumerate(options):
-                    callback = f"ans_errors_{i}_{correct_index}"  # ✅統一 الشكل
+                    callback = f"ans_mistakes_{i}_{correct_index}"  # ✅統一 الشكل
 
                     bot.send_message(c.message.chat.id, question, reply_markup=keyboard)
 
@@ -803,38 +811,40 @@ def handle_all_callbacks(c):
                 logging.warning(f"❌ فشل توليد سؤال AI: {e}")
                 bot.send_message(c.message.chat.id, "❌ تعذر توليد السؤال الآن. حاول لاحقًا.")
 
-        elif data == "inference_game":
-            if not can_play_game_today(uid, "inference_game"):
-                return bot.send_message(uid, "❌ لقد لعبت هذه اللعبة اليوم. جرب لعبة أخرى أو انتظر للغد.")
-            record_game_attempt(uid, "vocab")
-            raw = generate_inference_game(c.from_user.id, get_user_major(c.from_user.id))
-            try:
-                q = json.loads(raw)
-                question = q["question"]
-                options = q["options"]
-                correct_index = q["correct_index"]
+    elif c.data == "inference_game":
+        if not can_play_game_today(uid, "inference_game"):
+            return bot.send_message(uid, "❌ لقد لعبت هذه اللعبة اليوم. جرب لعبة أخرى أو انتظر للغد.")
+        record_game_attempt(uid, "inference_game")
 
-                keyboard = InlineKeyboardMarkup()
-                for i, option in enumerate(options):
-                    callback = f"ans_infer_{i}_{correct_index}"
-                    keyboard.add(InlineKeyboardButton(option, callback_data=callback))
+        raw = generate_inference_game(uid, get_user_major(uid))
+        try:
+            q = json.loads(raw)
+            question = q["question"]
+            options = q["options"]
+            correct_index = q["correct_index"]
 
-                bot.send_message(c.message.chat.id, question, reply_markup=keyboard)
+            keyboard = InlineKeyboardMarkup()
+            for i, option in enumerate(options):
+                callback = f"ans_infer_{i}_{correct_index}"
+                keyboard.add(InlineKeyboardButton(option, callback_data=callback))
 
-            except Exception as e:
-                logging.warning(f"❌ فشل توليد سؤال استنتاج: {e}")
-                bot.send_message(c.message.chat.id, "❌ حدث خطأ أثناء توليد لعبة الاستنتاج.")
+            bot.send_message(c.message.chat.id, question, reply_markup=keyboard)
 
-        elif data.startswith("ans_"):
-            _, game_type, selected, correct = data.split("_")
-            selected = int(selected)
-            correct = int(correct)
+        except Exception as e:
+            logging.warning(f"❌ فشل توليد سؤال استنتاج: {e}")
+            bot.send_message(c.message.chat.id, "❌ حدث خطأ أثناء توليد لعبة الاستنتاج.")
 
-            if selected == correct:
-                bot.answer_callback_query(c.id, "✅ إجابة صحيحة!")
-            else:
-                bot.answer_callback_query(c.id, "❌ خاطئة. فكر أكثر...")
-            
+    elif c.data.startswith("ans_"):
+        _, game_type, selected, correct = c.data.split("_")
+        selected = int(selected)
+        correct = int(correct)
+
+        if selected == correct:
+            bot.answer_callback_query(c.id, "✅ إجابة صحيحة!")
+        else:
+            bot.answer_callback_query(c.id, "❌ خاطئة. فكر أكثر...")
+
+
 @bot.callback_query_handler(func=lambda c: c.data.startswith("go_") or c.data.startswith("soon_"))
 def handle_main_menu(c):
     uid = c.from_user.id
@@ -859,7 +869,7 @@ def handle_main_menu(c):
             chat_id=c.message.chat.id,
             message_id=c.message.message_id,
             reply_markup=keyboard
-        )
+   )
 
     elif c.data == "go_games":
         cursor.execute("SELECT major FROM users WHERE user_id = ?", (uid,))
