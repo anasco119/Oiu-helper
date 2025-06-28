@@ -910,17 +910,18 @@ def cb_major(c):
     if sel == "custom":
         user_states[uid] = "awaiting_major"
         bot.send_message(uid, "✏️ من فضلك أرسل اسم تخصصك بدقة.")
+    
+    elif c.data == "go_back_home":
+    # إعادة عرض واجهة البداية
+        cmd_start(c.message)
+
     else:
         # set directly
         cursor.execute("INSERT OR REPLACE INTO users(user_id, major) VALUES(?, ?)", (uid, sel))
         conn.commit()
         bot.send_message(uid,
             f"✅ تم تحديد تخصصك: {sel}\n"
-            "الآن أرسل ملف (PDF/DOCX/TXT) أو نصًا مباشرًا لتوليد اختبارك."
-        )
-    elif c.data == "go_back_home":
-    # إعادة عرض واجهة البداية
-        cmd_start(c.message)
+            "الآن أرسل ملف (PDF/DOCX/TXT) أو نصًا مباشرًا لتوليد اختبارك.")
 
 
 @bot.message_handler(func=lambda m: user_states.get(m.from_user.id) == "awaiting_major", content_types=['text'])
