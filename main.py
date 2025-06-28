@@ -879,14 +879,14 @@ def handle_main_menu(c):
                 bot.send_message(c.message.chat.id, "❌ حدث خطأ أثناء توليد لعبة الاستنتاج.")
 
         elif data.startswith("ans_"):
-        _, game_type, selected, correct = data.split("_")
-        selected = int(selected)
-        correct = int(correct)
+            _, game_type, selected, correct = data.split("_")
+            selected = int(selected)
+            correct = int(correct)
 
-        if selected == correct:
-            bot.answer_callback_query(c.id, "✅ إجابة صحيحة!")
-        else:
-            bot.answer_callback_query(c.id, "❌ خاطئة. فكر أكثر...")
+            if selected == correct:
+                bot.answer_callback_query(c.id, "✅ إجابة صحيحة!")
+            else:
+                bot.answer_callback_query(c.id, "❌ خاطئة. فكر أكثر...")
 
 @bot.message_handler(func=lambda m: user_states.get(m.from_user.id) == "awaiting_major", content_types=['text'])
 def set_user_major(msg):
