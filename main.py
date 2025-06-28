@@ -711,11 +711,25 @@ def cmd_start(msg):
         "اختر ما يناسبك 👇",
         reply_markup=keyboard
     )
+@bot.message_handler(func=lambda m: user_states.get(m.from_user.id) == "awaiting_major", content_types=['text'])
+def set_user_major(msg):
+    major = msg.text.strip()
+    uid = msg.from_user.id
 
-@bot.callback_query_handler(func=lambda c: c.data.startswith("go_") or c.data.startswith("soon_"))
+    cursor.execute("INSERT OR REPLACE INTO users(user_id, major) VALUES(?, ?)", (uid, major))
+    conn.commit()
+    user_states.pop(uid, None)
+
+    bot.send_message(uid,
+        f"✅ تم تسجيل تخصصك: {major}\n"
+        "الآن يمكنك توليد اختبارات أو تجربة الألعاب التعليمية."
+                    )
+    
+@bot.callback_query_handler(func=lambda c: True)
 def handle_main_menu(c):
     uid = c.from_user.id
-
+    sel = c.data.split("_", 1)[1]
+    
     if c.data == "go_generate":
         keyboard = InlineKeyboardMarkup()
         buttons = [
@@ -736,9 +750,24 @@ def handle_main_menu(c):
             chat_id=c.message.chat.id,
             message_id=c.message.message_id,
             reply_markup=keyboard
-   )
+        )
+        if sel == "custom":
+            user_states[uid] = "awaiting_major"
+            bot.send_message(uid, "✏️ من فضلك أرسل اسم تخصصك بدقة.")
+    
+        elif c.data == "go_back_home":
+        # إعادة عرض واجهة البداية
+            cmd_start(c.message)
 
-    elif c.data == "go_games":
+        else:
+            # set directly
+            cursor.execute("INSERT OR REPLACE INTO users(user_id, major) VALUES(?, ?)", (uid, sel))
+            conn.commit()
+            bot.send_message(uid,
+            f"✅ تم تحديد تخصصك: {sel}\n"
+            "الآن أرسل ملف (PDF/DOCX/TXT) أو نصًا مباشرًا لتوليد اختبارك.")
+            
+    if c.data == "go_games":
         cursor.execute("SELECT major FROM users WHERE user_id = ?", (uid,))
         row = cursor.fetchone()
 
@@ -760,7 +789,7 @@ def handle_main_menu(c):
             reply_markup=keyboard
         )
 
-    elif c.data.startswith("soon_"):
+    if c.data.startswith("soon_"):
         feature_name = {
             "soon_review": "📚 ميزة المراجعة السريعة",
             "soon_summary": "📄 ملخصات PDF",
@@ -770,24 +799,6 @@ def handle_main_menu(c):
 
         bot.answer_callback_query(c.id)
         bot.send_message(c.message.chat.id, f"{feature_name} ستكون متاحة قريبًا... 🚧")
-
-@bot.message_handler(func=lambda m: user_states.get(m.from_user.id) == "awaiting_major", content_types=['text'])
-def set_user_major(msg):
-    major = msg.text.strip()
-    uid = msg.from_user.id
-
-    cursor.execute("INSERT OR REPLACE INTO users(user_id, major) VALUES(?, ?)", (uid, major))
-    conn.commit()
-    user_states.pop(uid, None)
-
-    bot.send_message(uid,
-        f"✅ تم تسجيل تخصصك: {major}\n"
-        "الآن يمكنك توليد اختبارات أو تجربة الألعاب التعليمية."
-    )
-
-@bot.callback_query_handler(func=lambda c: True)
-def handle_all_callbacks(c):
-    uid = c.from_user.id
 
     if c.data == "game_private":
         try:
@@ -814,7 +825,7 @@ def handle_all_callbacks(c):
             logging.exception("❌ حدث خطأ في game_private")
             bot.send_message(uid, "❌ حدث خطأ أثناء عرض الألعاب.")
 
-    elif c.data.startswith("game_"):
+    if c.data.startswith("game_"):
         game_type = c.data.split("_")[1]
         uid = c.from_user.id
 
@@ -883,30 +894,30 @@ def handle_all_callbacks(c):
                 logging.warning(f"❌ فشل توليد سؤال AI: {e}")
                 bot.send_message(c.message.chat.id, "❌ تعذر توليد السؤال الآن. حاول لاحقًا.")
 
-    elif c.data == "inference_game":
-        if not can_play_game_today(uid, "inference_game"):
-            return bot.send_message(uid, "❌ لقد لعبت هذه اللعبة اليوم. جرب لعبة أخرى أو انتظر للغد.")
-        record_game_attempt(uid, "inference_game")
+        elif c.data == "inference_game":
+            if not can_play_game_today(uid, "inference_game"):
+                return bot.send_message(uid, "❌ لقد لعبت هذه اللعبة اليوم. جرب لعبة أخرى أو انتظر للغد.")
+            record_game_attempt(uid, "inference_game")
 
-        raw = generate_inference_game(uid, set_user_major(uid))
-        try:
-            q = json.loads(raw)
-            question = q["question"]
-            options = q["options"]
-            correct_index = q["correct_index"]
+            raw = generate_inference_game(uid, set_user_major(uid))
+            try:
+                q = json.loads(raw)
+                question = q["question"]
+                options = q["options"]
+                correct_index = q["correct_index"]
 
-            keyboard = InlineKeyboardMarkup()
-            for i, option in enumerate(options):
-                callback = f"ans_infer_{i}_{correct_index}"
-                keyboard.add(InlineKeyboardButton(option, callback_data=callback))
+                keyboard = InlineKeyboardMarkup()
+                for i, option in enumerate(options):
+                    callback = f"ans_infer_{i}_{correct_index}"
+                    keyboard.add(InlineKeyboardButton(option, callback_data=callback))
 
-            bot.send_message(c.message.chat.id, question, reply_markup=keyboard)
+                bot.send_message(c.message.chat.id, question, reply_markup=keyboard)
 
-        except Exception as e:
-            logging.warning(f"❌ فشل توليد سؤال استنتاج: {e}")
-            bot.send_message(c.message.chat.id, "❌ حدث خطأ أثناء توليد لعبة الاستنتاج.")
+            except Exception as e:
+                logging.warning(f"❌ فشل توليد سؤال استنتاج: {e}")
+                bot.send_message(c.message.chat.id, "❌ حدث خطأ أثناء توليد لعبة الاستنتاج.")
 
-    elif c.data.startswith("ans_"):
+    if c.data.startswith("ans_"):
         _, game_type, selected, correct = c.data.split("_")
         selected = int(selected)
         correct = int(correct)
@@ -916,28 +927,8 @@ def handle_all_callbacks(c):
         else:
             bot.answer_callback_query(c.id, "❌ خاطئة. فكر أكثر...")
                             
-@bot.callback_query_handler(func=lambda c: c.data.startswith("major_"))
-def cb_major(c):
-    sel = c.data.split("_", 1)[1]
-    uid = c.from_user.id
 
-    if sel == "custom":
-        user_states[uid] = "awaiting_major"
-        bot.send_message(uid, "✏️ من فضلك أرسل اسم تخصصك بدقة.")
-    
-    elif c.data == "go_back_home":
-    # إعادة عرض واجهة البداية
-        cmd_start(c.message)
-
-    else:
-        # set directly
-        cursor.execute("INSERT OR REPLACE INTO users(user_id, major) VALUES(?, ?)", (uid, sel))
-        conn.commit()
-        bot.send_message(uid,
-            f"✅ تم تحديد تخصصك: {sel}\n"
-            "الآن أرسل ملف (PDF/DOCX/TXT) أو نصًا مباشرًا لتوليد اختبارك.")
-
-
+ 
 @bot.message_handler(func=lambda m: user_states.get(m.from_user.id) == "awaiting_major", content_types=['text'])
 def set_custom_major(msg):
     major = msg.text.strip()
