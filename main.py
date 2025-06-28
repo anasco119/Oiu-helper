@@ -712,9 +712,10 @@ def cmd_start(msg):
         reply_markup=keyboard
     )
 
-
 @bot.callback_query_handler(func=lambda c: c.data.startswith("go_") or c.data.startswith("soon_"))
 def handle_main_menu(c):
+    uid = c.from_user.id
+
     if c.data == "go_generate":
         keyboard = InlineKeyboardMarkup()
         buttons = [
@@ -726,6 +727,7 @@ def handle_main_menu(c):
         ]
         for text, data in buttons:
             keyboard.add(InlineKeyboardButton(text, callback_data=data))
+        keyboard.add(InlineKeyboardButton("⬅️ رجوع", callback_data="go_back_home"))
 
         bot.edit_message_text(
             "🎯 هذا البوت يساعدك على توليد اختبارات ذكية من ملفاتك الدراسية أو النصوص، حسب تخصصك.\n"
@@ -735,7 +737,51 @@ def handle_main_menu(c):
             message_id=c.message.message_id,
             reply_markup=keyboard
         )
-    else:
+
+    elif c.data == "go_games":
+        cursor.execute("SELECT major FROM users WHERE user_id = ?", (uid,))
+        row = cursor.fetchone()
+
+        if not row or not row[0]:
+            user_states[uid] = "awaiting_major"
+            return bot.send_message(uid, "🧠 قبل أن نبدأ اللعب، أخبرنا بتخصصك:")
+
+        keyboard = InlineKeyboardMarkup(row_width=1)
+        keyboard.add(
+            InlineKeyboardButton("🔒 العب في الخاص", callback_data="game_private"),
+            InlineKeyboardButton("👥 العب في المجموعة", switch_inline_query="game")
+        )
+        bot.edit_message_text(
+            "🎮 اختر طريقة اللعب:\n\n"
+            "- 🔒 في الخاص (ألعاب شخصية حسب تخصصك)\n"
+            "- 👥 في المجموعة (شارك الأصدقاء بالتحدي!)",
+            chat_id=c.message.chat.id,
+            message_id=c.message.message_id,
+            reply_markup=keyboard
+        )
+
+    elif c.data == "game_private":
+        cursor.execute("SELECT major FROM users WHERE user_id = ?", (uid,))
+        row = cursor.fetchone()
+        major = row[0] if row else "عام"
+
+        keyboard = InlineKeyboardMarkup(row_width=1)
+        keyboard.add(
+            InlineKeyboardButton("🧩 Vocabulary Match", callback_data="game_vocab"),
+            InlineKeyboardButton("⏱️ تحدي السرعة", callback_data="game_speed"),
+            InlineKeyboardButton("❌ الأخطاء الشائعة", callback_data="game_mistakes"),
+            InlineKeyboardButton("🧠 لعبة الاستنتاج", callback_data="inference_game"),
+            InlineKeyboardButton("⬅️ رجوع", callback_data="go_games")
+        )
+        bot.edit_message_text(
+            f"🎓 تخصصك الحالي: {major}\n"
+            "اختر لعبة 👇",
+            chat_id=c.message.chat.id,
+            message_id=c.message.message_id,
+            reply_markup=keyboard
+        )
+
+    elif c.data.startswith("soon_"):
         feature_name = {
             "soon_review": "📚 ميزة المراجعة السريعة",
             "soon_summary": "📄 ملخصات PDF",
@@ -745,73 +791,6 @@ def handle_main_menu(c):
 
         bot.answer_callback_query(c.id)
         bot.send_message(c.message.chat.id, f"{feature_name} ستكون متاحة قريبًا... 🚧")
-
-
-    if c.data == "go_generate":
-        keyboard = InlineKeyboardMarkup()
-        buttons = [
-            ("🩺 الطب", "major_الطب"),
-            ("🛠️ الهندسة", "major_الهندسة"),
-            ("💊 الصيدلة", "major_الصيدلة"),
-            ("🗣️ اللغات", "major_اللغات"),
-            ("❓ غير ذلك...", "major_custom"),
-    ]
-    for text, data in buttons:
-        keyboard.add(InlineKeyboardButton(text, callback_data=data))
-
-    # زر الرجوع
-    keyboard.add(InlineKeyboardButton("⬅️ رجوع", callback_data="go_back_home"))
-
-    bot.edit_message_text(
-        "🎯 هذا البوت يساعدك على توليد اختبارات ذكية من ملفاتك الدراسية أو النصوص، حسب تخصصك.\n"
-        "📌 متاح لك 3 اختبارات مجانية شهريًا.\n"
-        "اختر تخصصك للبدء 👇",
-        chat_id=c.message.chat.id,
-        message_id=c.message.message_id,
-        reply_markup=keyboard
-    )
-    elif data == "go_games":
-    cursor.execute("SELECT major FROM users WHERE user_id = ?", (c.from_user.id,))
-    row = cursor.fetchone()
-    
-    if not row or not row[0]:
-        user_states[c.from_user.id] = "awaiting_major"
-        return bot.send_message(c.from_user.id, "🧠 قبل أن نبدأ اللعب، أخبرنا بتخصصك:")
-    
-    keyboard = InlineKeyboardMarkup(row_width=1)
-    keyboard.add(
-        InlineKeyboardButton("🔒 العب في الخاص", callback_data="play_private"),
-        InlineKeyboardButton("👥 العب في المجموعة", switch_inline_query="game")
-    )
-    bot.edit_message_text(
-        "🎮 اختر طريقة اللعب:\n\n"
-        "- 🔒 في الخاص (ألعاب شخصية حسب تخصصك)\n"
-        "- 👥 في المجموعة (شارك الأصدقاء بالتحدي!)",
-        chat_id=c.message.chat.id,
-        message_id=c.message.message_id,
-        reply_markup=keyboard
-    )
-
-    elif data == "game_private":
-    cursor.execute("SELECT major FROM users WHERE user_id = ?", (c.from_user.id,))
-    row = cursor.fetchone()
-    major = row[0] if row else "عام"
-
-    keyboard = InlineKeyboardMarkup(row_width=1)
-    keyboard.add(
-        InlineKeyboardButton("🧩 Vocabulary Match", callback_data="game_vocab"),
-        InlineKeyboardButton("⏱️ تحدي السرعة", callback_data="game_speed"),
-        InlineKeyboardButton("❌ الأخطاء الشائعة", callback_data="game_mistakes"),
-        InlineKeyboardButton("🧠 لعبة الاستنتاج", callback_data="inference_game")
-        InlineKeyboardButton("⬅️ رجوع", callback_data="go_games")
-    )
-    bot.edit_message_text(
-        f"🎓 تخصصك الحالي: {major}\n"
-        "اختر لعبة 👇",
-        chat_id=c.message.chat.id,
-        message_id=c.message.message_id,
-        reply_markup=keyboard
-    )
 
     elif data.startswith("game_"):
         game_type = data.split("_")[1]
