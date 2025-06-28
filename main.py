@@ -901,24 +901,7 @@ def set_user_major(msg):
         f"✅ تم تسجيل تخصصك: {major}\n"
         "الآن يمكنك توليد اختبارات أو تجربة الألعاب التعليمية."
     )
-    elif data == "game_vocab":
-    raw = generate_vocabulary_game(c.from_user.id, get_user_major(c.from_user.id))  # ← استدعاء الذكاء الاصطناعي
-    try:
-        q = json.loads(raw)
-        question = q["question"]
-        options = q["options"]
-        correct_index = q["correct_index"]
-
-        keyboard = InlineKeyboardMarkup()
-        for i, option in enumerate(options):
-            keyboard.add(InlineKeyboardButton(option, callback_data=f"vocab_ans_{i}_{correct_index}"))
-
-            bot.send_message(c.message.chat.id, question, reply_markup=keyboard)
-
-    except Exception as e:
-        logging.warning(f"❌ فشل توليد سؤال AI: {e}")
-        bot.send_message(c.message.chat.id, "❌ تعذر توليد السؤال الآن. حاول لاحقًا.")
-
+    
 @bot.callback_query_handler(func=lambda c: c.data.startswith("major_"))
 def cb_major(c):
     sel = c.data.split("_", 1)[1]
