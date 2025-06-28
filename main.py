@@ -817,9 +817,9 @@ def handle_main_menu(c):
                 logging.warning(f"❌ فشل توليد سؤال AI: {e}")
                 bot.send_message(c.message.chat.id, "❌ تعذر توليد السؤال الآن. حاول لاحقًا.")
         elif game_type == "speed":
-            if not can_play_game_today(uid, "vocab"):
+            if not can_play_game_today(uid, "speed"):
                 return bot.send_message(uid, "❌ لقد لعبت هذه اللعبة اليوم. جرب لعبة أخرى أو انتظر للغد.")
-            record_game_attempt(uid, "vocab").
+            record_game_attempt(uid, "vocab")
             raw = generate_speed_challenge(c.from_user.id, get_user_major(c.from_user.id))  # ← استدعاء الذكاء الاصطناعي
             try:
                 q = json.loads(raw)
@@ -836,7 +836,7 @@ def handle_main_menu(c):
                 logging.warning(f"❌ فشل توليد سؤال AI: {e}")
                 bot.send_message(c.message.chat.id, "❌ تعذر توليد السؤال الآن. حاول لاحقًا.")
         elif game_type == "errors":
-            if not can_play_game_today(uid, "vocab"):
+            if not can_play_game_today(uid, "errors"):
                 return bot.send_message(uid, "❌ لقد لعبت هذه اللعبة اليوم. جرب لعبة أخرى أو انتظر للغد.")
             record_game_attempt(uid, "vocab")
             raw = generate_common_mistakes_game(c.from_user.id, get_user_major(c.from_user.id))  # ← استدعاء الذكاء الاصطناعي
@@ -856,37 +856,37 @@ def handle_main_menu(c):
                 logging.warning(f"❌ فشل توليد سؤال AI: {e}")
                 bot.send_message(c.message.chat.id, "❌ تعذر توليد السؤال الآن. حاول لاحقًا.")
 
-    elif data == "inference_game":
-        if not can_play_game_today(uid, "vocab"):
+        elif data == "inference_game":
+            if not can_play_game_today(uid, "inference_game"):
                 return bot.send_message(uid, "❌ لقد لعبت هذه اللعبة اليوم. جرب لعبة أخرى أو انتظر للغد.")
             record_game_attempt(uid, "vocab")
-        raw = generate_inference_game(c.from_user.id, get_user_major(c.from_user.id))
-        try:
-            q = json.loads(raw)
-            question = q["question"]
-            options = q["options"]
-            correct_index = q["correct_index"]
+            raw = generate_inference_game(c.from_user.id, get_user_major(c.from_user.id))
+            try:
+                q = json.loads(raw)
+                question = q["question"]
+                options = q["options"]
+                correct_index = q["correct_index"]
 
-            keyboard = InlineKeyboardMarkup()
-            for i, option in enumerate(options):
-                callback = f"ans_infer_{i}_{correct_index}"
-                keyboard.add(InlineKeyboardButton(option, callback_data=callback))
+                keyboard = InlineKeyboardMarkup()
+                for i, option in enumerate(options):
+                    callback = f"ans_infer_{i}_{correct_index}"
+                    keyboard.add(InlineKeyboardButton(option, callback_data=callback))
 
-            bot.send_message(c.message.chat.id, question, reply_markup=keyboard)
+                bot.send_message(c.message.chat.id, question, reply_markup=keyboard)
 
-        except Exception as e:
-            logging.warning(f"❌ فشل توليد سؤال استنتاج: {e}")
-            bot.send_message(c.message.chat.id, "❌ حدث خطأ أثناء توليد لعبة الاستنتاج.")
+            except Exception as e:
+                logging.warning(f"❌ فشل توليد سؤال استنتاج: {e}")
+                bot.send_message(c.message.chat.id, "❌ حدث خطأ أثناء توليد لعبة الاستنتاج.")
 
-    elif data.startswith("ans_"):
-    _, game_type, selected, correct = data.split("_")
-    selected = int(selected)
-    correct = int(correct)
+        elif data.startswith("ans_"):
+        _, game_type, selected, correct = data.split("_")
+        selected = int(selected)
+        correct = int(correct)
 
-    if selected == correct:
-        bot.answer_callback_query(c.id, "✅ إجابة صحيحة!")
-    else:
-        bot.answer_callback_query(c.id, "❌ خاطئة. فكر أكثر...")
+        if selected == correct:
+            bot.answer_callback_query(c.id, "✅ إجابة صحيحة!")
+        else:
+            bot.answer_callback_query(c.id, "❌ خاطئة. فكر أكثر...")
 
 @bot.message_handler(func=lambda m: user_states.get(m.from_user.id) == "awaiting_major", content_types=['text'])
 def set_user_major(msg):
