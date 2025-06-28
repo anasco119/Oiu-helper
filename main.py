@@ -823,7 +823,7 @@ def handle_all_callbacks(c):
                 return bot.send_message(uid, "❌ لقد لعبت هذه اللعبة اليوم. جرب لعبة أخرى أو انتظر للغد.")
             record_game_attempt(uid, "vocab")
 
-            raw = generate_vocabulary_game(uid, get_user_major(uid))
+            raw = generate_vocabulary_game(uid, set_user_major(uid))
             try:
                 q = json.loads(raw)
                 question = q["question"]
@@ -845,7 +845,7 @@ def handle_all_callbacks(c):
                 return bot.send_message(uid, "❌ لقد لعبت هذه اللعبة اليوم. جرب لعبة أخرى أو انتظر للغد.")
             record_game_attempt(uid, "speed")
 
-            raw = generate_speed_challenge(uid, get_user_major(uid))
+            raw = generate_speed_challenge(uid, set_user_major(uid))
             try:
                 q = json.loads(raw)
                 question = q["question"]
@@ -866,7 +866,7 @@ def handle_all_callbacks(c):
                 return bot.send_message(uid, "❌ لقد لعبت هذه اللعبة اليوم. جرب لعبة أخرى أو انتظر للغد.")
             record_game_attempt(uid, "mistakes")
 
-            raw = generate_common_mistakes_game(uid, get_user_major(uid))
+            raw = generate_common_mistakes_game(uid, set_user_major(uid))
             try:
                 q = json.loads(raw)
                 question = q["question"]
@@ -888,7 +888,7 @@ def handle_all_callbacks(c):
             return bot.send_message(uid, "❌ لقد لعبت هذه اللعبة اليوم. جرب لعبة أخرى أو انتظر للغد.")
         record_game_attempt(uid, "inference_game")
 
-        raw = generate_inference_game(uid, get_user_major(uid))
+        raw = generate_inference_game(uid, set_user_major(uid))
         try:
             q = json.loads(raw)
             question = q["question"]
