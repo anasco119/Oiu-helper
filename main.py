@@ -809,9 +809,9 @@ def handle_main_menu(c):
 
                 keyboard = InlineKeyboardMarkup()
                 for i, option in enumerate(options):
-                callback = f"ans_vocab_{i}_{correct_index}"  # ✅統一 الشكل
+                    callback = f"ans_vocab_{i}_{correct_index}"  # ✅統一 الشكل
 
-                bot.send_message(c.message.chat.id, question, reply_markup=keyboard)
+                    bot.send_message(c.message.chat.id, question, reply_markup=keyboard)
 
             except Exception as e:
                 logging.warning(f"❌ فشل توليد سؤال AI: {e}")
@@ -829,8 +829,8 @@ def handle_main_menu(c):
 
                 keyboard = InlineKeyboardMarkup()
                 for i, option in enumerate(options):
-                callback = f"ans_speed_{i}_{correct_index}"  # ✅統一 الشكل
-                bot.send_message(c.message.chat.id, question, reply_markup=keyboard)
+                    callback = f"ans_speed_{i}_{correct_index}"  # ✅統一 الشكل
+                    bot.send_message(c.message.chat.id, question, reply_markup=keyboard)
 
             except Exception as e:
                 logging.warning(f"❌ فشل توليد سؤال AI: {e}")
@@ -848,9 +848,9 @@ def handle_main_menu(c):
 
                 keyboard = InlineKeyboardMarkup()
                 for i, option in enumerate(options):
-                callback = f"ans_errors_{i}_{correct_index}"  # ✅統一 الشكل
+                    callback = f"ans_errors_{i}_{correct_index}"  # ✅統一 الشكل
 
-                bot.send_message(c.message.chat.id, question, reply_markup=keyboard)
+                    bot.send_message(c.message.chat.id, question, reply_markup=keyboard)
 
             except Exception as e:
                 logging.warning(f"❌ فشل توليد سؤال AI: {e}")
@@ -913,7 +913,7 @@ def set_user_major(msg):
         for i, option in enumerate(options):
             keyboard.add(InlineKeyboardButton(option, callback_data=f"vocab_ans_{i}_{correct_index}"))
 
-        bot.send_message(c.message.chat.id, question, reply_markup=keyboard)
+            bot.send_message(c.message.chat.id, question, reply_markup=keyboard)
 
     except Exception as e:
         logging.warning(f"❌ فشل توليد سؤال AI: {e}")
