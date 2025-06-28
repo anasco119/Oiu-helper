@@ -786,7 +786,7 @@ def handle_main_menu(c):
             bot.send_message(c.from_user.id, "❌ حدث خطأ أثناء عرض الألعاب.")
 
     elif c.data == "game_private":
-    print("✅ game_private clicked")
+        print("✅ game_private clicked")
     
     elif c.data.startswith("soon_"):
         feature_name = {
