@@ -711,7 +711,35 @@ def cmd_start(msg):
         "اختر ما يناسبك 👇",
         reply_markup=keyboard
     )
+@bot.callback_query_handler(func=lambda c: True)
+def handle_all_callbacks(c):
+    uid = c.from_user.id
 
+    if c.data == "game_private":
+        try:
+            cursor.execute("SELECT major FROM users WHERE user_id = ?", (uid,))
+            row = cursor.fetchone()
+            major = row[0] if row else "عام"
+
+            keyboard = InlineKeyboardMarkup(row_width=1)
+            keyboard.add(
+                InlineKeyboardButton("🧩 Vocabulary Match", callback_data="game_vocab"),
+                InlineKeyboardButton("⏱️ تحدي السرعة", callback_data="game_speed"),
+                InlineKeyboardButton("❌ الأخطاء الشائعة", callback_data="game_mistakes"),
+                InlineKeyboardButton("🧠 لعبة الاستنتاج", callback_data="inference_game"),
+                InlineKeyboardButton("⬅️ رجوع", callback_data="go_games")
+            )
+            bot.edit_message_text(
+                f"🎓 تخصصك الحالي: {major}\n"
+                "اختر لعبة 👇",
+                chat_id=c.message.chat.id,
+                message_id=c.message.message_id,
+                reply_markup=keyboard
+            )
+        except Exception as e:
+            logging.exception("❌ حدث خطأ في game_private")
+            bot.send_message(uid, "❌ حدث خطأ أثناء عرض الألعاب.")
+            
 @bot.callback_query_handler(func=lambda c: c.data.startswith("go_") or c.data.startswith("soon_"))
 def handle_main_menu(c):
     uid = c.from_user.id
@@ -760,34 +788,6 @@ def handle_main_menu(c):
             reply_markup=keyboard
         )
 
-    elif c.data == "game_private":
-        try:
-            cursor.execute("SELECT major FROM users WHERE user_id = ?", (c.from_user.id,))
-            row = cursor.fetchone()
-            major = row[0] if row else "عام"
-
-            keyboard = InlineKeyboardMarkup(row_width=1)
-            keyboard.add(
-                InlineKeyboardButton("🧩 Vocabulary Match", callback_data="game_vocab"),
-                InlineKeyboardButton("⏱️ تحدي السرعة", callback_data="game_speed"),
-                InlineKeyboardButton("❌ الأخطاء الشائعة", callback_data="game_mistakes"),
-                InlineKeyboardButton("🧠 لعبة الاستنتاج", callback_data="inference_game"),
-                InlineKeyboardButton("⬅️ رجوع", callback_data="go_games")
-            )
-            bot.edit_message_text(
-            f"🎓 تخصصك الحالي: {major}\n"
-            "اختر لعبة 👇",
-            chat_id=c.message.chat.id,
-            message_id=c.message.message_id,
-            reply_markup=keyboard
-            )
-        except Exception as e:
-            logging.exception("❌ حدث خطأ في game_private")
-            bot.send_message(c.from_user.id, "❌ حدث خطأ أثناء عرض الألعاب.")
-
-    elif c.data == "game_private":
-        print("✅ game_private clicked")
-    
     elif c.data.startswith("soon_"):
         feature_name = {
             "soon_review": "📚 ميزة المراجعة السريعة",
