@@ -711,19 +711,7 @@ def cmd_start(msg):
         "اختر ما يناسبك 👇",
         reply_markup=keyboard
     )
-@bot.message_handler(func=lambda m: user_states.get(m.from_user.id) == "awaiting_major", content_types=['text'])
-def set_user_major(msg):
-    major = msg.text.strip()
-    uid = msg.from_user.id
 
-    cursor.execute("INSERT OR REPLACE INTO users(user_id, major) VALUES(?, ?)", (uid, major))
-    conn.commit()
-    user_states.pop(uid, None)
-
-    bot.send_message(uid,
-        f"✅ تم تسجيل تخصصك: {major}\n"
-        "الآن يمكنك توليد اختبارات أو تجربة الألعاب التعليمية."
-                    )
     
 @bot.callback_query_handler(func=lambda c: True)
 def handle_main_menu(c):
@@ -751,23 +739,8 @@ def handle_main_menu(c):
             message_id=c.message.message_id,
             reply_markup=keyboard
         )
-        if sel == "custom":
-            user_states[uid] = "awaiting_major"
-            bot.send_message(uid, "✏️ من فضلك أرسل اسم تخصصك بدقة.")
     
-        elif c.data == "go_back_home":
-        # إعادة عرض واجهة البداية
-            cmd_start(c.message)
-
-        else:
-            # set directly
-            cursor.execute("INSERT OR REPLACE INTO users(user_id, major) VALUES(?, ?)", (uid, sel))
-            conn.commit()
-            bot.send_message(uid,
-            f"✅ تم تحديد تخصصك: {sel}\n"
-            "الآن أرسل ملف (PDF/DOCX/TXT) أو نصًا مباشرًا لتوليد اختبارك.")
-            
-    if c.data == "go_games":
+    elif c.data == "go_games":
         cursor.execute("SELECT major FROM users WHERE user_id = ?", (uid,))
         row = cursor.fetchone()
 
@@ -789,18 +762,20 @@ def handle_main_menu(c):
             reply_markup=keyboard
         )
 
-    if c.data.startswith("soon_"):
-        feature_name = {
-            "soon_review": "📚 ميزة المراجعة السريعة",
-            "soon_summary": "📄 ملخصات PDF",
-            "soon_anki": "🧠 بطاقات Anki",
-            "soon_account": "⚙️ إدارة الحساب",
-        }.get(c.data, "هذه الميزة")
+    elif data.startswith("major_"):
+        major_key = data.split("_", 1)[1]
+        if major_key == "custom":
+            user_states[uid] = "awaiting_major"
+            bot.send_message(uid, "✏️ من فضلك أرسل اسم تخصصك بدقة.")
+        else:
+            cursor.execute("INSERT OR REPLACE INTO users(user_id, major) VALUES(?, ?)", (uid, major_key))
+            conn.commit()
+            bot.send_message(uid, f"✅ تم تحديد تخصصك: {major_key}")
 
-        bot.answer_callback_query(c.id)
-        bot.send_message(c.message.chat.id, f"{feature_name} ستكون متاحة قريبًا... 🚧")
-
-    if c.data == "game_private":
+    elif data == "go_back_home":
+        cmd_start(c.message)  # إعادة تحميل الواجهة الرئيسية
+            
+    elif c.data == "game_private":
         try:
             cursor.execute("SELECT major FROM users WHERE user_id = ?", (uid,))
             row = cursor.fetchone()
@@ -825,99 +800,48 @@ def handle_main_menu(c):
             logging.exception("❌ حدث خطأ في game_private")
             bot.send_message(uid, "❌ حدث خطأ أثناء عرض الألعاب.")
 
-    if c.data.startswith("game_"):
-        game_type = c.data.split("_")[1]
-        uid = c.from_user.id
-
-        if game_type == "vocab":
-            if not can_play_game_today(uid, "vocab"):
-                return bot.send_message(uid, "❌ لقد لعبت هذه اللعبة اليوم. جرب لعبة أخرى أو انتظر للغد.")
-            record_game_attempt(uid, "vocab")
-
-            raw = generate_vocabulary_game(uid, set_user_major(uid))
-            try:
-                q = json.loads(raw)
-                question = q["question"]
-                options = q["options"]
-                correct_index = q["correct_index"]
-
-                keyboard = InlineKeyboardMarkup()
-                for i, option in enumerate(options):
-                    callback = f"ans_vocab_{i}_{correct_index}"  # ✅統一 الشكل
-
-                    bot.send_message(c.message.chat.id, question, reply_markup=keyboard)
-
-            except Exception as e:
-                logging.warning(f"❌ فشل توليد سؤال AI: {e}")
-                bot.send_message(c.message.chat.id, "❌ تعذر توليد السؤال الآن. حاول لاحقًا.")
-
-        elif game_type == "speed":
-            if not can_play_game_today(uid, "speed"):
-                return bot.send_message(uid, "❌ لقد لعبت هذه اللعبة اليوم. جرب لعبة أخرى أو انتظر للغد.")
-            record_game_attempt(uid, "speed")
-
-            raw = generate_speed_challenge(uid, set_user_major(uid))
-            try:
-                q = json.loads(raw)
-                question = q["question"]
-                options = q["options"]
-                correct_index = q["correct_index"]
-
-                keyboard = InlineKeyboardMarkup()
-                for i, option in enumerate(options):
-                    callback = f"ans_speed_{i}_{correct_index}"  # ✅統一 الشكل
-                    bot.send_message(c.message.chat.id, question, reply_markup=keyboard)
-
-            except Exception as e:
-                logging.warning(f"❌ فشل توليد سؤال AI: {e}")
-                bot.send_message(c.message.chat.id, "❌ تعذر توليد السؤال الآن. حاول لاحقًا.")
-
-        elif game_type == "mistakes":
-            if not can_play_game_today(uid, "mistakes"):
-                return bot.send_message(uid, "❌ لقد لعبت هذه اللعبة اليوم. جرب لعبة أخرى أو انتظر للغد.")
-            record_game_attempt(uid, "mistakes")
-
-            raw = generate_common_mistakes_game(uid, set_user_major(uid))
-            try:
-                q = json.loads(raw)
-                question = q["question"]
-                options = q["options"]
-                correct_index = q["correct_index"]
-
-                keyboard = InlineKeyboardMarkup()
-                for i, option in enumerate(options):
-                    callback = f"ans_mistakes_{i}_{correct_index}"  # ✅統一 الشكل
-
-                    bot.send_message(c.message.chat.id, question, reply_markup=keyboard)
-
-            except Exception as e:
-                logging.warning(f"❌ فشل توليد سؤال AI: {e}")
-                bot.send_message(c.message.chat.id, "❌ تعذر توليد السؤال الآن. حاول لاحقًا.")
-
-        elif c.data == "inference_game":
-            if not can_play_game_today(uid, "inference_game"):
-                return bot.send_message(uid, "❌ لقد لعبت هذه اللعبة اليوم. جرب لعبة أخرى أو انتظر للغد.")
-            record_game_attempt(uid, "inference_game")
-
-            raw = generate_inference_game(uid, set_user_major(uid))
-            try:
-                q = json.loads(raw)
-                question = q["question"]
-                options = q["options"]
-                correct_index = q["correct_index"]
-
-                keyboard = InlineKeyboardMarkup()
-                for i, option in enumerate(options):
-                    callback = f"ans_infer_{i}_{correct_index}"
-                    keyboard.add(InlineKeyboardButton(option, callback_data=callback))
-
-                bot.send_message(c.message.chat.id, question, reply_markup=keyboard)
-
-            except Exception as e:
-                logging.warning(f"❌ فشل توليد سؤال استنتاج: {e}")
-                bot.send_message(c.message.chat.id, "❌ حدث خطأ أثناء توليد لعبة الاستنتاج.")
-
-    if c.data.startswith("ans_"):
+    
+    elif data in ["game_vocab", "game_speed", "game_mistakes", "game_inference"]:
+        game_type = data.split("_", 1)[1]
+        
+        # التحقق من إمكانية اللعب
+        if not can_play_game_today(uid, game_type):
+            bot.answer_callback_query(c.id, "❌ لقد لعبت هذه اللعبة اليوم!")
+            return
+        
+        record_game_attempt(uid, game_type)
+        
+        # توليد السؤال حسب نوع اللعبة
+        try:
+            cursor.execute("SELECT major FROM users WHERE user_id=?", (uid,))
+            major = cursor.fetchone()[0] or "عام"
+            
+            if game_type == "vocab":
+                raw = generate_vocabulary_game(uid, major)
+            elif game_type == "speed":
+                raw = generate_speed_challenge(uid, major)
+            elif game_type == "mistakes":
+                raw = generate_common_mistakes_game(uid, major)
+            elif game_type == "inference":
+                raw = generate_inference_game(uid, major)
+            
+            q = json.loads(raw)
+            question = q["question"]
+            options = q["options"]
+            correct_index = q["correct_index"]
+            
+            keyboard = InlineKeyboardMarkup()
+            for i, option in enumerate(options):
+                callback_data = f"ans_{game_type}_{i}_{correct_index}"
+                keyboard.add(InlineKeyboardButton(option, callback_data=callback_data))
+            
+            bot.send_message(c.message.chat.id, question, reply_markup=keyboard)
+        
+        except Exception as e:
+            logging.error(f"فشل توليد اللعبة: {str(e)}")
+            bot.send_message(uid, "❌ حدث خطأ أثناء توليد اللعبة، حاول لاحقاً")
+    
+    elif c.data.startswith("ans_"):
         _, game_type, selected, correct = c.data.split("_")
         selected = int(selected)
         correct = int(correct)
@@ -926,9 +850,19 @@ def handle_main_menu(c):
             bot.answer_callback_query(c.id, "✅ إجابة صحيحة!")
         else:
             bot.answer_callback_query(c.id, "❌ خاطئة. فكر أكثر...")
-                            
 
- 
+    elif c.data.startswith("soon_"):
+        feature_name = {
+            "soon_review": "📚 ميزة المراجعة السريعة",
+            "soon_summary": "📄 ملخصات PDF",
+            "soon_anki": "🧠 بطاقات Anki",
+            "soon_account": "⚙️ إدارة الحساب",
+        }.get(c.data, "هذه الميزة")
+
+        bot.answer_callback_query(c.id)
+        bot.send_message(c.message.chat.id, f"{feature_name} ستكون متاحة قريبًا... 🚧")
+        
+
 @bot.message_handler(func=lambda m: user_states.get(m.from_user.id) == "awaiting_major", content_types=['text'])
 def set_custom_major(msg):
     major = msg.text.strip()
