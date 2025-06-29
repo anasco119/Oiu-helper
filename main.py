@@ -576,7 +576,7 @@ Generate one multiple-choice question based on a common mistake made by students
     return json.loads(clean_json_str)  # ✅ يرجع dict يمكن استخدامه مباشرة
 
 
-def generate_inference_game(user_id):
+def generate_inference_game(user_id, major):
     prompt = """
 You are an AI life skills quiz creator.
 
