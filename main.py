@@ -752,8 +752,8 @@ def handle_main_menu(c):
         keyboard = InlineKeyboardMarkup(row_width=1)
         keyboard.add(
             InlineKeyboardButton("🔒 العب في الخاص", callback_data="game_private"),
-            InlineKeyboardButton("👥 العب في المجموعة", switch_inline_query="game")
-            InlineKeyboardButton("🏠 القائمة الرئسية", switch_inline_query="go_back_home")
+            InlineKeyboardButton("👥 العب في المجموعة", switch_inline_query="game"),
+            InlineKeyboardButton("🏠 القائمة الرئيسية", callback_data="go_back_home")
         )
         bot.edit_message_text(
             "🎮 اختر طريقة اللعب:\n\n"
@@ -858,7 +858,10 @@ def handle_main_menu(c):
             correct_index = q["correct_index"]
             
             keyboard = InlineKeyboardMarkup()
+            text = f"🧠 اختر الإجابة الصحيحة:\n\n{question}\n\n"
+            short_option = option[:50] + "..." if len(option) > 50 else option
             for i, option in enumerate(options):
+                text += f"{i+1}. {option}\n"
                 callback_data = f"ans_{game_type}_{i}_{correct_index}"
                 keyboard.add(InlineKeyboardButton(option, callback_data=callback_data))
             
