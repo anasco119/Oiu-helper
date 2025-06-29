@@ -519,6 +519,13 @@ def generate_quizzes_from_text(text: str, major: str, user_id: int, num_quizzes:
 # -------------------------------------------------------------------
 import random
 rand = random.randint(1000, 9999)
+topics = [
+    "حياة الطالب", "تخطيط السفر", "مشاريع جماعية", "مقابلات العمل",
+    "الضغط الزمني", "مواقف عاطفية", "استخدام التكنولوجيا", "قرارات مالية",
+    "صراعات الفريق", "تحديد الأهداف"
+]
+random_topic = random.choice(topics)
+
 def generate_vocabulary_game(user_id, major, native_lang="Arabic"):  
     prompt = f"""  
     You are an AI vocabulary quiz creator.  
@@ -594,30 +601,38 @@ Example output:
     clean_json_str = extract_json_from_string(game_response)
     return json.loads(clean_json_str)
 
+def generate_inference_game(user_id, major, native_lang="Arabic"):
+    prompt = f"""
+أنت منشئ اختبارات مهارات الحياة باستخدام الذكاء الاصطناعي.
 
-def generate_inference_game(user_id, major):
-    prompt = """
-You are an AI life skills quiz creator.
+أنشئ سؤالًا **جديدًا وفريدًا** يطوّر إحدى المهارات التالية:
+- التفكير النقدي
+- الذكاء العاطفي
+- إدارة الوقت
+- الوعي الذاتي
+- اتخاذ القرار
+- حل المشكلات
+- المنطق
+- التعرف على الأنماط
+- الفهم العقلي للخرائط
 
-Create a thought-provoking question that develops one of the following skills:
-- Critical thinking
-- Emotional intelligence
-- Time management
-- Self-awareness
-- Decision making
-- Problem-solving
-- Logic
-- Pattern recognition
-- Mental map understanding
+🔹 الشروط:
+- اكتب **السؤال باللغة العربية**
+- اكتب **جميع الخيارات باللغة العربية**
+- اختر سيناريو واقعي أو من حياة الطالب، مرتبط بالموضوع التالي: **{random_topic}**
+- يجب أن تكون الخيارات 4 فقط، واحدة منها صحيحة
+- لا تكرر أمثلة سابقة ولا تشرح شيئًا
+- اجعل السؤال ممتعًا وذكيًا
+- أضف التنوع باستخدام هذا الرقم العشوائي: {rand}
 
-Use real-world scenarios or academic life examples.
-Use this seed to diversify the question: {rand}
-Return as raw JSON:
-{
-  "question": "Ahmed has 3 tasks: writing a paper, replying to urgent emails, and preparing for tomorrow’s exam. Which should he do first?",
-  "options": ["Write the paper", "Reply to emails", "Prepare for exam", "Take a break"],
+🔸 أرجع النتيجة بصيغة JSON فقط، بدون أي شرح.
+
+مثال:
+{{
+  "question": "أحمد لديه ثلاث مهام: كتابة تقرير، الرد على رسائل عاجلة، والاستعداد لامتحان الغد. ما الذي يجب أن يفعله أولاً؟",
+  "options": "يكتب التقرير", "يرد على الرسائل", "يستعد للامتحان", "يأخذ استراحة"],
   "correct_index": 2
-}
+}}
 """
     game_response = generate_smart_response(prompt)  
     clean_json_str = extract_json_from_string(game_response)  
