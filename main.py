@@ -864,7 +864,7 @@ def handle_main_menu(c):
             elif game_type == "inference":
                 raw = generate_inference_game(uid, major)
             
-            q = json.loads(raw)  # ← ضروري لتحويل JSON إلى dict
+            q = raw  # لأنه أصلاً dict  # ← ضروري لتحويل JSON إلى dict
             question = q["question"]
             options = q["options"]
             correct_index = q["correct_index"]
