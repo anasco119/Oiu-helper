@@ -753,6 +753,7 @@ def handle_main_menu(c):
         keyboard.add(
             InlineKeyboardButton("🔒 العب في الخاص", callback_data="game_private"),
             InlineKeyboardButton("👥 العب في المجموعة", switch_inline_query="game")
+            InlineKeyboardButton("🏠 القائمة الرئسية", switch_inline_query="go_back_home")
         )
         bot.edit_message_text(
             "🎮 اختر طريقة اللعب:\n\n"
