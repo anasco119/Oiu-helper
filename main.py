@@ -399,7 +399,17 @@ def record_game_attempt(user_id: int, game_type: str):
         (user_id, game_type, today)
     )
     conn.commit()
+from collections import defaultdict
 
+# تخزين مؤقت في الذاكرة
+game_states = defaultdict(dict)  # {user_id: {game_type: count}}
+
+def get_question_count(user_id, game_type):
+    return game_states.get(user_id, {}).get(game_type, 0)
+
+def increment_question_count(user_id, game_type):
+    game_states[user_id][game_type] = game_states.get(user_id, {}).get(game_type, 0) + 1
+    
 # -------------------------------------------------------------------
 #                 Quiz Generation & Formatting
 # -------------------------------------------------------------------
@@ -842,23 +852,22 @@ def handle_main_menu(c):
         except Exception as e:
             logging.exception("❌ حدث خطأ في game_private")
             bot.send_message(uid, "❌ حدث خطأ أثناء عرض الألعاب.")
-    
     elif data in ["game_vocab", "game_speed", "game_mistakes", "game_inference"]:
         game_type = data.split("_", 1)[1]
-        
-        # التحقق من إمكانية اللعب
+    
+    # التحقق من إمكانية اللعب
         if not can_play_game_today(uid, game_type):
             bot.answer_callback_query(c.id, "❌ لقد لعبت هذه اللعبة اليوم!")
             return
-        
+    
         record_game_attempt(uid, game_type)
-        
-        # توليد السؤال حسب نوع اللعبة
+    
+    # توليد السؤال حسب نوع اللعبة
         try:
             cursor.execute("SELECT major FROM users WHERE user_id=?", (uid,))
             row = cursor.fetchone()
             major = row[0] if row else "عام"
-            
+        
             if game_type == "vocab":
                 raw = generate_vocabulary_game(uid, major)
             elif game_type == "speed":
@@ -867,30 +876,76 @@ def handle_main_menu(c):
                 raw = generate_common_mistakes_game(uid, major)
             elif game_type == "inference":
                 raw = generate_inference_game(uid, major)
-            
-            q = raw  # لأنه أصلاً dict  # ← ضروري لتحويل JSON إلى dict
+        
+            q = raw
             question = q["question"]
             options = q["options"]
             correct_index = q["correct_index"]
+        
             if not isinstance(options, list) or len(options) < 2:
                 raise ValueError("❌ عدد الخيارات أقل من 2 أو غير صالح")
 
             if not isinstance(correct_index, int) or correct_index >= len(options):
                 raise ValueError("❌ رقم الإجابة الصحيحة غير متوافق")
-                
-            keyboard = InlineKeyboardMarkup()
-            text = f"🧠 اختر الإجابة الصحيحة:\n\n{question}\n\n"
+            
+            keyboard = InlineKeyboardMarkup(row_width=2)
+        
+        # إضافة أزرار الخيارات
             for i, option in enumerate(options):
                 short_option = option[:50] + "..." if len(option) > 50 else option
-                text += f"{i+1}. {short_option}\n"
                 callback_data = f"ans_{game_type}_{i}_{correct_index}"
                 keyboard.add(InlineKeyboardButton(short_option, callback_data=callback_data))
-
-            bot.send_message(chat_id, text, reply_markup=keyboard)
         
+        # إضافة أزرار التحكم (السؤال التالي والرجوع)
+            control_buttons = [
+                InlineKeyboardButton("🔄 سؤال جديد", callback_data=f"new_{game_type}"),
+                InlineKeyboardButton("⬅️ رجوع", callback_data="game_private")
+        ]
+            keyboard.row(*control_buttons)
+
+            # إرسال السؤال مع الأزرار
+            text = f"🧠 اختر الإجابة الصحيحة:\n\n{question}"
+            # إضافة زر تحميل أثناء الانتظار
+            loading_msg = bot.send_message(chat_id, "⏳ جاري توليد السؤال التالي...")
+            # ... بعد توليد السؤال
+            bot.delete_message(chat_id, loading_msg.message_id)
+            bot.send_message(chat_id, text, reply_markup=keyboard)
+    
         except Exception as e:
             logging.error(f"فشل توليد اللعبة: {str(e)}")
             bot.send_message(uid, "❌ حدث خطأ أثناء توليد اللعبة، حاول لاحقاً")
+
+elif data.startswith("ans_"):
+    parts = data.split("_")
+    game_type = parts[1]
+    selected = int(parts[2])
+    correct = int(parts[3])
+    
+    # يمكنك إضافة تأثيرات بصرية عند الإجابة
+    if selected == correct:
+        bot.answer_callback_query(c.id, "✅ إجابة صحيحة!", show_alert=True)
+    else:
+        bot.answer_callback_query(c.id, f"❌ خاطئة. الإجابة الصحيحة هي: {options[correct]}", show_alert=True)
+
+# معالجة طلب سؤال جديد
+elif data.startswith("new_"):
+    game_type = data.split("_", 1)[1]
+    
+    # حذف الرسالة الحالية
+    try:
+        bot.delete_message(c.message.chat.id, c.message.message_id)
+    except:
+        pass
+    
+    # إعادة توليد سؤال جديد
+    new_callback = types.CallbackQuery(
+        id=c.id,
+        from_user=c.from_user,
+        message=c.message,
+        data=f"game_{game_type}",
+        chat_instance=c.chat_instance
+    )
+    handle_main_menu(new_callback)
     
     elif data.startswith("ans_"):
         parts = data.split("_")
