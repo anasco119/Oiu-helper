@@ -507,24 +507,26 @@ def generate_quizzes_from_text(text: str, major: str, user_id: int, num_quizzes:
 # -------------------------------------------------------------------
 #                 games
 # -------------------------------------------------------------------
-
+import random
+rand = random.randint(1000, 9999)
 def generate_vocabulary_game(user_id, major, native_lang="Arabic"):  
     prompt = f"""  
-You are an AI vocabulary quiz creator.  
-  
-Generate one vocabulary question for a student majoring in {major}.  
-- Show the meaning of an English word in {native_lang}  
-- Provide 4 English words as options  
-- Only ONE option should be correct.  
-- Don't explain anything. Just give raw JSON.  
-  
+    You are an AI vocabulary quiz creator.  
+    Generate one vocabulary question for a student majoring in {major}.  
+    - Show the meaning of an English word in {native_lang}  
+    - Provide 4 English words as options  
+    - Only ONE option should be correct.  
+    - Don't explain anything. Just give raw JSON.  
+
+    Use this seed to diversify the question: {rand}
+
 Example:  
 {{  
   "question": "معنى: يشرح بتفصيل",  
   "options": ["explain", "explode", "expose", "explore"],  
   "correct_index": 0  
 }}  
-"""  
+"""
     game_response = generate_smart_response(prompt)  
     clean_json_str = extract_json_from_string(game_response)  
     return json.loads(clean_json_str)  # ✅ يرجع dict يمكن استخدامه مباشرة
@@ -536,7 +538,8 @@ Create a fast-answer quiz for a student in {major}.
 - Make the question short and time-sensitive.
 - Options should be short words or phrases.
 - Use random fun/general knowledge topics (not too academic).
-- Response format is raw JSON:
+- Don't explain anything. Just give raw JSON.
+Use this seed to diversify the question: {rand}
 
 {{
   "question": "What is the capital of France?",
@@ -559,6 +562,7 @@ Generate one multiple-choice question based on a common mistake made by students
 - The question must highlight a misconception or error.
 - Provide 4 choices with 1 correct.
 - Don't explain.
+- Use this seed to diversify the question: {rand}
 - Respond with raw JSON:
 
 {{
@@ -588,7 +592,7 @@ Create a thought-provoking question that develops one of the following skills:
 - Mental map understanding
 
 Use real-world scenarios or academic life examples.
-
+Use this seed to diversify the question: {rand}
 Return as raw JSON:
 {
   "question": "Ahmed has 3 tasks: writing a paper, replying to urgent emails, and preparing for tomorrow’s exam. Which should he do first?",
@@ -1101,3 +1105,25 @@ threading.Thread(target=run_bot).start()
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))  # Render يوفر PORT كمتغير بيئة
     app.run(host="0.0.0.0", port=port)
+
+
+if not isinstance(options, list) or len(options) < 2:
+    raise ValueError("❌ عدد الخيارات أقل من 2 أو غير صالح")
+
+if not isinstance(correct_index, int) or correct_index >= len(options):
+    raise ValueError("❌ رقم الإجابة الصحيحة غير متوافق")
+
+
+
+q = raw  # لأنه أصلاً dict
+question = q["question"]
+options = q["options"]
+correct_index = q["correct_index"]
+
+# ✅ تحقق من صحة البيانات
+if not isinstance(options, list) or len(options) < 2:
+    raise ValueError("❌ عدد الخيارات أقل من 2 أو غير صالح")
+
+if not isinstance(correct_index, int) or correct_index >= len(options):
+    raise ValueError("❌ رقم الإجابة الصحيحة غير متوافق")
+
