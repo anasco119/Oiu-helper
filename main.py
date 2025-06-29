@@ -543,48 +543,56 @@ Example:
 
 def generate_speed_challenge(user_id, major, native_lang="Arabic"):
     prompt = f"""
-Create a fast-answer quiz for a student in {major}.
+You are a quiz bot.
 
-- Make the question short and time-sensitive.
-- Options should be short words or phrases.
-- Use random fun/general knowledge topics (not too academic).
-- Don't explain anything. Just give raw JSON.
-Use this seed to diversify the question: {rand}
-- Show the question in {native_lang} but the options in English 
+Generate a **fun, fast-answer quiz** for a student in {major}.
+
+Requirements:
+- The question must be in {native_lang}.
+- The 4 options must be in English.
+- Use general knowledge topics (e.g. capitals, animals, logic, etc).
+- Keep it simple and not too academic.
+- Return raw JSON only.
+- No explanation.
+- Use this seed to increase randomness: {rand}
+
+Example output:
 {{
-  "question": "What is the capital of France?",
+  "question": "ما هي عاصمة فرنسا؟",
   "options": ["Paris", "Berlin", "London", "Rome"],
   "correct_index": 0
 }}
 """
-    game_response = generate_smart_response(prompt)  
-    clean_json_str = extract_json_from_string(game_response)  
-    return json.loads(clean_json_str)  # ✅ يرجع dict يمكن استخدامه مباشرة
-
+    game_response = generate_smart_response(prompt)
+    clean_json_str = extract_json_from_string(game_response)
+    return json.loads(clean_json_str)
 
 
 # ★ لعبة الاخطاء الشائعة
-
 def generate_common_mistakes_game(user_id, major, native_lang="Arabic"):
     prompt = f"""
-Generate one multiple-choice question based on a common mistake made by students in the {major} field.
+You are an educational game generator.
 
-- The question must highlight a misconception or error.
-- Provide 4 choices with 1 correct.
+Your task:
+- Generate a multiple-choice question highlighting a **common mistake** in the field of {major}.
+- The question must be in {native_lang} (e.g. Arabic).
+- The **options must be in English**.
+- Provide **4 options** only, with one correct.
 - Don't explain.
-- Use this seed to diversify the question: {rand}
-- Show the question in {native_lang} but the options in English
-- Respond with raw JSON:
+- Return only raw JSON.
 
+Use this random seed to diversify the question: {rand}
+
+Example output:
 {{
-  "question": "Which of the following is a common mistake in anatomy?",
+  "question": "ما الخطأ الشائع التالي في علم التشريح؟",
   "options": ["Heart has 3 chambers", "Liver detoxifies blood", "Skin is the largest organ", "Neurons transmit signals"],
   "correct_index": 0
 }}
 """
-    game_response = generate_smart_response(prompt)  
-    clean_json_str = extract_json_from_string(game_response)  
-    return json.loads(clean_json_str)  # ✅ يرجع dict يمكن استخدامه مباشرة
+    game_response = generate_smart_response(prompt)
+    clean_json_str = extract_json_from_string(game_response)
+    return json.loads(clean_json_str)
 
 
 def generate_inference_game(user_id, major):
@@ -853,6 +861,13 @@ def handle_main_menu(c):
         except Exception as e:
             logging.exception("❌ حدث خطأ في game_private")
             bot.send_message(uid, "❌ حدث خطأ أثناء عرض الألعاب.")
+
+    
+    elif data == "back_to_games":
+        try:
+            bot.delete_message(c.message.chat.id, c.message.message_id)
+        except Exception as e:
+            logging.warning(f"❌ فشل حذف الرسالة عند الرجوع: {e}")
     
     elif data in ["game_vocab", "game_speed", "game_mistakes", "game_inference"]:
         game_type = data.split("_", 1)[1]
@@ -903,7 +918,7 @@ def handle_main_menu(c):
             # أزرار التحكم
             keyboard.row(
                 InlineKeyboardButton("🔄 سؤال جديد", callback_data=f"new_{game_type}"),
-                InlineKeyboardButton("⬅️ رجوع", callback_data="game_private")
+                InlineKeyboardButton("⬅️ رجوع", callback_data="back_to_games")
             )
         
             # حذف رسالة التحميل أولاً
@@ -930,29 +945,61 @@ def handle_main_menu(c):
 # معالجة طلب سؤال جديد
     elif data.startswith("new_"):
         game_type = data.split("_", 1)[1]
-    
-        # حذف الرسالة الحالية
-        try:
-            bot.delete_message(c.message.chat.id, c.message.message_id)
-        except Exception as e:
-            logging.warning(f"فشل حذف رسالة السؤال: {e}")
-            bot.answer_callback_query(c.id, "⚠️ حدث خطأ أثناء التحديث")
-            return
-    
-        # إرسال رسالة تحميل جديدة
+
         loading_msg = bot.send_message(c.message.chat.id, "⏳ جاري تحضير السؤال التالي...")
-    
-        # إنشاء كائن استدعاء جديد لمحاكاة الضغط على نوع اللعبة
-        new_callback = types.CallbackQuery(
-            id=c.id,
-            from_user=c.from_user,
-            message=loading_msg,  # استخدام رسالة التحميل كرسالة أساسية
-            data=f"game_{game_type}",
-            chat_instance=c.chat_instance
-        )
-    
-        # معالجة الاستدعاء الجديد
-        handle_main_menu(new_callback)
+
+        try:
+            # توليد السؤال الجديد
+            cursor.execute("SELECT major FROM users WHERE user_id=?", (uid,))
+            row = cursor.fetchone()
+            major = row[0] if row else "عام"
+
+            # اختيار الدالة المناسبة
+            game_generators = {
+                "vocab": generate_vocabulary_game,
+                "speed": generate_speed_challenge,
+                "mistakes": generate_common_mistakes_game,
+                "inference": generate_inference_game
+            }
+
+            raw = game_generators[game_type](uid, major)
+            q = raw
+            question = q["question"]
+            options = q["options"]
+            correct_index = q["correct_index"]
+
+            if not isinstance(options, list) or len(options) < 2:
+                raise ValueError("عدد الخيارات غير صالح")
+
+            # إعداد لوحة الخيارات
+            keyboard = InlineKeyboardMarkup(row_width=2)
+            for i, option in enumerate(options):
+                short_option = (option[:50] + "...") if len(option) > 50 else option
+                callback_data = f"ans_{game_type}_{i}_{correct_index}"
+                keyboard.add(InlineKeyboardButton(short_option, callback_data=callback_data))
+
+            keyboard.row(
+                InlineKeyboardButton("🔄 سؤال جديد", callback_data=f"new_{game_type}"),
+                InlineKeyboardButton("⬅️ رجوع", callback_data="back_to_games")
+            )
+
+            # تعديل نفس رسالة السؤال السابق
+            bot.edit_message_text(
+                text=f"🧠 اختر الإجابة الصحيحة:\n\n{question}",
+                chat_id=c.message.chat.id,
+                message_id=c.message.message_id,
+                reply_markup=keyboard
+            )
+
+        except Exception as e:
+            logging.error(f"❌ فشل توليد سؤال جديد: {e}")
+            bot.answer_callback_query(c.id, "❌ فشل توليد السؤال")
+
+        finally:
+            try:
+                bot.delete_message(c.message.chat.id, loading_msg.message_id)
+            except:
+                pass
        
     elif data.startswith("soon_"):
         feature_name = {
