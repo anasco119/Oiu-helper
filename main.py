@@ -694,6 +694,8 @@ def send_quizzes_as_polls(chat_id: int, quizzes: list):
 
 @bot.message_handler(commands=['start'])
 def cmd_start(msg):
+    if msg.chat.type != "private":
+        return  # تجاهل الرسائل في المجموعات
     keyboard = InlineKeyboardMarkup(row_width=2)
     buttons = [
         InlineKeyboardButton("📝 توليد اختبار", callback_data="go_generate"),
@@ -720,6 +722,8 @@ def cmd_start(msg):
 
 @bot.callback_query_handler(func=lambda c: True)
 def handle_main_menu(c):
+    if c.message.chat.type != "private":
+        return
     uid = c.from_user.id
     data = c.data
     chat_id = c.message.chat.id
@@ -860,20 +864,20 @@ def handle_main_menu(c):
             elif game_type == "inference":
                 raw = generate_inference_game(uid, major)
             
-            q = raw
+            q = json.loads(raw)  # ← ضروري لتحويل JSON إلى dict
             question = q["question"]
             options = q["options"]
             correct_index = q["correct_index"]
             
             keyboard = InlineKeyboardMarkup()
             text = f"🧠 اختر الإجابة الصحيحة:\n\n{question}\n\n"
-            short_option = option[:50] + "..." if len(option) > 50 else option
             for i, option in enumerate(options):
-                text += f"{i+1}. {option}\n"
+                short_option = option[:50] + "..." if len(option) > 50 else option
+                text += f"{i+1}. {short_option}\n"
                 callback_data = f"ans_{game_type}_{i}_{correct_index}"
-                keyboard.add(InlineKeyboardButton(option, callback_data=callback_data))
-            
-            bot.send_message(chat_id, question, reply_markup=keyboard)
+            keyboard.add(InlineKeyboardButton(short_option, callback_data=callback_data))
+
+            bot.send_message(chat_id, text, reply_markup=keyboard)
         
         except Exception as e:
             logging.error(f"فشل توليد اللعبة: {str(e)}")
@@ -903,6 +907,8 @@ def handle_main_menu(c):
         
 @bot.message_handler(func=lambda m: user_states.get(m.from_user.id) in ["awaiting_major", "awaiting_major_for_games"])
 def handle_user_major(msg):
+    if msg.chat.type != "private":
+        return  # تجاهل الرسائل في المجموعات
     uid = msg.from_user.id
     state = user_states.get(uid)
     major = msg.text.strip()
@@ -927,6 +933,8 @@ def handle_user_major(msg):
 
 @bot.message_handler(func=lambda m: user_states.get(m.from_user.id) == "awaiting_major", content_types=['text'])
 def set_custom_major(msg):
+    if msg.chat.type != "private":
+        return  # تجاهل الرسائل في المجموعات
     major = msg.text.strip()
     uid   = msg.from_user.id
 
@@ -950,6 +958,8 @@ def set_custom_major(msg):
 
 @bot.message_handler(content_types=['document'])
 def handle_document(msg):
+    if msg.chat.type != "private":
+        return  # تجاهل الرسائل في المجموعات
     uid = msg.from_user.id
     if not can_generate(uid):
         return bot.send_message(uid, "⚠️ لقد استنفدت 3 اختبارات مجانية هذا الشهر.")
@@ -988,6 +998,8 @@ def handle_document(msg):
 
 @bot.message_handler(content_types=['text'])
 def handle_text(msg):
+    if msg.chat.type != "private":
+        return  # تجاهل الرسائل في المجموعات
     uid = msg.chat.id
     # skip if awaiting major
     if user_states.get(uid) == "awaiting_major":
@@ -1017,6 +1029,8 @@ def handle_text(msg):
 user_states = {}
 @bot.message_handler(commands=['submit_inference'])
 def handle_submit_inference(msg):
+    if msg.chat.type != "private":
+        return  # تجاهل الرسائل في المجموعات
     uid = msg.from_user.id
     user_states[uid] = {"state": "awaiting_inference_question", "temp": {}}
     bot.send_message(uid, "🧠 أرسل الآن سيناريو أو سؤالًا للاعبين (مثال: كيف تتصرف في هذا الموقف؟)")
@@ -1024,6 +1038,8 @@ def handle_submit_inference(msg):
 @bot.message_handler(func=lambda m: user_states.get(m.from_user.id, {}).get("state") in [
     "awaiting_inference_question", "awaiting_inference_options", "awaiting_inference_correct"])
 def handle_inference_submission(msg):
+    if msg.chat.type != "private":
+        return  # تجاهل الرسائل في المجموعات
     uid = msg.from_user.id
     state = user_states.get(uid, {})
     temp = state.get("temp", {})
