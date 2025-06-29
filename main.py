@@ -872,14 +872,19 @@ def handle_main_menu(c):
             question = q["question"]
             options = q["options"]
             correct_index = q["correct_index"]
-            
+            if not isinstance(options, list) or len(options) < 2:
+                raise ValueError("❌ عدد الخيارات أقل من 2 أو غير صالح")
+
+            if not isinstance(correct_index, int) or correct_index >= len(options):
+                raise ValueError("❌ رقم الإجابة الصحيحة غير متوافق")
+                
             keyboard = InlineKeyboardMarkup()
             text = f"🧠 اختر الإجابة الصحيحة:\n\n{question}\n\n"
             for i, option in enumerate(options):
                 short_option = option[:50] + "..." if len(option) > 50 else option
                 text += f"{i+1}. {short_option}\n"
                 callback_data = f"ans_{game_type}_{i}_{correct_index}"
-            keyboard.add(InlineKeyboardButton(short_option, callback_data=callback_data))
+                keyboard.add(InlineKeyboardButton(short_option, callback_data=callback_data))
 
             bot.send_message(chat_id, text, reply_markup=keyboard)
         
@@ -1105,25 +1110,3 @@ threading.Thread(target=run_bot).start()
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))  # Render يوفر PORT كمتغير بيئة
     app.run(host="0.0.0.0", port=port)
-
-
-if not isinstance(options, list) or len(options) < 2:
-    raise ValueError("❌ عدد الخيارات أقل من 2 أو غير صالح")
-
-if not isinstance(correct_index, int) or correct_index >= len(options):
-    raise ValueError("❌ رقم الإجابة الصحيحة غير متوافق")
-
-
-
-q = raw  # لأنه أصلاً dict
-question = q["question"]
-options = q["options"]
-correct_index = q["correct_index"]
-
-# ✅ تحقق من صحة البيانات
-if not isinstance(options, list) or len(options) < 2:
-    raise ValueError("❌ عدد الخيارات أقل من 2 أو غير صالح")
-
-if not isinstance(correct_index, int) or correct_index >= len(options):
-    raise ValueError("❌ رقم الإجابة الصحيحة غير متوافق")
-
