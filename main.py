@@ -390,6 +390,9 @@ def can_play_game_today(user_id: int, game_type: str) -> bool:
     return cursor.fetchone() is None
 
 def record_game_attempt(user_id: int, game_type: str):
+    if str(user_id) == str(ADMIN_ID):
+        return  # لا تسجل للأدمن
+
     today = str(date.today())
     cursor.execute(
         "INSERT OR REPLACE INTO game_attempts(user_id, game_type, date) VALUES (?, ?, ?)",
