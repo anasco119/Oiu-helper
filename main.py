@@ -887,8 +887,31 @@ def handle_main_menu(c):
         }.get(data, "هذه الميزة")
 
         bot.answer_callback_query(c.id)
-        bot.send_message(chat_id, f"{feature_name} ستكون متاحة قريبًا... 🚧")    
+        bot.send_message(chat_id, f"{feature_name} ستكون متاحة قريبًا... 🚧")
+        
+@bot.message_handler(func=lambda m: user_states.get(m.from_user.id) in ["awaiting_major", "awaiting_major_for_games"])
+def handle_user_major(msg):
+    uid = msg.from_user.id
+    state = user_states.get(uid)
+    major = msg.text.strip()
 
+    cursor.execute("INSERT OR REPLACE INTO users(user_id, major) VALUES(?, ?)", (uid, major))
+    conn.commit()
+    user_states.pop(uid, None)
+
+    if state == "awaiting_major":
+        bot.send_message(uid, f"✅ تم تسجيل تخصصك: {major}\n"
+                         "الآن أرسل ملف (PDF/DOCX/TXT) أو نصًا مباشرًا لتوليد اختبارك.")
+    elif state == "awaiting_major_for_games":
+        bot.send_message(uid, f"✅ تم تسجيل تخصصك: {major}\n"
+                         "الآن يمكنك اختيار لعبة من قائمة الألعاب التعليمية.")
+        # نرسل واجهة الألعاب مرة أخرى
+        keyboard = InlineKeyboardMarkup(row_width=1)
+        keyboard.add(
+            InlineKeyboardButton("🔒 العب في الخاص", callback_data="game_private"),
+            InlineKeyboardButton("👥 العب في المجموعة", switch_inline_query="game")
+        )
+        bot.send_message(uid, "🎮 اختر طريقة اللعب:", reply_markup=keyboard)
 
 @bot.message_handler(func=lambda m: user_states.get(m.from_user.id) == "awaiting_major", content_types=['text'])
 def set_custom_major(msg):
