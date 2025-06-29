@@ -379,8 +379,9 @@ def increment_count(user_id: int):
 from datetime import date
 
 def can_play_game_today(user_id: int, game_type: str) -> bool:
-    if user_id == ADMIN_ID:
+    if str(user_id) == str(ADMIN_ID):  # مقارنة آمنة لأن ADMIN_ID أحيانًا يكون str
         return True
+
     today = str(date.today())
     cursor.execute(
         "SELECT 1 FROM game_attempts WHERE user_id = ? AND game_type = ? AND date = ?",
