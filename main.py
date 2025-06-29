@@ -379,6 +379,8 @@ def increment_count(user_id: int):
 from datetime import date
 
 def can_play_game_today(user_id: int, game_type: str) -> bool:
+    if user_id == ADMIN_ID:
+        return True
     today = str(date.today())
     cursor.execute(
         "SELECT 1 FROM game_attempts WHERE user_id = ? AND game_type = ? AND date = ?",
@@ -734,7 +736,9 @@ def handle_main_menu(c):
         keyboard.add(InlineKeyboardButton("⬅️ رجوع", callback_data="go_back_home"))
 
         bot.edit_message_text(
-            "🎯 اختر تخصصك للبدء 👇",
+            "🎯 هذا البوت يساعدك على توليد اختبارات ذكية من ملفاتك الدراسية أو النصوص.\n"
+            "📌 متاح لك 3 اختبارات مجانية شهريًا.\n\n"
+            "اختر تخصصك للبدء 👇"
             chat_id=chat_id,
             message_id=message_id,
             reply_markup=keyboard
