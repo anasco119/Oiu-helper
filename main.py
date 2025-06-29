@@ -561,6 +561,7 @@ Requirements:
 - Keep it simple and not too academic.
 - Return raw JSON only.
 - No explanation.
+- Only return readable Arabic text, no Unicode codes like \\u0645. Use actual Arabic letters.
 - Use this seed to increase randomness: {rand}
 
 Example output:
@@ -585,6 +586,7 @@ Your task:
 - The question must be in {native_lang} (e.g. Arabic).
 - The **options must be in English**.
 - Provide **4 options** only, with one correct.
+- Only return readable Arabic text, no Unicode codes like \\u0645. Use actual Arabic letters.
 - Don't explain.
 - Return only raw JSON.
 
