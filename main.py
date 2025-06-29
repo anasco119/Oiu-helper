@@ -851,7 +851,7 @@ def handle_main_menu(c):
             elif game_type == "inference":
                 raw = generate_inference_game(uid, major)
             
-            q = json.loads(raw)
+            q = raw
             question = q["question"]
             options = q["options"]
             correct_index = q["correct_index"]
@@ -967,7 +967,7 @@ def handle_document(msg):
     major = cursor.fetchone()[0] or "عام"
 
     bot.send_message(uid, "🧠 جاري توليد الاختبارات... الرجاء الانتظار")
-    quizzes = generate_quizzes_from_text(text[:3000], major, chat_id=uid, num_quizzes=10)
+    quizzes = generate_quizzes_from_text(text[:3000], major, user_id=uid, num_quizzes=10)
     if quizzes and len(quizzes) > 0:
         send_quizzes_as_polls(uid, quizzes)
         increment_count(uid)
@@ -989,7 +989,7 @@ def handle_text(msg):
     major = cursor.fetchone()[0] or "عام"
 
     bot.send_message(uid, "🧠 جاري توليد الاختبارات من النص... الرجاء الانتظار")
-    quizzes = generate_quizzes_from_text(text[:3000], major, chat_id=uid, num_quizzes=10)
+    quizzes = generate_quizzes_from_text(text[:3000], major, user_id=uid, num_quizzes=10)
     if quizzes and len(quizzes) > 0:
         send_quizzes_as_polls(uid, quizzes)
         increment_count(uid)
