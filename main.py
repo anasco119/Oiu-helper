@@ -915,27 +915,27 @@ def handle_main_menu(c):
             logging.error(f"فشل توليد اللعبة: {str(e)}")
             bot.send_message(uid, "❌ حدث خطأ أثناء توليد اللعبة، حاول لاحقاً")
 
-elif data.startswith("ans_"):
-    parts = data.split("_")
-    game_type = parts[1]
-    selected = int(parts[2])
-    correct = int(parts[3])
+    elif data.startswith("ans_"):
+        parts = data.split("_")
+        game_type = parts[1]
+        selected = int(parts[2])
+        correct = int(parts[3])
     
-    # يمكنك إضافة تأثيرات بصرية عند الإجابة
-    if selected == correct:
-        bot.answer_callback_query(c.id, "✅ إجابة صحيحة!", show_alert=True)
-    else:
-        bot.answer_callback_query(c.id, f"❌ خاطئة. الإجابة الصحيحة هي: {options[correct]}", show_alert=True)
+        # يمكنك إضافة تأثيرات بصرية عند الإجابة
+        if selected == correct:
+            bot.answer_callback_query(c.id, "✅ إجابة صحيحة!", show_alert=True)
+        else:
+            bot.answer_callback_query(c.id, f"❌ خاطئة. الإجابة الصحيحة هي: {options[correct]}", show_alert=True)
 
-# معالجة طلب سؤال جديد
-elif data.startswith("new_"):
-    game_type = data.split("_", 1)[1]
+    # معالجة طلب سؤال جديد
+    elif data.startswith("new_"):
+        game_type = data.split("_", 1)[1]
     
-    # حذف الرسالة الحالية
-    try:
-        bot.delete_message(c.message.chat.id, c.message.message_id)
-    except:
-        pass
+        # حذف الرسالة الحالية
+        try:
+            bot.delete_message(c.message.chat.id, c.message.message_id)
+        except:
+            pass
     
     # إعادة توليد سؤال جديد
     new_callback = types.CallbackQuery(
@@ -945,19 +945,9 @@ elif data.startswith("new_"):
         data=f"game_{game_type}",
         chat_instance=c.chat_instance
     )
-    handle_main_menu(new_callback)
+        handle_main_menu(new_callback)
     
-    elif data.startswith("ans_"):
-        parts = data.split("_")
-        game_type = parts[1]
-        selected = int(parts[2])
-        correct = int(parts[3])
-        
-        if selected == correct:
-            bot.answer_callback_query(c.id, "✅ إجابة صحيحة!")
-        else:
-            bot.answer_callback_query(c.id, "❌ خاطئة. فكر أكثر...")
-    
+       
     elif data.startswith("soon_"):
         feature_name = {
             "soon_review": "📚 ميزة المراجعة السريعة",
@@ -1165,3 +1155,95 @@ threading.Thread(target=run_bot).start()
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))  # Render يوفر PORT كمتغير بيئة
     app.run(host="0.0.0.0", port=port)
+
+
+
+elif data in ["game_vocab", "game_speed", "game_mistakes", "game_inference"]:
+    game_type = data.split("_", 1)[1]
+    
+    # التحقق من إمكانية اللعب
+    if not can_play_game_today(uid, game_type):
+        bot.answer_callback_query(c.id, "❌ لقد لعبت هذه اللعبة اليوم!")
+        return
+    
+    record_game_attempt(uid, game_type)
+    
+    # توليد السؤال حسب نوع اللعبة
+    try:
+        cursor.execute("SELECT major FROM users WHERE user_id=?", (uid,))
+        row = cursor.fetchone()
+        major = row[0] if row else "عام"
+        
+        if game_type == "vocab":
+            raw = generate_vocabulary_game(uid, major)
+        elif game_type == "speed":
+            raw = generate_speed_challenge(uid, major)
+        elif game_type == "mistakes":
+            raw = generate_common_mistakes_game(uid, major)
+        elif game_type == "inference":
+            raw = generate_inference_game(uid, major)
+        
+        q = raw
+        question = q["question"]
+        options = q["options"]
+        correct_index = q["correct_index"]
+        
+        if not isinstance(options, list) or len(options) < 2:
+            raise ValueError("❌ عدد الخيارات أقل من 2 أو غير صالح")
+
+        if not isinstance(correct_index, int) or correct_index >= len(options):
+            raise ValueError("❌ رقم الإجابة الصحيحة غير متوافق")
+            
+        keyboard = InlineKeyboardMarkup(row_width=2)
+        
+        # إضافة أزرار الخيارات
+        for i, option in enumerate(options):
+            short_option = option[:50] + "..." if len(option) > 50 else option
+            callback_data = f"ans_{game_type}_{i}_{correct_index}"
+            keyboard.add(InlineKeyboardButton(short_option, callback_data=callback_data))
+        
+        # إضافة أزرار التحكم (السؤال التالي والرجوع)
+        control_buttons = [
+            InlineKeyboardButton("🔄 سؤال جديد", callback_data=f"new_{game_type}"),
+            InlineKeyboardButton("⬅️ رجوع", callback_data="game_private")
+        ]
+        keyboard.row(*control_buttons)
+
+        # إرسال السؤال مع الأزرار
+        text = f"🧠 اختر الإجابة الصحيحة:\n\n{question}"
+        bot.send_message(chat_id, text, reply_markup=keyboard)
+    
+    except Exception as e:
+        logging.error(f"فشل توليد اللعبة: {str(e)}")
+        bot.send_message(uid, "❌ حدث خطأ أثناء توليد اللعبة، حاول لاحقاً")
+
+elif data.startswith("ans_"):
+    parts = data.split("_")
+    game_type = parts[1]
+    selected = int(parts[2])
+    correct = int(parts[3])
+    
+    if selected == correct:
+        bot.answer_callback_query(c.id, "✅ إجابة صحيحة!")
+    else:
+        bot.answer_callback_query(c.id, "❌ خاطئة. فكر أكثر...")
+
+# معالجة طلب سؤال جديد
+elif data.startswith("new_"):
+    game_type = data.split("_", 1)[1]
+    
+    # حذف الرسالة الحالية
+    try:
+        bot.delete_message(c.message.chat.id, c.message.message_id)
+    except:
+        pass
+    
+    # إعادة توليد سؤال جديد
+    new_callback = types.CallbackQuery(
+        id=c.id,
+        from_user=c.from_user,
+        message=c.message,
+        data=f"game_{game_type}",
+        chat_instance=c.chat_instance
+    )
+    handle_main_menu(new_callback)
