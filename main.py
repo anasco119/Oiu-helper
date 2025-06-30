@@ -614,7 +614,13 @@ def generate_vocabulary_game(user_id, major, native_lang="Arabic"):
     - Show the meaning of an English word in {native_lang}  
     - Provide 4 English words as options  
     - Only ONE option should be correct.  
-    - Don't explain anything. Just give raw JSON.  
+    - Don't explain anything. Just give raw JSON.
+    Example:
+{{
+  "question": "ما معنى الكلمة: motivate؟",
+  "options": ["يحفّز", "يعارض", "ينظف", "يشرح"],
+  "correct_index": 0
+}}
 
     Use this seed to diversify the question: {rand}
     ...
