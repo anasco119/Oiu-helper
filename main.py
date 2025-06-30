@@ -335,6 +335,48 @@ def extract_text_from_txt(path: str) -> str:
         logging.error(f"Error extracting TXT text: {e}")
         return ""
 
+
+def parse_ai_json(raw_text: str) -> dict | None:
+    """
+    1) يحوّل هاربات Unicode إلى نص عربي.
+    2) يقطّع أول كتلة JSON موجودة داخل النص إن لم يكن الرد نقيًّا.
+    3) يحاول json.loads عدة مرات.
+    4) يتحقق من بنية الناتج قبل الإرجاع.
+    """
+    # 1. فكُّ هاربات Unicode (\u0627 → ا)
+    def _unescape(match):
+        code = match.group(1)
+        return chr(int(code, 16))
+    text = re.sub(r'\\u([0-9A-Fa-f]{4})', _unescape, raw_text)
+
+    # 2. اجتزء أول كتلة JSON (من { إلى })
+    m = re.search(r'\{[\s\S]*\}', text)
+    json_text = m.group(0) if m else text
+
+    # 3. حاول التحميل
+    for attempt in (json_text, text):
+        try:
+            data = json.loads(attempt)
+            break
+        except json.JSONDecodeError:
+            data = None
+    if not data:
+        return None
+
+    # 4. التحقق من بنية الـ dict
+    if not all(k in data for k in ("question", "options", "correct_index")):
+        return None
+
+    # 5. التأكد من أن options قائمة وصالحة
+    if not isinstance(data["options"], list) or len(data["options"]) < 2:
+        return None
+
+    # 6. التأكد من correct_index
+    ci = data["correct_index"]
+    if not isinstance(ci, int) or ci < 0 or ci >= len(data["options"]):
+        return None
+
+    return data
 # -------------------------------------------------------------------
 #                     Quota Management
 # -------------------------------------------------------------------
@@ -512,7 +554,13 @@ def generate_quizzes_from_text(text: str, major: str, user_id: int, num_quizzes:
         return [] # أرجع قائمة فارغة عند الفشل
     # --- التعديل ينتهي هنا ---
 
-
+def generate_vocabulary_game(user_id, major, native_lang="Arabic"):
+    prompt = build_vocab_prompt(user_id, major, native_lang)
+    raw = generate_smart_response(prompt)
+    q = parse_ai_json(raw)
+    if not q:
+        raise ValueError("فشل استخراج سؤال الألعاب بشكل صحيح")
+    return q
 
 # -------------------------------------------------------------------
 #                 games
