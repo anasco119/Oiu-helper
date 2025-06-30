@@ -596,13 +596,14 @@ def generate_quizzes_from_text(text: str, major: str, user_id: int, num_quizzes:
     "Each question must be an object with:\n"
     "- 'question': the question string\n"
     "- 'options': a list of exactly 4 answer options\n"
-    "- 'correct_index': the index (0-3) of the correct answer in the options list\n\n"
+    "- 'correct_index': the index (0-3) of the correct answer in the options list\n"
+    "- 'explanation': short sentence to explain **why this is the correct answer**, max 2 lines\n\n"
     "⚠️ Format Instructions:\n"
     "- ONLY return a raw JSON array. No markdown, no explanation, no formatting.\n"
     "- Do not include any introductory or closing text.\n"
     "- Ensure the JSON is valid and parsable.\n\n"
     f"Content:\n{text}"
-)
+    )
 
     # تحديد الدالة بناءً على صلاحية المستخدم
     if user_id == ADMIN_ID or can_generate(user_id):  # <-- التحقق هنا
@@ -628,9 +629,10 @@ def generate_quizzes_from_text(text: str, major: str, user_id: int, num_quizzes:
             q = item.get("question", "").strip()
             opts = item.get("options", [])
             corr = item.get("correct_index", -1)
+            expl = item.get("explanation", "").strip()
 
             if isinstance(q, str) and q and isinstance(opts, list) and len(opts) == 4 and isinstance(corr, int) and 0 <= corr < 4:
-                quizzes.append((q, [str(opt).strip() for opt in opts], corr))
+                quizzes.append((q, [str(opt).strip() for opt in opts], corr, expl))
             else:
                 logging.warning(f"❌ Skipping invalid question structure: {item}")
 
@@ -848,30 +850,24 @@ def process_pending_inference_questions():
 
     conn.commit()
 
-
-
-
-
 def send_quizzes_as_polls(chat_id: int, quizzes: list):
     """
     Sends a list of quizzes to a user as separate Telegram polls.
-    
-    :param chat_id: The user's chat ID.
-    :param quizzes: A list of quiz tuples, where each tuple is
-                    (question, options_list, correct_index).
+    :param quizzes: A list of quiz tuples: (question, options, correct_index, explanation)
     """
-    # نرسل رسالة للمستخدم نخبره فيها بعدد الأسئلة
     bot.send_message(chat_id, f"تم تجهيز {len(quizzes)} سؤالًا. استعد للاختبار!")
-    time.sleep(2) # ننتظر ثانيتين قبل بدء الاختبار
+    time.sleep(2)
 
     for i, quiz_data in enumerate(quizzes):
         try:
-            question, options, correct_index = quiz_data
-            
-            # التأكد من أن طول السؤال والخيارات ضمن حدود تليجرام
+            question, options, correct_index, explanation = quiz_data
+
             question_text = f"❓ السؤال {i+1}:\n\n{question}"
-            if len(question_text) > 300: # حد تليجرام لطول السؤال هو 300 حرف
+            if len(question_text) > 300:
                 question_text = question_text[:297] + "..."
+
+            if not explanation:
+                explanation = f"الإجابة الصحيحة: {options[correct_index]}"
 
             bot.send_poll(
                 chat_id=chat_id,
@@ -879,17 +875,16 @@ def send_quizzes_as_polls(chat_id: int, quizzes: list):
                 options=options,
                 type='quiz',
                 correct_option_id=correct_index,
-                is_anonymous=False, # في الاختبارات، عادة ما تكون الإجابات غير مجهولة
-                explanation=f"الإجابة الصحيحة هي: {options[correct_index]}"
+                is_anonymous=False,
+                explanation=explanation[:200]  # ⚠️ حد تيليجرام
             )
-            
-            # ننتظر ثانية واحدة بين كل سؤال لتجنب مشاكل الإرسال السريع
+
             time.sleep(1)
 
         except Exception as e:
-            logging.error(f"Could not send poll for quiz: {quiz_data}. Error: {e}")
-            bot.send_message(chat_id, f"عذرًا، حدث خطأ أثناء إرسال السؤال رقم {i+1}. سنتجاوزه ونكمل.")
-            continue # ننتقل للسؤال التالي في حالة حدوث خطأ
+            logging.error(f"Error sending poll: {e}")
+            bot.send_message(chat_id, f"⚠️ خطأ في إرسال السؤال رقم {i+1}.")
+            continue
 
     bot.send_message(chat_id, "🎉 انتهى الاختبار! بالتوفيق.")
 
