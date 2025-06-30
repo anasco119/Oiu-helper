@@ -652,7 +652,7 @@ Generate a **fun, fast-answer quiz** for a student in {major}.
 Requirements:
 - The question must be in English.
 - The 4 options must be in English.
-- Use general knowledge topics (e.g. capitals, animals, logic, etc).
+- Use fun and fast general knowledge topics (e.g. movies, logic, famous quotes, daily life trivia, or language puzzles). Avoid repeating the same categories.
 - Keep it simple and not too academic.
 - Return raw JSON only.
 - No explanation.
@@ -700,36 +700,36 @@ def generate_inference_game(user_id, major, native_lang="Arabic"):
     rand = random.randint(1000, 9999)
     random_topic = random.choice(topics)
     prompt = f"""
-أنت منشئ اختبارات مهارات الحياة باستخدام الذكاء الاصطناعي.
+You are an AI-powered life skills test creator.
 
-أنشئ سؤالًا **جديدًا وفريدًا** يطوّر إحدى المهارات التالية:
-- التفكير النقدي
-- الذكاء العاطفي
-- إدارة الوقت
-- الوعي الذاتي
-- اتخاذ القرار
-- حل المشكلات
-- المنطق
-- التعرف على الأنماط
-- الفهم العقلي للخرائط
+Generate a **new and unique** question that develops one of the following skills:  
+- Critical thinking  
+- Emotional intelligence  
+- Time management  
+- Self-awareness  
+- Decision making  
+- Problem solving  
+- Logic  
+- Pattern recognition  
+- Mental map understanding  
 
-🔹 الشروط:
-- اكتب **السؤال باللغة العربية**
-- اكتب **جميع الخيارات باللغة العربية**
-- اختر سيناريو واقعي أو من حياة الطالب، مرتبط بالموضوع التالي: **{random_topic}**
-- يجب أن تكون الخيارات 4 فقط، واحدة منها صحيحة
-- لا تكرر أمثلة سابقة ولا تشرح شيئًا
-- اجعل السؤال ممتعًا وذكيًا
-- أضف التنوع باستخدام هذا الرقم العشوائي: {rand}
+🔹 **Requirements**:  
+- Write the **question in Arabic**  
+- Write **all options in Arabic**  
+- Use a realistic scenario or student-life context related to: **{random_topic}**  
+- Provide **exactly 4 options**, with **one correct answer**  
+- **Never repeat** past examples or add explanations  
+- Make the question **engaging and clever**  
+- Incorporate variability using this random number: **{rand}**  
 
-🔸 أرجع النتيجة بصيغة JSON فقط، بدون أي شرح.
+🔸 Return **JSON-only output** (no additional text).  
 
-مثال:
+Example (Johnson’s format):  
 {{
-  "question": "ندى لديها ثلاث مهام: مراجعة كلمات جديدة، مشاهدة فيلم إنجليزي، وكتابة فقرة عن هوايتها. ما الأفضل أن تبدأ به؟",
-  "options": ["تشاهد الفيلم", "تكتب الفقرة", "تراجع الكلمات", "تذهب في نزهة"],
-  "correct_index": 2
-}}
+  "question": "Nada has three tasks: review new vocabulary, watch an English movie, and write a paragraph about her hobby. What should she start with?",  
+  "options": ["Watch the movie", "Write the paragraph", "Review the vocabulary", "Go for a walk"],  
+  "correct_index": 2  
+}}  
 """
     return generate_game(prompt, translate_all=True)
 
