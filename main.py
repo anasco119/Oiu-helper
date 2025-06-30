@@ -628,7 +628,7 @@ def generate_vocabulary_game(user_id, major, native_lang="Arabic"):
     - Don't explain anything. Just give raw JSON.
     Example:
 {{
-  "question": "ما معنى الكلمة: motivate؟",
+  "question": "ما معنى الكلمة: motivate",
   "options": ["يحفّز", "يعارض", "ينظف", "يشرح"],
   "correct_index": 0
 }}
@@ -1119,9 +1119,9 @@ def handle_main_menu(c):
     
         # يمكنك إضافة تأثيرات بصرية عند الإجابة
         if selected == correct:
-            bot.answer_callback_query(c.id, "✅ إجابة صحيحة!", show_alert=True)
+            bot.answer_callback_query(c.id, "✅ إجابة صحيحة!")
         else:
-            bot.answer_callback_query(c.id, f"❌ خاطئة. الإجابة الصحيحة هي: {options[correct]}", show_alert=True)
+            bot.answer_callback_query(c.id, f"❌ خاطئة. الإجابة الصحيحة هي: {options[correct]}")
     elif data.startswith("soon_"):
         feature_name = {
             "soon_review": "📚 ميزة المراجعة السريعة",
