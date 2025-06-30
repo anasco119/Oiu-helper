@@ -395,18 +395,28 @@ def parse_ai_json(raw_text: str) -> dict | None:
 
     return data
 
-def generate_game(prompt: str, translate_question: bool = False) -> dict:
+def generate_game(prompt: str, translate_question: bool = False, translate_all: bool = False) -> dict:
     raw_response = generate_smart_response(prompt)
-
-    # استخدم دالة التحليل الذكي
     game_data = parse_ai_json(raw_response)
 
     if not game_data:
         raise ValueError("فشل استخراج بيانات اللعبة")
 
-    # الترجمة إذا طُلبت
-    if translate_question and 'question' in game_data:
-        game_data['question'] = translate_text(game_data['question'], source='en', target='ar')
+    if translate_all:
+        # ترجمة السؤال
+        if 'question' in game_data:
+            game_data['question'] = translate_text(game_data['question'], source='en', target='ar')
+
+        # ترجمة كل الخيارات
+        if 'options' in game_data and isinstance(game_data['options'], list):
+            game_data['options'] = [
+                translate_text(option, source='en', target='ar') for option in game_data['options']
+            ]
+
+    elif translate_question:
+        # ترجمة السؤال فقط
+        if 'question' in game_data:
+            game_data['question'] = translate_text(game_data['question'], source='en', target='ar')
 
     return game_data
     
@@ -667,10 +677,9 @@ You are an educational game generator.
 
 Your task:
 - Generate a multiple-choice question highlighting a **common mistake** in the field of {major}.
-- The question must be in {native_lang} (e.g. Arabic).
+- The question must be in English.
 - The **options must be in English**.
 - Provide **4 options** only, with one correct.
-- Only return readable Arabic text, no Unicode codes like \\u0645. Use actual Arabic letters.
 - Don't explain.
 - Return only raw JSON.
 
@@ -722,7 +731,7 @@ def generate_inference_game(user_id, major, native_lang="Arabic"):
   "correct_index": 2
 }}
 """
-    return generate_game(prompt, translate_question=True)
+    return generate_game(prompt, translate_all=True)
 
 # ----------------------------------
 # ------------- inference review -------------------------------------------------------------------
