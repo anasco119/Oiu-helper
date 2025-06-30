@@ -603,7 +603,7 @@ topics = [
     "الضغط الزمني", "مواقف عاطفية", "استخدام التكنولوجيا", "قرارات مالية",
     "صراعات الفريق", "تحديد الأهداف"
 ]
-random_topic = random.choice(topics)
+
 
 def generate_vocabulary_game(user_id, major, native_lang="Arabic"):
     # يتم إنشاء رقم عشوائي جديد مع كل استدعاء للدالة
@@ -671,8 +671,8 @@ Use this random seed to diversify the question: {rand}
 
 Example output:
 {{
-  "question": "ما الخطأ الشائع التالي في علم التشريح؟",
-  "options": ["Heart has 3 chambers", "Liver detoxifies blood", "Skin is the largest organ", "Neurons transmit signals"],
+  "question": "Which sentence is grammatically incorrect?",
+  "options": ["He go to school every day.", "She plays the piano.", "They are studying now.", "I have finished my homework."],
   "correct_index": 0
 }}
 """
@@ -710,8 +710,8 @@ def generate_inference_game(user_id, major, native_lang="Arabic"):
 
 مثال:
 {{
-  "question": "أحمد لديه ثلاث مهام: كتابة تقرير، الرد على رسائل عاجلة، والاستعداد لامتحان الغد. ما الذي يجب أن يفعله أولاً؟",
-  "options": "يكتب التقرير", "يرد على الرسائل", "يستعد للامتحان", "يأخذ استراحة"],
+  "question": "ندى لديها ثلاث مهام: مراجعة كلمات جديدة، مشاهدة فيلم إنجليزي، وكتابة فقرة عن هوايتها. ما الأفضل أن تبدأ به؟",
+  "options": ["تشاهد الفيلم", "تكتب الفقرة", "تراجع الكلمات", "تذهب في نزهة"],
   "correct_index": 2
 }}
 """
@@ -982,13 +982,13 @@ def handle_main_menu(c):
             major = row[0] if row else "عام"
         
             if game_type == "vocab":
-                raw = generate_vocabulary_game(uid, major)
+                raw = generate_vocabulary_game(uid, major, native_lang="Arabic")
             elif game_type == "speed":
-                raw = generate_speed_challenge(uid, major)
+                raw = generate_speed_challenge(uid, major, native_lang="Arabic")
             elif game_type == "mistakes":
-                raw = generate_common_mistakes_game(uid, major)
+                raw = generate_common_mistakes_game(uid, major, native_lang="Arabic")
             elif game_type == "inference":
-                raw = generate_inference_game(uid, major)
+                raw = generate_inference_game(uid, major, native_lang="Arabic")
         
             q = raw
             question = q["question"]
