@@ -255,6 +255,23 @@ def generate_smart_response(prompt: str) -> str:
     # 🚫 All models failed
     logging.error("❌ All API providers failed. Returning empty string.")
     return ""
+
+
+def translate_text(text, source='en', target='ar'):
+    url = 'https://libretranslate.de/translate'
+    payload = {
+        'q': text,
+        'source': source,
+        'target': target,
+        'format': 'text'
+    }
+    try:
+        response = requests.post(url, data=payload)
+        return response.json()['translatedText']
+    except Exception as e:
+        print("ترجمة فشلت:", e)
+        return text  # fallback
+        
 # -------------------------------------------------------------------
 #                  Logging & Database Setup
 # -------------------------------------------------------------------
@@ -378,12 +395,19 @@ def parse_ai_json(raw_text: str) -> dict | None:
 
     return data
 
-def generate_game(prompt: str) -> dict:
-    raw = generate_smart_response(prompt)
-    q = parse_ai_json(raw)  # هذه الدالة تتضمن تنظيف وترميز JSON
-    if not q:
-        raise ValueError("❌ فشل توليد اللعبة.")
-    return q
+def generate_game(prompt: str, translate_question: bool = False) -> dict:
+    raw_response = generate_smart_response(prompt)
+    cleaned = convert_unicode_escapes(raw_response)
+    game_data = extract_clean_json(cleaned)
+
+    if not game_data:
+        raise ValueError("فشل استخراج بيانات اللعبة")
+
+    # الترجمة إذا طُلبت
+    if translate_question and 'question' in game_data:
+        game_data['question'] = translate_text(game_data['question'], source='en', target='ar')
+
+    return game_data
     
 # -------------------------------------------------------------------
 #                     Quota Management
@@ -529,7 +553,6 @@ def generate_quizzes_from_text(text: str, major: str, user_id: int, num_quizzes:
         raw_response = generate_smart_response(prompt)
     else:
         raw_response = generate_gemini_response(prompt)
-
     
     # --- التعديل يبدأ هنا ---
     # 1. تنظيف الاستجابة لاستخراج الـ JSON
@@ -598,7 +621,10 @@ def generate_vocabulary_game(user_id, major, native_lang="Arabic"):
     """
     # ... باقي الكود
     return generate_game(prompt)
-   
+
+
+
+
 def generate_speed_challenge(user_id, major, native_lang="Arabic"):
     rand = random.randint(1000, 9999)
     prompt = f"""
@@ -607,23 +633,23 @@ You are a quiz bot.
 Generate a **fun, fast-answer quiz** for a student in {major}.
 
 Requirements:
-- The question must be in {native_lang}.
+- The question must be in English.
 - The 4 options must be in English.
 - Use general knowledge topics (e.g. capitals, animals, logic, etc).
 - Keep it simple and not too academic.
 - Return raw JSON only.
 - No explanation.
-- Only return readable Arabic text, no Unicode codes like \\u0645. Use actual Arabic letters.
 - Use this seed to increase randomness: {rand}
 
 Example output:
 {{
-  "question": "ما هي عاصمة فرنسا؟",
+  "question": "What is the capital of France?",
   "options": ["Paris", "Berlin", "London", "Rome"],
   "correct_index": 0
 }}
 """
-    return generate_game(prompt)
+    return generate_game(prompt, translate_question=True)
+
 
 
 # ★ لعبة الاخطاء الشائعة
@@ -650,7 +676,9 @@ Example output:
   "correct_index": 0
 }}
 """
-    return generate_game(prompt)
+    return generate_game(prompt, translate_question=True)
+
+
 
 def generate_inference_game(user_id, major, native_lang="Arabic"):
     rand = random.randint(1000, 9999)
@@ -687,7 +715,7 @@ def generate_inference_game(user_id, major, native_lang="Arabic"):
   "correct_index": 2
 }}
 """
-    return generate_game(prompt)
+    return generate_game(prompt, translate_question=True)
 
 # ----------------------------------
 # ------------- inference review -------------------------------------------------------------------
