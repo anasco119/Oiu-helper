@@ -397,8 +397,9 @@ def parse_ai_json(raw_text: str) -> dict | None:
 
 def generate_game(prompt: str, translate_question: bool = False) -> dict:
     raw_response = generate_smart_response(prompt)
-    cleaned = convert_unicode_escapes(raw_response)
-    game_data = extract_clean_json(cleaned)
+
+    # استخدم دالة التحليل الذكي
+    game_data = parse_ai_json(raw_response)
 
     if not game_data:
         raise ValueError("فشل استخراج بيانات اللعبة")
