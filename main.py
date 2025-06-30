@@ -188,7 +188,7 @@ def generate_smart_response(prompt: str) -> str:
     if cohere_client:
         try:
             logging.info("Attempting request with: 5. Cohere...")
-            response = cohere_client.chat(model='command-r', message=prompt)
+            response = cohere_client.chat(model='command-r', message=prompt, temperature=0.8)
             logging.info("✅ Success with Cohere.")
             return response.text
         except Exception as e:
@@ -201,7 +201,7 @@ def generate_smart_response(prompt: str) -> str:
         try:
             logging.info("Attempting request with: 4. Google Gemini...")
             request_options = {"timeout": timeout_seconds}
-            response = gemini_model.generate_content(prompt, request_options=request_options)
+            response = gemini_model.generate_content(prompt, request_options=request_options, temperature=0.8)
             if response.text:
                 logging.info("✅ Success with Gemini.")
                 return response.text
@@ -218,7 +218,7 @@ def generate_smart_response(prompt: str) -> str:
             chat_completion = groq_client.chat.completions.create(
                 messages=[{"role": "user", "content": prompt}],
                 model="llama3-8b-8192",
-                temperature=0.7,
+                temperature=0.8,
                 timeout=timeout_seconds
             )
             if chat_completion.choices[0].message.content:
@@ -518,7 +518,7 @@ def generate_quizzes_from_text(text: str, major: str, user_id: int, num_quizzes:
 #                 games
 # -------------------------------------------------------------------
 import random
-rand = random.randint(1000, 9999)
+
 topics = [
     "حياة الطالب", "تخطيط السفر", "مشاريع جماعية", "مقابلات العمل",
     "الضغط الزمني", "مواقف عاطفية", "استخدام التكنولوجيا", "قرارات مالية",
@@ -526,7 +526,9 @@ topics = [
 ]
 random_topic = random.choice(topics)
 
-def generate_vocabulary_game(user_id, major, native_lang="Arabic"):  
+def generate_vocabulary_game(user_id, major, native_lang="Arabic"):
+    # يتم إنشاء رقم عشوائي جديد مع كل استدعاء للدالة
+    rand = random.randint(1000, 9999) 
     prompt = f"""  
     You are an AI vocabulary quiz creator.  
     Generate one vocabulary question for a student majoring in {major}.  
@@ -536,19 +538,16 @@ def generate_vocabulary_game(user_id, major, native_lang="Arabic"):
     - Don't explain anything. Just give raw JSON.  
 
     Use this seed to diversify the question: {rand}
-
-Example:  
-{{  
-  "question": "معنى: يشرح بتفصيل",  
-  "options": ["explain", "explode", "expose", "explore"],  
-  "correct_index": 0  
-}}  
-"""
+    ...
+    """
+    # ... باقي الكود
+    
     game_response = generate_smart_response(prompt)  
     clean_json_str = extract_json_from_string(game_response)  
     return json.loads(clean_json_str)  # ✅ يرجع dict يمكن استخدامه مباشرة
 
 def generate_speed_challenge(user_id, major, native_lang="Arabic"):
+    rand = random.randint(1000, 9999)
     prompt = f"""
 You are a quiz bot.
 
@@ -578,6 +577,7 @@ Example output:
 
 # ★ لعبة الاخطاء الشائعة
 def generate_common_mistakes_game(user_id, major, native_lang="Arabic"):
+    rand = random.randint(1000, 9999)
     prompt = f"""
 You are an educational game generator.
 
@@ -604,6 +604,8 @@ Example output:
     return json.loads(clean_json_str)
 
 def generate_inference_game(user_id, major, native_lang="Arabic"):
+    rand = random.randint(1000, 9999)
+    random_topic = random.choice(topics)
     prompt = f"""
 أنت منشئ اختبارات مهارات الحياة باستخدام الذكاء الاصطناعي.
 
