@@ -619,27 +619,23 @@ def generate_vocabulary_game(user_id, major, native_lang="Arabic"):
     rand = random.randint(1000, 9999)
     prompt = f"""  
 You are an AI vocabulary quiz creator.  
-Generate one vocabulary question for a student majoring in {major}.  
-- Show the meaning of an English word in {native_lang}  
+Generate one vocabulary question for a student majoring in {major}.
+- Vocabulary should be relevant to real life or academic use and not an uncommon Vocabulary.
+- Show the meaning of an English word in English 
 - Provide 4 English words as options  
 - Only ONE option should be correct.  
 - Don't explain anything. Just give raw JSON.
 
 Example:
 {{
-  "question": "ما معنى الكلمة التالية؟: يحفّز",
-  "options": ["motivate", "oppose", "clean", "explain"],
+  "question": "Question",
+  "options": ["Option", "Option", "Option", "Option"],
   "correct_index": 0
 }}
 
 Use this seed to diversify the question: {rand}
 """
-    game_gen = generate_smart_response(prompt)
-    clean_json_str = extract_json_from_string(game_gen)
-    if not clean_json_str:
-        raise ValueError("❌ لم يتم استخراج JSON من الرد")
-
-    return json.loads(clean_json_str)
+    return generate_game(prompt, translate_question=True)
 
 
 
