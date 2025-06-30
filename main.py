@@ -311,6 +311,14 @@ CREATE TABLE IF NOT EXISTS game_attempts (
     PRIMARY KEY (user_id, game_type)
 )
 """)
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS recent_questions (
+    user_id INTEGER,
+    game_type TEXT,
+    question TEXT,
+    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)
+""")
 conn.commit()
 
 
@@ -423,6 +431,43 @@ def generate_game(prompt: str, translate_question: bool = False, translate_all: 
 # -------------------------------------------------------------------
 #                     Quota Management
 # -------------------------------------------------------------------
+def add_recent_question(user_id, game_type, question):
+    with sqlite3.connect("quiz_users.db") as conn:
+        cursor = conn.cursor()
+        
+        # إدخال السؤال الجديد
+        cursor.execute("""
+        INSERT INTO recent_questions (user_id, game_type, question) 
+        VALUES (?, ?, ?)
+        """, (user_id, game_type, question))
+        
+        # حذف الأقدم إذا تجاوز 10 أسئلة
+        cursor.execute("""
+        DELETE FROM recent_questions
+        WHERE user_id = ? AND game_type = ?
+        AND question NOT IN (
+            SELECT question FROM recent_questions
+            WHERE user_id = ? AND game_type = ?
+            ORDER BY added_at DESC
+            LIMIT 10
+        )
+        """, (user_id, game_type, user_id, game_type))
+
+        conn.commit()
+
+def get_recent_questions(user_id, game_type):
+    with sqlite3.connect("quiz_users.db") as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+        SELECT question FROM recent_questions
+        WHERE user_id = ? AND game_type = ?
+        ORDER BY added_at DESC
+        LIMIT 10
+        """, (user_id, game_type))
+        rows = cursor.fetchall()
+        return [row[0] for row in rows]
+
+
 def reset_if_needed(user_id: int):
     this_month = datetime.now().strftime("%Y-%m")
     cursor.execute("SELECT last_reset FROM users WHERE user_id = ?", (user_id,))
@@ -617,6 +662,9 @@ topics = [
 
 def generate_vocabulary_game(user_id, major, native_lang="Arabic"):
     rand = random.randint(1000, 9999)
+    recent = get_recent_questions(user_id, "vocab")
+    recent_prompt = "\n".join(f"- {q}" for q in recent)
+    
     prompt = f"""  
 You are an AI vocabulary quiz creator.  
 Generate one vocabulary question for a student majoring in {major}.
@@ -634,14 +682,20 @@ Example:
 }}
 
 Use this seed to diversify the question: {rand}
+❌ Avoid repeating or paraphrasing these questions:
+{recent_prompt}
 """
-    return generate_game(prompt, translate_question=True)
+    q = generate_game(prompt)
 
-
-
+    # حفظ السؤال الجديد
+    add_recent_question(user_id, "speed", q["question"])
+    return q
 
 def generate_speed_challenge(user_id, major, native_lang="Arabic"):
     rand = random.randint(1000, 9999)
+    recent = get_recent_questions(user_id, "speed")
+    recent_prompt = "\n".join(f"- {q}" for q in recent)
+    
     prompt = f"""
 You are a quiz bot.
 
@@ -655,6 +709,8 @@ Requirements:
 - Return raw JSON only.
 - No explanation.
 - Use this seed to increase randomness: {rand}
+❌ Avoid repeating or paraphrasing these questions:
+{recent_prompt}
 
 Example output:
 {{
@@ -663,13 +719,19 @@ Example output:
   "correct_index": 0
 }}
 """
-    return generate_game(prompt, translate_question=True)
+    q = generate_game(prompt, translate_question=True)
 
-
+    # حفظ السؤال الجديد
+    add_recent_question(user_id, "speed", q["question"])
+    return q
+    
 
 # ★ لعبة الاخطاء الشائعة
 def generate_common_mistakes_game(user_id, major, native_lang="Arabic"):
     rand = random.randint(1000, 9999)
+    recent = get_recent_questions(user_id, "mistakes")
+    recent_prompt = "\n".join(f"- {q}" for q in recent)
+    
     prompt = f"""
 You are an educational game generator.
 
@@ -681,6 +743,8 @@ Your task:
 - Don't explain.
 - Return only raw JSON.
 
+❌ Avoid repeating or paraphrasing these questions:
+{recent_prompt}
 Use this random seed to diversify the question: {rand}
 
 Example output:
@@ -690,12 +754,18 @@ Example output:
   "correct_index": 0
 }}
 """
-    return generate_game(prompt, translate_question=True)
+    q = generate_game(prompt, translate_question=True)
 
+    # حفظ السؤال الجديد
+    add_recent_question(user_id, "speed", q["question"])
+    return q
 
 
 def generate_inference_game(user_id, major, native_lang="Arabic"):
     rand = random.randint(1000, 9999)
+    recent = get_recent_questions(user_id, "inference")
+    recent_prompt = "\n".join(f"- {q}" for q in recent)
+    
     random_topic = random.choice(topics)
     prompt = f"""
 You are an AI-powered life skills test creator.
@@ -720,6 +790,8 @@ Generate a **new and unique** question that develops one of the following skills
 - Make the question **engaging and clever**  
 - Incorporate variability using this random number: **{rand}**  
 - the options should be as short as possible but understandable
+❌ Avoid repeating or paraphrasing these questions:
+{recent_prompt}
 🔸 Return **JSON-only output** (no additional text).  
 
 Example (Johnson’s format):  
@@ -729,8 +801,12 @@ Example (Johnson’s format):
   "correct_index": 2  
 }}  
 """
-    return generate_game(prompt, translate_all=True)
+    q = generate_game(prompt, translate_question=True)
 
+    # حفظ السؤال الجديد
+    add_recent_question(user_id, "speed", q["question"])
+    return q
+    
 # ----------------------------------
 # ------------- inference review -------------------------------------------------------------------
 
