@@ -637,7 +637,9 @@ def generate_vocabulary_game(user_id, major, native_lang="Arabic"):
     ...
     """
     # ... باقي الكود
-    return generate_game(prompt)
+    game_gen = generate_smart_response(prompt)
+    vocab_json = extract_json_from_string(game_gen)
+    return vocab_json
 
 
 
@@ -652,7 +654,7 @@ Generate a **fun, fast-answer quiz** for a student in {major}.
 Requirements:
 - The question must be in English.
 - The 4 options must be in English.
-- Use fun and fast general knowledge topics (e.g. movies, logic, famous quotes, daily life trivia, or language puzzles). Avoid repeating the same categories.
+- Use fun and fast general knowledge topics (e.g. logic, daily life trivia, or language puzzles). Avoid repeating the same categories.
 - Keep it simple and not too academic.
 - Return raw JSON only.
 - No explanation.
@@ -660,8 +662,8 @@ Requirements:
 
 Example output:
 {{
-  "question": "What is the capital of France?",
-  "options": ["Paris", "Berlin", "London", "Rome"],
+  "question": "Question?",
+  "options": ["Option", "Option", "Option", "Option"],
   "correct_index": 0
 }}
 """
@@ -726,8 +728,8 @@ Generate a **new and unique** question that develops one of the following skills
 
 Example (Johnson’s format):  
 {{
-  "question": "Nada has three tasks: review new vocabulary, watch an English movie, and write a paragraph about her hobby. What should she start with?",  
-  "options": ["Watch the movie", "Write the paragraph", "Review the vocabulary", "Go for a walk"],  
+  "question": "Question",  
+  "options": ["Options", "Option", "Option", "Option"],  
   "correct_index": 2  
 }}  
 """
@@ -1109,7 +1111,17 @@ def handle_main_menu(c):
                 bot.delete_message(c.message.chat.id, loading_msg.message_id)
             except:
                 pass
-       
+    elif data.startswith("ans_"):
+        parts = data.split("_")
+        game_type = parts[1]
+        selected = int(parts[2])
+        correct = int(parts[3])
+    
+        # يمكنك إضافة تأثيرات بصرية عند الإجابة
+        if selected == correct:
+            bot.answer_callback_query(c.id, "✅ إجابة صحيحة!", show_alert=True)
+        else:
+            bot.answer_callback_query(c.id, f"❌ خاطئة. الإجابة الصحيحة هي: {options[correct]}", show_alert=True)
     elif data.startswith("soon_"):
         feature_name = {
             "soon_review": "📚 ميزة المراجعة السريعة",
