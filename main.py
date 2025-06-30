@@ -377,6 +377,14 @@ def parse_ai_json(raw_text: str) -> dict | None:
         return None
 
     return data
+
+def generate_game(prompt: str) -> dict:
+    raw = generate_smart_response(prompt)
+    q = parse_ai_json(raw)  # هذه الدالة تتضمن تنظيف وترميز JSON
+    if not q:
+        raise ValueError("❌ فشل توليد اللعبة.")
+    return q
+    
 # -------------------------------------------------------------------
 #                     Quota Management
 # -------------------------------------------------------------------
@@ -589,11 +597,8 @@ def generate_vocabulary_game(user_id, major, native_lang="Arabic"):
     ...
     """
     # ... باقي الكود
-    
-    game_response = generate_smart_response(prompt)  
-    clean_json_str = extract_json_from_string(game_response)  
-    return json.loads(clean_json_str)  # ✅ يرجع dict يمكن استخدامه مباشرة
-
+    return generate_game(prompt)
+   
 def generate_speed_challenge(user_id, major, native_lang="Arabic"):
     rand = random.randint(1000, 9999)
     prompt = f"""
@@ -618,9 +623,7 @@ Example output:
   "correct_index": 0
 }}
 """
-    game_response = generate_smart_response(prompt)
-    clean_json_str = extract_json_from_string(game_response)
-    return json.loads(clean_json_str)
+    return generate_game(prompt)
 
 
 # ★ لعبة الاخطاء الشائعة
@@ -647,9 +650,7 @@ Example output:
   "correct_index": 0
 }}
 """
-    game_response = generate_smart_response(prompt)
-    clean_json_str = extract_json_from_string(game_response)
-    return json.loads(clean_json_str)
+    return generate_game(prompt)
 
 def generate_inference_game(user_id, major, native_lang="Arabic"):
     rand = random.randint(1000, 9999)
@@ -686,10 +687,7 @@ def generate_inference_game(user_id, major, native_lang="Arabic"):
   "correct_index": 2
 }}
 """
-    game_response = generate_smart_response(prompt)  
-    clean_json_str = extract_json_from_string(game_response)  
-    return json.loads(clean_json_str)  # ✅ يرجع dict يمكن استخدامه مباشرة
-
+    return generate_game(prompt)
 
 # ----------------------------------
 # ------------- inference review -------------------------------------------------------------------
