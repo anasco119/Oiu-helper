@@ -719,7 +719,7 @@ Generate a **new and unique** question that develops one of the following skills
 - **Never repeat** past examples or add explanations  
 - Make the question **engaging and clever**  
 - Incorporate variability using this random number: **{rand}**  
-
+- the options should be as short as possible but understandable
 🔸 Return **JSON-only output** (no additional text).  
 
 Example (Johnson’s format):  
@@ -854,6 +854,13 @@ def cmd_start(msg):
 def handle_main_menu(c):
     if c.message.chat.type != "private":
         return
+    # ردود خاطئة عشوائية تظهر للمستخدم
+    wrong_responses = [
+        "❌ خطأ! جرب مجددًا 😉\n✅ الصحيح: {correct}",
+        "🚫 للأسف، ليست الصحيحة!\n✅ الجواب: {correct}",
+        "😅 ليست الإجابة الصحيحة، الجواب هو: {correct}",
+        "❌ لا، حاول مرة أخرى!\n✔️ الصحيح هو: {correct}"
+    ]
     uid = c.from_user.id
     data = c.data
     chat_id = c.message.chat.id
@@ -1107,17 +1114,23 @@ def handle_main_menu(c):
                 bot.delete_message(c.message.chat.id, loading_msg.message_id)
             except:
                 pass
+
+
     elif data.startswith("ans_"):
         parts = data.split("_")
         game_type = parts[1]
         selected = int(parts[2])
         correct = int(parts[3])
     
-        # يمكنك إضافة تأثيرات بصرية عند الإجابة
+        
+        # الرد على الإجابة
         if selected == correct:
-            bot.answer_callback_query(c.id, "✅ إجابة صحيحة!")
+            bot.answer_callback_query(c.id, "✅ إجابة صحيحة!", show_alert=False)
         else:
-            bot.answer_callback_query(c.id, f"❌ خاطئة. الإجابة الصحيحة هي: {options[correct]}")
+            correct_text = options[correct] if correct < len(options) else "؟"
+            msg = random.choice(wrong_responses).format(correct=correct_text)
+            bot.answer_callback_query(c.id, msg, show_alert=False)
+    
     elif data.startswith("soon_"):
         feature_name = {
             "soon_review": "📚 ميزة المراجعة السريعة",
