@@ -1376,6 +1376,9 @@ def handle_user_major(msg):
         else:
             return bot.send_message(uid, "⚠️ أرسل نصًا أو ملفًا فقط.")
 
+    session['anki_content'] = content
+    session['anki_major'] = major
+
         # ✅ تأكيد بدء المعالجة
         bot.send_message(uid, "⏳ جاري إنشاء بطاقات المراجعة... الرجاء الانتظار قليلاً.")
 
