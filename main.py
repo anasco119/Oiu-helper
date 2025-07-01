@@ -1343,6 +1343,9 @@ def handle_main_menu(c):
         bot.send_message(chat_id, f"{feature_name} ستكون متاحة قريبًا... 🚧")
         
     elif data.startswith("anki"):
+        bot.answer_callback_query(c.id)
+        bot.send_message(uid, "📄 أرسل الآن ملف PDF أو Word أو نصًا عاديًا لتوليد بطاقات المراجعة (Anki).")
+        user_states[uid] = "awaiting_anki_file"  # ← تحديد حالة المستخدم
         
 
         
@@ -1372,8 +1375,49 @@ def handle_user_major(msg):
             InlineKeyboardButton("👥 العب في المجموعة", switch_inline_query="game")
         )
         bot.send_message(uid, "🎮 اختر طريقة اللعب:", reply_markup=keyboard)
+
+    
     elif state == "awaiting_anki_file":
-        bot.send_message(uid, f" )
+        user_states.pop(uid, None)
+
+        if msg.content_type == "text":
+            content = text[:3000]
+
+        elif msg.content_type == "document":
+            file_info = bot.get_file(msg.document.file_id)
+            file_data = bot.download_file(file_info.file_path)
+            ext = msg.document.file_name.split(".")[-1].lower()
+
+            if ext == "pdf":
+                content = extract_text_from_pdf(file_data)[:3000]
+            elif ext in ["docx", "doc"]:
+                content = extract_text_from_docx(file_data)[:3000]
+            elif ext == "txt":
+                content = file_data.decode("utf-8", errors="ignore")[:3000]
+            else:
+                bot.send_message(uid, "⚠️ نوع الملف غير مدعوم.")
+                return
+        else:
+            bot.send_message(uid, "⚠️ أرسل نصًا أو ملفًا فقط.")
+            return
+
+        # توليد البطاقات من الذكاء الاصطناعي
+        prompt = build_anki_prompt(content)
+        raw = generate_smart_response(prompt)
+        cards = generate_anki_cards_from_json(raw)
+
+        if not cards:
+            bot.send_message(uid, "❌ تعذر توليد البطاقات.")
+            return
+
+        session['cards'] = cards  # ← إذا كنت تستخدم Flask Session
+
+            # عرض البطاقات عبر رابط
+        
+            # إن أردت توليد ملف .apkg مباشرة:
+            filename = save_cards_to_apkg(cards)
+            bot.send_document(uid, open(filename, 'rb'))
+
         
 @bot.message_handler(func=lambda m: user_states.get(m.from_user.id) == "awaiting_major", content_types=['text'])
 def set_custom_major(msg):
