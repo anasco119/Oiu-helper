@@ -1347,7 +1347,7 @@ def handle_main_menu(c):
 
         
 
-@bot.message_handler(func=lambda m: user_states.get(m.from_user.id) in ["awaiting_major", "awaiting_major_for_games"])
+@bot.message_handler(func=lambda m: user_states.get(m.from_user.id) in ["awaiting_major", "awaiting_major_for_games", "awaiting_anki_file"])
 def handle_user_major(msg):
     if msg.chat.type != "private":
         return  # تجاهل الرسائل في المجموعات
@@ -1372,7 +1372,9 @@ def handle_user_major(msg):
             InlineKeyboardButton("👥 العب في المجموعة", switch_inline_query="game")
         )
         bot.send_message(uid, "🎮 اختر طريقة اللعب:", reply_markup=keyboard)
-
+    elif state == "awaiting_anki_file":
+        bot.send_message(uid, f" )
+        
 @bot.message_handler(func=lambda m: user_states.get(m.from_user.id) == "awaiting_major", content_types=['text'])
 def set_custom_major(msg):
     if msg.chat.type != "private":
@@ -1463,7 +1465,26 @@ def handle_text(msg):
         bot.send_message(uid, "❌ حدث خطأ أثناء توليد الاختبارات. حاول لاحقًا.")
 
 
+ if message.from_user.id in user_state and user_state[message.from_user.id]["mode"] == "awaiting_anki_file":
+    # استخراج النص من الملف أو الرسالة
+    text = extract_text_from_message(message)
 
+    # تخيير المستخدم: هل يريد معاينة أم تحميل
+    keyboard = InlineKeyboardMarkup()
+    keyboard.add(
+        InlineKeyboardButton("👁️ مراجعة 5 بطاقات", callback_data="anki_preview"),
+        InlineKeyboardButton("📥 توليد ملف .apkg", callback_data="anki_download")
+    )
+
+    bot.send_message(
+        message.chat.id,
+        "✅ تم استخراج المحتوى! ماذا تريد أن أفعل؟",
+        reply_markup=keyboard
+    )
+
+    # خزّن النص مؤقتًا لهذا المستخدم
+    user_state[message.from_user.id]["anki_text"] = text
+    user_state[message.from_user.id]["mode"] = "anki_choice"
 # -------------------------------------------------------------------
 #                   inference handler
 # -------------------------------------------------------------------
