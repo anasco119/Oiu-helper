@@ -563,7 +563,7 @@ def can_generate(user_id: int) -> bool:
     if not row:
         return True # مستخدم جديد، يمكنه التوليد
     count = row[0]
-    return count < 3
+    return count < 6
 
 def increment_count(user_id: int):
     # --- بداية التعديل ---
@@ -1378,6 +1378,9 @@ def handle_user_major(msg):
 
     
     elif state == "awaiting_anki_file":
+        if not can_generate(uid):
+            return bot.send_message(uid, " 🔁 لقد وصلت الى الحد المسموح به لتوليد الأنكي، حاول لاحقا.")
+        
         user_states.pop(uid, None)
 
         if msg.content_type == "text":
@@ -1402,21 +1405,17 @@ def handle_user_major(msg):
             return
 
         # توليد البطاقات من الذكاء الاصطناعي
-        prompt = build_anki_prompt(content)
-        raw = generate_smart_response(prompt)
-        cards = generate_anki_cards_from_json(raw)
+        raw = generate_smart_response(build_anki_prompt(content))  # أو استخدم prompt جاهز
+        cards = generate_anki_cards_from_json(raw)  # هذه تنظف وتتحقق
+        
 
         if not cards:
-            bot.send_message(uid, "❌ تعذر توليد البطاقات.")
+            bot.send_message(uid, "❌ لم أتمكن من توليد بطاقات المراجعة.")
             return
 
-        session['cards'] = cards  # ← إذا كنت تستخدم Flask Session
-
-            # عرض البطاقات عبر رابط
-        
-            # إن أردت توليد ملف .apkg مباشرة:
-            filename = save_cards_to_apkg(cards)
-            bot.send_document(uid, open(filename, 'rb'))
+        filename = save_cards_to_apkg(cards, filename=f"anki_{uid}.apkg", deck_name="بطاقات تعليمية")
+        bot.send_document(uid, open(filename, 'rb'))
+        bot.send_message(uid, "📥 تم إنشاء ملف أنكي بنجاح! يمكنك استيراده في تطبيق Anki.")
 
         
 @bot.message_handler(func=lambda m: user_states.get(m.from_user.id) == "awaiting_major", content_types=['text'])
