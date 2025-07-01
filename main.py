@@ -1315,12 +1315,36 @@ def handle_main_menu(c):
 
         bot.answer_callback_query(c.id)
         bot.send_message(chat_id, f"{feature_name} ستكون متاحة قريبًا... 🚧")
-        
-    
 
+
+
+@bot.message_handler(func=lambda m: user_states.get(m.from_user.id) == "awaiting_major", content_types=['text'])
+def set_custom_major(msg):
+    if msg.chat.type != "private":
+        return  # تجاهل الرسائل في المجموعات
+    major = msg.text.strip()
+    uid   = msg.from_user.id
+
+    cursor.execute(
+        "INSERT OR REPLACE INTO users(user_id, major) VALUES(?, ?)",
+        (uid, major)
+    )
+    conn.commit()
+    user_states.pop(uid, None)
+
+    bot.send_message(uid,
+        f"✅ تم تسجيل تخصصك: \"{major}\"\n"
+        "الآن أرسل ملف (PDF/DOCX/TXT) أو نصًا مباشرًا لتوليد اختبارك."
+    )
+    # notify admin
+    bot.send_message(ADMIN_ID,
+        f"🆕 تخصص جديد أُرسل من المستخدم:\n"
+        f"👤 @{msg.from_user.username or msg.from_user.id}\n"
+        f"📚 التخصص: {major}"
+        )
         
 
-@bot.message_handler(func=lambda m: user_states.get(m.from_user.id) in ["awaiting_major", "awaiting_major_for_games", "awaiting_anki_file"])
+@bot.message_handler(func=lambda m: user_states.get(m.from_user.id) in ["awaiting_major", "awaiting_major_for_games"])
 def handle_user_major(msg):
     if msg.chat.type != "private":
         return  # تجاهل الرسائل في المجموعات
@@ -1346,30 +1370,7 @@ def handle_user_major(msg):
         )
         bot.send_message(uid, "🎮 اختر طريقة اللعب:", reply_markup=keyboard)
 
-@bot.message_handler(func=lambda m: user_states.get(m.from_user.id) == "awaiting_major", content_types=['text'])
-def set_custom_major(msg):
-    if msg.chat.type != "private":
-        return  # تجاهل الرسائل في المجموعات
-    major = msg.text.strip()
-    uid   = msg.from_user.id
 
-    cursor.execute(
-        "INSERT OR REPLACE INTO users(user_id, major) VALUES(?, ?)",
-        (uid, major)
-    )
-    conn.commit()
-    user_states.pop(uid, None)
-
-    bot.send_message(uid,
-        f"✅ تم تسجيل تخصصك: \"{major}\"\n"
-        "الآن أرسل ملف (PDF/DOCX/TXT) أو نصًا مباشرًا لتوليد اختبارك."
-    )
-    # notify admin
-    bot.send_message(ADMIN_ID,
-        f"🆕 تخصص جديد أُرسل من المستخدم:\n"
-        f"👤 @{msg.from_user.username or msg.from_user.id}\n"
-        f"📚 التخصص: {major}"
-                                            )
             
 
 @bot.message_handler(content_types=['text', 'document'])
