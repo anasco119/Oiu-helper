@@ -336,32 +336,38 @@ user_states = {}
 #                     Text Extraction & OCR
 # -------------------------------------------------------------------
 
-def extract_text_from_pdf(file_bytes: bytes) -> str:
+def extract_text_from_pdf(path: str) -> str:
     try:
-        doc = fitz.open(stream=file_bytes, filetype="pdf")
+        doc = fitz.open(path)
         text = "\n".join([page.get_text() for page in doc])
         return text.strip()
     except Exception as e:
         logging.error(f"Error extracting PDF text: {e}")
         return ""
+    # fallback to PyMuPDF text extraction
+    doc = fitz.open(path)
+    return "\n".join([page.get_text() for page in doc])
 # أضف هذه الدالة في قسم Text Extraction & OCR
-def extract_text_from_docx(file_bytes: bytes) -> str:
+def extract_text_from_docx(path: str) -> str:
     try:
-        from io import BytesIO
-        doc = docx.Document(BytesIO(file_bytes))
-        full_text = [para.text for para in doc.paragraphs]
-        return "\n".join(full_text).strip()
+        doc = docx.Document(path)
+        full_text = []
+        for para in doc.paragraphs:
+            full_text.append(para.text)
+        return '\n'.join(full_text)
     except Exception as e:
         logging.error(f"Error extracting DOCX text: {e}")
         return ""
 
 # ويجب أيضاً تعريف دالة لملفات txt
-def extract_text_from_txt(file_bytes: bytes) -> str:
+def extract_text_from_txt(path: str) -> str:
     try:
-        return file_bytes.decode("utf-8", errors="ignore").strip()
+        with open(path, 'r', encoding='utf-8') as f:
+            return f.read()
     except Exception as e:
-        logging.error(f"Error decoding TXT text: {e}")
+        logging.error(f"Error extracting TXT text: {e}")
         return ""
+        
 
 
 def parse_ai_json(raw_text: str) -> dict | None:
@@ -1380,23 +1386,33 @@ def unified_handler(msg):
         file_info = bot.get_file(msg.document.file_id)
         if file_info.file_size > 5 * 1024 * 1024:
             return bot.send_message(uid, "❌ الملف كبير جدًا، الحد 5 ميغابايت.")
-        file_data = bot.download_file(file_info.file_path)
-        ext = msg.document.file_name.split(".")[-1].lower()
 
+        data = bot.download_file(file_info.file_path)
+        os.makedirs("downloads", exist_ok=True)
+        path = os.path.join("downloads", msg.document.file_name)
+
+        with open(path, "wb") as f:
+            f.write(data)
+
+        ext = path.rsplit(".", 1)[-1].lower()
         if ext == "pdf":
-            content = extract_text_from_pdf(file_data)[:3000]
-        elif ext in ["docx", "doc"]:
-            content = extract_text_from_docx(file_data)[:3000]
+            content = extract_text_from_pdf(path)[:3000]
+        elif ext == "docx":
+            content = extract_text_from_docx(path)[:3000]
         elif ext == "txt":
-            content = file_data.decode("utf-8", errors="ignore")[:3000]
+            content = extract_text_from_txt(path)[:3000]
         else:
             return bot.send_message(uid, "⚠️ نوع الملف غير مدعوم. أرسل PDF أو Word أو TXT.")
-    else:
-        return bot.send_message(uid, "⚠️ نوع غير مدعوم.")
 
+        # ✅ بعد استخراج المحتوى، نحذف الملف
+        import os
+        try:
+            os.remove(path)
+        except Exception as e:
+            print(f"[WARNING] لم يتم حذف الملف المؤقت: {e}")
     if not content.strip():
         return bot.send_message(uid, "⚠️ لم أتمكن من قراءة محتوى الملف أو النص.")
-        
+
 
     # إذا المستخدم في وضع توليد أنكي
     if state == "awaiting_anki_file":
