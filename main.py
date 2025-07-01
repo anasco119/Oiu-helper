@@ -335,7 +335,7 @@ user_states = {}
 # -------------------------------------------------------------------
 #                     Text Extraction & OCR
 # -------------------------------------------------------------------
-def extract_text_from_pdf(path: str) -> str:
+
 def extract_text_from_pdf(file_bytes: bytes) -> str:
     try:
         doc = fitz.open(stream=file_bytes, filetype="pdf")
