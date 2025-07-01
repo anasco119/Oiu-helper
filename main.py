@@ -1348,6 +1348,8 @@ def handle_user_major(msg):
 
     
     elif state == "awaiting_anki_file":
+        session['anki_content'] = content
+        session['anki_major'] = major
         if not can_generate(uid):
             return bot.send_message(uid, " 🔁 لقد وصلت الى الحد المسموح به لتوليد الأنكي، حاول لاحقا.")
         
@@ -1595,24 +1597,3 @@ threading.Thread(target=run_bot).start()
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))  # Render يوفر PORT كمتغير بيئة
     app.run(host="0.0.0.0", port=port)
-
-
-@app.route('/anki_preview')
-def anki_preview():
-    content = session.get('anki_content')
-    major = session.get('anki_major', 'General')
-
-    if not content:
-        return "❌ لا يوجد محتوى لتوليد البطاقات منه. أرسل ملفًا أولًا من البوت."
-
-    cards = generate_anki_cards_from_text(content, major=major, user_id=123, num_cards=10)[:5]
-
-    session['cards'] = cards
-    session['index'] = 0
-    session['show_back'] = False
-    return redirect('/anki')
-
-
-session['anki_content'] = content
-session['anki_major'] = major
-
