@@ -336,35 +336,31 @@ user_states = {}
 #                     Text Extraction & OCR
 # -------------------------------------------------------------------
 def extract_text_from_pdf(path: str) -> str:
+def extract_text_from_pdf(file_bytes: bytes) -> str:
     try:
-        doc = fitz.open(path)
+        doc = fitz.open(stream=file_bytes, filetype="pdf")
         text = "\n".join([page.get_text() for page in doc])
         return text.strip()
     except Exception as e:
         logging.error(f"Error extracting PDF text: {e}")
         return ""
-    # fallback to PyMuPDF text extraction
-    doc = fitz.open(path)
-    return "\n".join([page.get_text() for page in doc])
 # أضف هذه الدالة في قسم Text Extraction & OCR
-def extract_text_from_docx(path: str) -> str:
+def extract_text_from_docx(file_bytes: bytes) -> str:
     try:
-        doc = docx.Document(path)
-        full_text = []
-        for para in doc.paragraphs:
-            full_text.append(para.text)
-        return '\n'.join(full_text)
+        from io import BytesIO
+        doc = docx.Document(BytesIO(file_bytes))
+        full_text = [para.text for para in doc.paragraphs]
+        return "\n".join(full_text).strip()
     except Exception as e:
         logging.error(f"Error extracting DOCX text: {e}")
         return ""
 
 # ويجب أيضاً تعريف دالة لملفات txt
-def extract_text_from_txt(path: str) -> str:
+def extract_text_from_txt(file_bytes: bytes) -> str:
     try:
-        with open(path, 'r', encoding='utf-8') as f:
-            return f.read()
+        return file_bytes.decode("utf-8", errors="ignore").strip()
     except Exception as e:
-        logging.error(f"Error extracting TXT text: {e}")
+        logging.error(f"Error decoding TXT text: {e}")
         return ""
 
 
