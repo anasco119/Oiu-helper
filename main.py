@@ -1349,27 +1349,26 @@ def handle_user_major(msg):
 
 
 @bot.message_handler(content_types=['text', 'document'])
-def handle_user_input(msg):
+def unified_handler(msg):
     if msg.chat.type != "private":
-        return  # تجاهل الرسائل في المجموعات
-
+        return
+    
     uid = msg.from_user.id
     state = user_states.get(uid)
 
-    # 🧠 نحصل على التخصص من قاعدة البيانات
+    # التخصص من قاعدة البيانات
     cursor.execute("SELECT major FROM users WHERE user_id = ?", (uid,))
     row = cursor.fetchone()
     major = row[0] if row else "General"
 
-    # 🟢 استخراج النص من الرسالة
+    # استخراج النص
     if msg.content_type == "text":
         content = msg.text[:3000]
 
     elif msg.content_type == "document":
         file_info = bot.get_file(msg.document.file_id)
         if file_info.file_size > 5 * 1024 * 1024:
-            return bot.send_message(uid, "❌ الملف كبير جدًا. الحد الأقصى 5 ميغابايت.")
-
+            return bot.send_message(uid, "❌ الملف كبير جدًا، الحد 5 ميغابايت.")
         file_data = bot.download_file(file_info.file_path)
         ext = msg.document.file_name.split(".")[-1].lower()
 
@@ -1384,29 +1383,28 @@ def handle_user_input(msg):
     else:
         return bot.send_message(uid, "⚠️ نوع غير مدعوم.")
 
-    # 🟣 هل المستخدم في حالة توليد أنكي؟
+    # إذا المستخدم في وضع توليد أنكي
     if state == "awaiting_anki_file":
-        user_states.pop(uid, None)  # إزالة الحالة
         session['anki_content'] = content
         session['anki_major'] = major
-
-        bot.send_message(uid, "⏳ جاري إنشاء بطاقات المراجعة، الرجاء الانتظار...")
+        user_states.pop(uid, None)
+        bot.send_message(uid, "⏳ جاري إنشاء بطاقات المراجعة...")
 
         raw = generate_anki_cards_from_text(content, major=major, user_id=uid)
         cards = generate_anki_cards_from_json(raw)
 
         if not cards:
-            return bot.send_message(uid, "❌ لم أتمكن من توليد بطاقات من هذا الملف.")
-
-        filename = save_cards_to_apkg(cards, filename=f"anki_{uid}.apkg", deck_name="بطاقات تعليمية")
+            return bot.send_message(uid, "❌ لم أتمكن من توليد بطاقات.")
+        
+        filename = save_cards_to_apkg(cards, f"anki_{uid}.apkg", deck_name="بطاقات تعليمية")
         bot.send_document(uid, open(filename, 'rb'))
         return bot.send_message(uid, "✅ تم إنشاء ملف Anki بنجاح!")
 
-    # 🔵 الحالة الافتراضية: توليد اختبار
+    # الحالة العادية: توليد اختبار
     else:
         if not can_generate(uid):
             return bot.send_message(uid, "⚠️ لقد استنفدت 3 اختبارات مجانية هذا الشهر.")
-
+        
         bot.send_message(uid, "🧠 جاري توليد الاختبار، الرجاء الانتظار...")
 
         quizzes = generate_quizzes_from_text(content, major, user_id=uid, num_quizzes=10)
@@ -1414,8 +1412,7 @@ def handle_user_input(msg):
             send_quizzes_as_polls(uid, quizzes)
             increment_count(uid)
         else:
-            bot.send_message(uid, "❌ حدث خطأ أثناء توليد الاختبارات. حاول لاحقًا.")
-
+            bot.send_message(uid, "❌ فشل توليد الاختبار. حاول لاحقًا.")
 
 @bot.message_handler(func=lambda m: user_states.get(m.from_user.id) == "awaiting_major", content_types=['text'])
 def set_custom_major(msg):
@@ -1443,30 +1440,7 @@ def set_custom_major(msg):
     )
 
 
-@bot.message_handler(content_types=['text'])
-def handle_text(msg):
-    if msg.chat.type != "private":
-        return  # تجاهل الرسائل في المجموعات
-    uid = msg.chat.id
-    # skip if awaiting major
-    if user_states.get(uid) == "awaiting_major":
-        return
 
-    if not can_generate(uid):
-        return bot.send_message(uid, "⚠️ لقد استنفدت 3 اختبارات مجانية هذا الشهر.")
-
-    text = msg.text.strip()
-    cursor.execute("SELECT major FROM users WHERE user_id = ?", (uid,))
-    major = cursor.fetchone()[0] or "عام"
-
-    bot.send_message(uid, "🧠 جاري توليد الاختبارات من النص... الرجاء الانتظار")
-    quizzes = generate_quizzes_from_text(text[:3000], major, user_id=uid, num_quizzes=10)
-    if quizzes and len(quizzes) > 0:
-        send_quizzes_as_polls(uid, quizzes)
-        increment_count(uid)
-    else:
-        bot.send_message(uid, "❌ حدث خطأ أثناء توليد الاختبارات. حاول لاحقًا.")
-    
 # -------------------------------------------------------------------
 #                   inference handler
 # -------------------------------------------------------------------
