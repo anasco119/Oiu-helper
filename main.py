@@ -702,7 +702,7 @@ Extract the most important {num_cards} points from the following content, and co
 - Output must be a valid JSON array of objects.
 
 📘 Content to process (field: {major}):
-{text}
+{content}
 
 ✅ Example output format:
 [
@@ -1375,7 +1375,7 @@ def handle_user_major(msg):
             return
 
         # توليد البطاقات من الذكاء الاصطناعي
-        raw = generate_smart_response(build_anki_prompt(content))  # أو استخدم prompt جاهز
+        raw = generate_anki_cards_from_text(content)  # أو استخدم prompt جاهز
         cards = generate_anki_cards_from_json(raw)  # هذه تنظف وتتحقق
         
 
