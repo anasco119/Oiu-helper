@@ -753,7 +753,28 @@ Extract the most important {num_cards} points from the following content, and co
     raw_output = generate_smart_response(prompt)  # أو استخدم أي دالة توليد متوفرة
     clean_json = extract_json_from_string(raw_output)
     return json.loads(clean_json)
-    
+
+
+def generate_anki_cards_from_json(json_text: str) -> list:
+    # محاولة استخراج أول JSON في النص
+    match = re.search(r'.*?', json_text, re.DOTALL)
+    if not match:
+        return []
+
+    try:
+        data = json.loads(match.group())
+    except json.JSONDecodeError:
+        return []
+
+    cards = []
+    for item in data:
+        front = item.get("front") or item.get("question")
+        back = item.get("back") or item.get("answer")
+        if front and back:
+            cards.append({"front": front.strip(), "back": back.strip()})
+    return cards
+
+
 # -------------------------------------------------------------------
 #                 games
 # -------------------------------------------------------------------
