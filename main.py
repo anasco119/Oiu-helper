@@ -1357,27 +1357,32 @@ def handle_user_major(msg):
 
         user_states.pop(uid, None)  # إزالة الحالة
 
-        if msg.content_type == "text":
-            content = msg.text[:3000]
+        
 
-        elif msg.content_type == "document":
-            file_info = bot.get_file(msg.document.file_id)
-            file_data = bot.download_file(file_info.file_path)
-            ext = msg.document.file_name.split(".")[-1].lower()
+        file_info = bot.get_file(msg.document.file_id)
+        MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 
+        if file_info.file_size > MAX_FILE_SIZE:
+            return bot.send_message(uid, "❌ الملف كبير جدًا. الحد الأقصى هو 5 ميجابايت.")
+        data      = bot.download_file(file_info.file_path)
+        os.makedirs("downloads", exist_ok=True)
+        path = os.path.join("downloads", msg.document.file_name)
+        with open(path, "wb") as f:
+            f.write(data)
+            
+            if msg.content_type == "text":
+                content = msg.text[:3000]
             if ext == "pdf":
-                content = extract_text_from_pdf(file_data)[:3000]
+                content = extract_text_from_pdf(path)[:3000]
             elif ext in ["docx", "doc"]:
-                content = extract_text_from_docx(file_data)[:3000]
+                content = extract_text_from_docx(path)[:3000]
             elif ext == "txt":
                 content = file_data.decode("utf-8", errors="ignore")[:3000]
             else:
                 return bot.send_message(uid, "⚠️ نوع الملف غير مدعوم.")
-        else:
-            return bot.send_message(uid, "⚠️ أرسل نصًا أو ملفًا فقط.")
-
-    session['anki_content'] = content
-    session['anki_major'] = major
+        
+        session['anki_content'] = content
+        session['anki_major'] = major
 
         # ✅ تأكيد بدء المعالجة
         bot.send_message(uid, "⏳ جاري إنشاء بطاقات المراجعة... الرجاء الانتظار قليلاً.")
@@ -1600,3 +1605,35 @@ threading.Thread(target=run_bot).start()
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))  # Render يوفر PORT كمتغير بيئة
     app.run(host="0.0.0.0", port=port)
+
+
+# حفظ التخصص من قاعدة البيانات
+cursor.execute("SELECT major FROM users WHERE user_id = ?", (uid,))
+row = cursor.fetchone()
+major = row[0] if row else "General"
+
+# معالجة الملف
+if msg.content_type == "document":
+    file_info = bot.get_file(msg.document.file_id)
+    file_data = bot.download_file(file_info.file_path)
+    ext = msg.document.file_name.split(".")[-1].lower()
+
+    if ext == "pdf":
+        content = extract_text_from_pdf(file_data)[:3000]
+    elif ext in ["docx", "doc"]:
+        content = extract_text_from_docx(file_data)[:3000]
+    elif ext == "txt":
+        content = file_data.decode("utf-8", errors="ignore")[:3000]
+    else:
+        return bot.send_message(uid, "⚠️ نوع الملف غير مدعوم.")
+elif msg.content_type == "text":
+    content = msg.text[:3000]
+else:
+    return bot.send_message(uid, "⚠️ أرسل نصًا أو ملفًا فقط.")
+
+# ✅ تخزين المحتوى في الجلسة لاستخدامه في العرض عبر Flask
+session['anki_content'] = content
+session['anki_major'] = major
+
+# إشعار المستخدم
+bot.send_message(uid, "⏳ جاري إنشاء بطاقات المراجعة... الرجاء الانتظار قليلاً.")
