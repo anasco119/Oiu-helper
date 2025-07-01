@@ -279,7 +279,7 @@ from flask import Flask, render_template, session, request, redirect, url_for
 app = Flask(__name__)
 app.secret_key = 'anki_secret'  # سر الجلسة لتخزين البيانات مؤقتًا
 
-cards = generate_anki_cards_from_text(content, major="General", user_id=uid, num_cards=15)
+cards = generate_anki_cards_from_text(text, major="General", user_id=uid, num_cards=15)
 
 @app.route('/anki', methods=['GET', 'POST'])
 def anki_cards():
@@ -715,7 +715,7 @@ def generate_quizzes_from_text(text: str, major: str, user_id: int, num_quizzes:
 
 
     
-def generate_anki_cards_from_text(content, major="General", user_id=uid, num_cards=15):
+def generate_anki_cards_from_text(text, major="General", user_id=uid, num_cards=15):
     prompt = f"""
 You are an AI assistant specialized in creating study flashcards.
 
