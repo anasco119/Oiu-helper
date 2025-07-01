@@ -276,38 +276,7 @@ def translate_text(text, source='en', target='ar'):
 from flask import Flask, render_template, session, request, redirect, url_for
 
 
-app = Flask(__name__)
-app.secret_key = 'anki_secret'  # سر الجلسة لتخزين البيانات مؤقتًا
 
-cards = generate_anki_cards_from_text(text, major="General", user_id=uid, num_cards=15)
-
-@app.route('/anki', methods=['GET', 'POST'])
-def anki_cards():
-    if 'cards' not in session:
-        session['cards'] = example_cards[:5]
-        session['index'] = 0
-        session['show_back'] = False
-
-    if request.method == 'POST':
-        action = request.form.get('action')
-        if action == 'show':
-            session['show_back'] = True
-        elif action == 'next':
-            session['index'] += 1
-            session['show_back'] = False
-
-    index = session['index']
-    cards = session['cards']
-
-    if index >= len(cards):
-        session.clear()
-        return "<h2>🎉 انتهيت من البطاقات! أحسنت.</h2><a href='/anki'>🔁 ابدأ من جديد</a>"
-
-    return render_template('anki_viewer.html',
-                           card=cards[index],
-                           index=index,
-                           total=len(cards),
-                           show_back=session['show_back'])
 # -------------------------------------------------------------------
 #                  Logging & Database Setup
 # -------------------------------------------------------------------
@@ -715,7 +684,7 @@ def generate_quizzes_from_text(text: str, major: str, user_id: int, num_quizzes:
 
 
     
-def generate_anki_cards_from_text(text, major="General", user_id=uid, num_cards=15):
+def generate_anki_cards_from_text(text: str, major: str = "General", user_id: int = 0, num_cards: int = 15) -> list:
     prompt = f"""
 You are an AI assistant specialized in creating study flashcards.
 
@@ -774,6 +743,39 @@ def generate_anki_cards_from_json(json_text: str) -> list:
             cards.append({"front": front.strip(), "back": back.strip()})
     return cards
 
+
+
+app.secret_key = 'anki_secret'  # سر الجلسة لتخزين البيانات مؤقتًا
+
+cards = generate_anki_cards_from_text(text, major, user_id, num_cards)
+
+@app.route('/anki', methods=['GET', 'POST'])
+def anki_cards():
+    if 'cards' not in session:
+        session['cards'] = example_cards[:5]
+        session['index'] = 0
+        session['show_back'] = False
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+        if action == 'show':
+            session['show_back'] = True
+        elif action == 'next':
+            session['index'] += 1
+            session['show_back'] = False
+
+    index = session['index']
+    cards = session['cards']
+
+    if index >= len(cards):
+        session.clear()
+        return "<h2>🎉 انتهيت من البطاقات! أحسنت.</h2><a href='/anki'>🔁 ابدأ من جديد</a>"
+
+    return render_template('anki_viewer.html',
+                           card=cards[index],
+                           index=index,
+                           total=len(cards),
+                           show_back=session['show_back'])
 
 # -------------------------------------------------------------------
 #                 games
