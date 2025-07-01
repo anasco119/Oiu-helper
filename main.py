@@ -643,14 +643,47 @@ def generate_quizzes_from_text(text: str, major: str, user_id: int, num_quizzes:
         return [] # أرجع قائمة فارغة عند الفشل
     # --- التعديل ينتهي هنا ---
 
-def generate_vocabulary_game(user_id, major, native_lang="Arabic"):
-    prompt = build_vocab_prompt(user_id, major, native_lang)
-    raw = generate_smart_response(prompt)
-    q = parse_ai_json(raw)
-    if not q:
-        raise ValueError("فشل استخراج سؤال الألعاب بشكل صحيح")
-    return q
 
+    
+def generate_anki_cards_from_text(text: str, major: str = "General", num_cards: int = 15):
+    prompt = f"""
+You are an AI assistant specialized in creating study flashcards.
+
+🎯 Task:
+Extract the most important {num_cards} points from the following content, and convert each into an **Anki-style flashcard**.
+
+🔹 Rules:
+- Each flashcard must include:
+  - "front": a short question or hint.
+  - "back": the detailed answer or explanation.
+  - "tag": (optional) topic label like Grammar, Biology, Logic, etc.
+- The front must be phrased to encourage recall (e.g. "What is...", "Define...", "How does...").
+- Don't use Markdown, just clean plain text.
+- Keep the cards diverse and helpful.
+- Output must be a valid JSON array of objects.
+
+📘 Content to process (field: {major}):
+{text}
+
+✅ Example output format:
+[
+  {{
+    "front": "What is the function of mitochondria?",
+    "back": "It is the powerhouse of the cell.",
+    "tag": "Biology"
+  }},
+  {{
+    "front": "ما المقصود بالاستعارة في اللغة العربية؟",
+    "back": "الاستعارة هي استخدام كلمة في غير معناها الحقيقي لعلاقة مع قرينة مانعة.",
+    "tag": "Literature"
+  }}
+]
+"""
+    # إرسال البرومبت إلى النموذج
+    raw_output = generate_smart_response(prompt)  # أو استخدم أي دالة توليد متوفرة
+    clean_json = extract_json_from_string(raw_output)
+    return json.loads(clean_json)
+    
 # -------------------------------------------------------------------
 #                 games
 # -------------------------------------------------------------------
