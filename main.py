@@ -1348,9 +1348,14 @@ def handle_user_major(msg):
 
     elif state == "awaiting_anki_file":
         if not can_generate(uid):
-            return bot.send_message(uid, " 🔁 لقد وصلت الى الحد المسموح به لتوليد الأنكي، حاول لاحقا.")
-    
-        user_states.pop(uid, None)
+            return bot.send_message(uid, "🔁 لقد وصلت إلى الحد المسموح به لتوليد الأنكي، حاول لاحقًا.")
+
+        # 🟡 نحصل على التخصص من قاعدة البيانات
+        cursor.execute("SELECT major FROM users WHERE user_id = ?", (uid,))
+        row = cursor.fetchone()
+        major = row[0] if row else "General"
+
+        user_states.pop(uid, None)  # إزالة الحالة
 
         if msg.content_type == "text":
             content = msg.text[:3000]
@@ -1367,28 +1372,23 @@ def handle_user_major(msg):
             elif ext == "txt":
                 content = file_data.decode("utf-8", errors="ignore")[:3000]
             else:
-                bot.send_message(uid, "⚠️ نوع الملف غير مدعوم.")
-                return
+                return bot.send_message(uid, "⚠️ نوع الملف غير مدعوم.")
         else:
-            bot.send_message(uid, "⚠️ أرسل نصًا أو ملفًا فقط.")
-            return
+            return bot.send_message(uid, "⚠️ أرسل نصًا أو ملفًا فقط.")
 
-        # ✅ بعد التأكد من أن content أصبح متاحًا، يمكن الآن حفظه في الجلسة
-        session['anki_content'] = content
-        session['anki_major'] = major  # لكن لاحظ: هنا major غير معرف أصلاً ← راجع أدناه
+        # ✅ تأكيد بدء المعالجة
+        bot.send_message(uid, "⏳ جاري إنشاء بطاقات المراجعة... الرجاء الانتظار قليلاً.")
 
         # توليد البطاقات من الذكاء الاصطناعي
-        raw = generate_anki_cards_from_text(content)  # أو استخدم prompt جاهز
-        cards = generate_anki_cards_from_json(raw)  # هذه تنظف وتتحقق
+        raw = generate_anki_cards_from_text(content, major=major, user_id=uid, num_cards=15)
+        cards = generate_anki_cards_from_json(raw)
 
         if not cards:
-            bot.send_message(uid, "❌ لم أتمكن من توليد بطاقات المراجعة.")
-            return
+            return bot.send_message(uid, "❌ لم أتمكن من توليد بطاقات المراجعة.")
 
         filename = save_cards_to_apkg(cards, filename=f"anki_{uid}.apkg", deck_name="بطاقات تعليمية")
         bot.send_document(uid, open(filename, 'rb'))
         bot.send_message(uid, "📥 تم إنشاء ملف أنكي بنجاح! يمكنك استيراده في تطبيق Anki.")
-    
         
 @bot.message_handler(func=lambda m: user_states.get(m.from_user.id) == "awaiting_major", content_types=['text'])
 def set_custom_major(msg):
