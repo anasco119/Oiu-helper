@@ -715,7 +715,7 @@ def generate_quizzes_from_text(text: str, major: str, user_id: int, num_quizzes:
 
 
     
-def generate_anki_cards_from_text(text: str, major: str = "General", user_id: int, num_cards: int = 15):
+def generate_anki_cards_from_text(content, major="General", user_id=uid, num_cards=15)
     prompt = f"""
 You are an AI assistant specialized in creating study flashcards.
 
