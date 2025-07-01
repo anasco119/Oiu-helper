@@ -643,7 +643,7 @@ def generate_quizzes_from_text(text: str, major: str, user_id: int, num_quizzes:
     "- ONLY return a raw JSON array. No markdown, no explanation, no formatting.\n"
     "- Do not include any introductory or closing text.\n"
     "- Ensure the JSON is valid and parsable.\n\n"
-    f"Content:\n{text}"
+    f"Content:\n{content}"
     )
 
     # تحديد الدالة بناءً على صلاحية المستخدم
