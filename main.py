@@ -1383,37 +1383,38 @@ def unified_handler(msg):
         content = msg.text[:3000]
 
     elif msg.content_type == "document":
-        file_info = bot.get_file(msg.document.file_id)
-        if file_info.file_size > 5 * 1024 * 1024:
-            return bot.send_message(uid, "❌ الملف كبير جدًا، الحد 5 ميغابايت.")
+    file_info = bot.get_file(msg.document.file_id)
+    if file_info.file_size > 5 * 1024 * 1024:
+        return bot.send_message(uid, "❌ الملف كبير جدًا، الحد 5 ميغابايت.")
+    
+    file_data = bot.download_file(file_info.file_path)
+    os.makedirs("downloads", exist_ok=True)
+    path = os.path.join("downloads", msg.document.file_name)
 
-        data = bot.download_file(file_info.file_path)
-        os.makedirs("downloads", exist_ok=True)
-        path = os.path.join("downloads", msg.document.file_name)
+    with open(path, "wb") as f:
+        f.write(file_data)
 
-        with open(path, "wb") as f:
-            f.write(data)
+    ext = path.rsplit(".", 1)[-1].lower()
+    if ext == "pdf":
+        content = extract_text_from_pdf(path)[:3000]
+    elif ext == "docx":
+        content = extract_text_from_docx(path)[:3000]
+    elif ext == "txt":
+        content = extract_text_from_txt(path)[:3000]
+    else:
+        return bot.send_message(uid, "⚠️ نوع الملف غير مدعوم. أرسل PDF أو Word أو TXT.")
 
-        ext = path.rsplit(".", 1)[-1].lower()
-        if ext == "pdf":
-            content = extract_text_from_pdf(path)[:3000]
-        elif ext == "docx":
-            content = extract_text_from_docx(path)[:3000]
-        elif ext == "txt":
-            content = extract_text_from_txt(path)[:3000]
-        else:
-            return bot.send_message(uid, "⚠️ نوع الملف غير مدعوم. أرسل PDF أو Word أو TXT.")
+    try:
+        os.remove(path)
+    except Exception as e:
+        print(f"[WARNING] لم يتم حذف الملف المؤقت: {e}")
 
-        # ✅ بعد استخراج المحتوى، نحذف الملف
-        import os
-        try:
-            os.remove(path)
-        except Exception as e:
-            print(f"[WARNING] لم يتم حذف الملف المؤقت: {e}")
-    if not content.strip():
+    if not content or not content.strip():
         return bot.send_message(uid, "⚠️ لم أتمكن من قراءة محتوى الملف أو النص.")
+    print(f">>> Content preview: {content[:300]}")
 
 
+   
     # إذا المستخدم في وضع توليد أنكي
     if state == "awaiting_anki_file":
  
