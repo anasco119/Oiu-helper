@@ -684,7 +684,7 @@ def generate_quizzes_from_text(text: str, major: str, user_id: int, num_quizzes:
 
 
     
-def generate_anki_cards_from_text(text: str, major: str = "General", user_id: int = 0, num_cards: int = 15) -> list:
+def generate_anki_cards_from_text(content: str, major: str = "General", user_id: int = 0, num_cards: int = 15) -> list:
     prompt = f"""
 You are an AI assistant specialized in creating study flashcards.
 
@@ -1551,7 +1551,7 @@ def anki_preview():
     return redirect('/anki')
     
 app.secret_key = 'anki_secret'  # سر الجلسة لتخزين البيانات مؤقتًا
-cards = generate_anki_cards_from_text(text, major, user_id, num_cards)
+cards = generate_anki_cards_from_text(content, major, user_id, num_cards)
 
 @app.route('/anki', methods=['GET', 'POST'])
 def anki_cards():
