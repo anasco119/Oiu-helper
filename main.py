@@ -1581,13 +1581,6 @@ def anki_preview():
     session['show_back'] = False
     return redirect('/anki')
 
-@app.route('/download_anki')
-def download_anki():
-    cards = session.get('cards') or user_cards = generate_anki_cards_from_text(text)[:5]
-    filename = save_cards_to_apkg(cards)
-    return send_file(filename, as_attachment=True)
-
-
 # بدء البوت
 
 # تشغيل بوت تيليغرام في Thread منفصل
