@@ -1553,7 +1553,7 @@ def anki_preview():
     return redirect('/anki')
     
 app.secret_key = 'anki_secret'  # سر الجلسة لتخزين البيانات مؤقتًا
-cards = generate_anki_cards_from_text(content, major, user_id, num_cards)
+
 
 @app.route('/anki', methods=['GET', 'POST'])
 def anki_cards():
