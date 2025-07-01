@@ -10,3 +10,4 @@ google-api-core
 googleapis-common-protos
 groq
 cohere
+genanki
