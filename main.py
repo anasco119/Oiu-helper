@@ -1346,58 +1346,91 @@ def handle_user_major(msg):
         )
         bot.send_message(uid, "🎮 اختر طريقة اللعب:", reply_markup=keyboard)
 
-    elif state == "awaiting_anki_file":
-        if not can_generate(uid):
-            return bot.send_message(uid, "🔁 لقد وصلت إلى الحد المسموح به لتوليد الأنكي، حاول لاحقًا.")
 
-        # 🟡 نحصل على التخصص من قاعدة البيانات
-        cursor.execute("SELECT major FROM users WHERE user_id = ?", (uid,))
-        row = cursor.fetchone()
-        major = row[0] if row else "General"
 
-        user_states.pop(uid, None)  # إزالة الحالة
+@bot.message_handler(content_types=["document"])
+def handle_anki_file(msg):
+    uid = msg.from_user.id
+    if user_states.get(uid) != "awaiting_anki_file":
+        return  # تجاهل إذا لم يكن في حالة anki
 
-        
+    if not can_generate(uid):
+        return bot.send_message(uid, "❌ لقد استنفدت عدد توليد البطاقات المجاني المسموح لك.")
 
-        file_info = bot.get_file(msg.document.file_id)
-        MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+    file_info = bot.get_file(msg.document.file_id)
+    if file_info.file_size > 5 * 1024 * 1024:
+        return bot.send_message(uid, "❌ الملف كبير جدًا، الحد الأقصى 5 ميغابايت.")
 
-        if file_info.file_size > MAX_FILE_SIZE:
-            return bot.send_message(uid, "❌ الملف كبير جدًا. الحد الأقصى هو 5 ميجابايت.")
-        data      = bot.download_file(file_info.file_path)
-        os.makedirs("downloads", exist_ok=True)
-        path = os.path.join("downloads", msg.document.file_name)
-        with open(path, "wb") as f:
-            f.write(data)
-            
-            if msg.content_type == "text":
-                content = msg.text[:3000]
-            if ext == "pdf":
-                content = extract_text_from_pdf(path)[:3000]
-            elif ext in ["docx", "doc"]:
-                content = extract_text_from_docx(path)[:3000]
-            elif ext == "txt":
-                content = file_data.decode("utf-8", errors="ignore")[:3000]
-            else:
-                return bot.send_message(uid, "⚠️ نوع الملف غير مدعوم.")
-        
-        session['anki_content'] = content
-        session['anki_major'] = major
+    file_data = bot.download_file(file_info.file_path)
+    filename = msg.document.file_name
+    ext = filename.split('.')[-1].lower()
 
-        # ✅ تأكيد بدء المعالجة
-        bot.send_message(uid, "⏳ جاري إنشاء بطاقات المراجعة... الرجاء الانتظار قليلاً.")
+    # استخراج النص من الملف حسب النوع
+    if ext == "pdf":
+        content = extract_text_from_pdf(file_data)[:3000]
+    elif ext in ["docx", "doc"]:
+        content = extract_text_from_docx(file_data)[:3000]
+    elif ext == "txt":
+        content = file_data.decode("utf-8", errors="ignore")[:3000]
+    else:
+        return bot.send_message(uid, "⚠️ نوع الملف غير مدعوم، أرسل PDF أو Word أو نص TXT.")
 
-        # توليد البطاقات من الذكاء الاصطناعي
-        raw = generate_anki_cards_from_text(content, major=major, user_id=uid, num_cards=15)
-        cards = generate_anki_cards_from_json(raw)
+    # استرجاع التخصص
+    cursor.execute("SELECT major FROM users WHERE user_id = ?", (uid,))
+    row = cursor.fetchone()
+    major = row[0] if row else "General"
 
-        if not cards:
-            return bot.send_message(uid, "❌ لم أتمكن من توليد بطاقات المراجعة.")
+    # حفظ الحالة
+    session['anki_content'] = content
+    session['anki_major'] = major
+    user_states.pop(uid, None)
 
-        filename = save_cards_to_apkg(cards, filename=f"anki_{uid}.apkg", deck_name="بطاقات تعليمية")
-        bot.send_document(uid, open(filename, 'rb'))
-        bot.send_message(uid, "📥 تم إنشاء ملف أنكي بنجاح! يمكنك استيراده في تطبيق Anki.")
-        
+    bot.send_message(uid, "⏳ جاري إنشاء بطاقات المراجعة، انتظر قليلاً...")
+
+    # توليد البطاقات
+    raw = generate_anki_cards_from_text(content, major=major, user_id=uid)
+    cards = generate_anki_cards_from_json(raw)
+
+    if not cards:
+        return bot.send_message(uid, "❌ لم أتمكن من توليد بطاقات المراجعة من الملف.")
+
+    filename = save_cards_to_apkg(cards, filename=f"anki_{uid}.apkg", deck_name="بطاقات تعليمية")
+    bot.send_document(uid, open(filename, 'rb'))
+    bot.send_message(uid, "✅ تم إنشاء ملف Anki بنجاح!")
+
+
+@bot.message_handler(content_types=["text"])
+def handle_anki_text(msg):
+    uid = msg.from_user.id
+    if user_states.get(uid) != "awaiting_anki_file":
+        return
+
+    content = msg.text[:3000]
+
+    # التخصص
+    cursor.execute("SELECT major FROM users WHERE user_id = ?", (uid,))
+    row = cursor.fetchone()
+    major = row[0] if row else "General"
+
+    # تخزين
+    session['anki_content'] = content
+    session['anki_major'] = major
+    user_states.pop(uid, None)
+
+    bot.send_message(uid, "⏳ جاري إنشاء بطاقات المراجعة من النص...")
+
+    # توليد
+    raw = generate_anki_cards_from_text(content, major=major, user_id=uid)
+    cards = generate_anki_cards_from_json(raw)
+
+    if not cards:
+        return bot.send_message(uid, "❌ لم أتمكن من توليد بطاقات من النص المرسل.")
+
+    filename = save_cards_to_apkg(cards, filename=f"anki_{uid}.apkg", deck_name="بطاقات تعليمية")
+    bot.send_document(uid, open(filename, 'rb'))
+    bot.send_message(uid, "✅ تم إنشاء ملف Anki بنجاح!")
+
+
 @bot.message_handler(func=lambda m: user_states.get(m.from_user.id) == "awaiting_major", content_types=['text'])
 def set_custom_major(msg):
     if msg.chat.type != "private":
@@ -1607,33 +1640,3 @@ if __name__ == "__main__":
     app.run(host="0.0.0.0", port=port)
 
 
-# حفظ التخصص من قاعدة البيانات
-cursor.execute("SELECT major FROM users WHERE user_id = ?", (uid,))
-row = cursor.fetchone()
-major = row[0] if row else "General"
-
-# معالجة الملف
-if msg.content_type == "document":
-    file_info = bot.get_file(msg.document.file_id)
-    file_data = bot.download_file(file_info.file_path)
-    ext = msg.document.file_name.split(".")[-1].lower()
-
-    if ext == "pdf":
-        content = extract_text_from_pdf(file_data)[:3000]
-    elif ext in ["docx", "doc"]:
-        content = extract_text_from_docx(file_data)[:3000]
-    elif ext == "txt":
-        content = file_data.decode("utf-8", errors="ignore")[:3000]
-    else:
-        return bot.send_message(uid, "⚠️ نوع الملف غير مدعوم.")
-elif msg.content_type == "text":
-    content = msg.text[:3000]
-else:
-    return bot.send_message(uid, "⚠️ أرسل نصًا أو ملفًا فقط.")
-
-# ✅ تخزين المحتوى في الجلسة لاستخدامه في العرض عبر Flask
-session['anki_content'] = content
-session['anki_major'] = major
-
-# إشعار المستخدم
-bot.send_message(uid, "⏳ جاري إنشاء بطاقات المراجعة... الرجاء الانتظار قليلاً.")
