@@ -1408,8 +1408,7 @@ def unified_handler(msg):
 
     # إذا المستخدم في وضع توليد أنكي
     if state == "awaiting_anki_file":
-        session['anki_content'] = content
-        session['anki_major'] = major
+ 
         user_states.pop(uid, None)
         bot.send_message(uid, "⏳ جاري إنشاء بطاقات المراجعة...")
 
