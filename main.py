@@ -274,19 +274,12 @@ def translate_text(text, source='en', target='ar'):
 
 
 from flask import Flask, render_template, session, request, redirect, url_for
-import random
+
 
 app = Flask(__name__)
 app.secret_key = 'anki_secret'  # سر الجلسة لتخزين البيانات مؤقتًا
 
-# مثال على بطاقات تجريبية (يمكن استبدالها بالبطاقات الحقيقية من الذكاء الاصطناعي)
-example_cards = [
-    {"front": "What is the capital of Italy?", "back": "Rome"},
-    {"front": "ما معنى كلمة innovate؟", "back": "يبتكر"},
-    {"front": "Define empathy", "back": "The ability to understand and share others' feelings."},
-    {"front": "مضاد كلمة سريع؟", "back": "بطيء"},
-    {"front": "What is 5 × 6?", "back": "30"},
-]
+cards = generate_anki_cards_from_text(text)
 
 @app.route('/anki', methods=['GET', 'POST'])
 def anki_cards():
@@ -722,7 +715,7 @@ def generate_quizzes_from_text(text: str, major: str, user_id: int, num_quizzes:
 
 
     
-def generate_anki_cards_from_text(text: str, major: str = "General", num_cards: int = 15):
+def generate_anki_cards_from_text(text: str, major: str = "General", user_id: int, num_cards: int = 15):
     prompt = f"""
 You are an AI assistant specialized in creating study flashcards.
 
@@ -1505,6 +1498,21 @@ app = Flask(__name__)
 @app.route('/')
 def home():
     return "✅ البوت يعمل الآن"
+@app.route('/anki_preview')
+def anki_preview():
+    
+    user_cards = generate_anki_cards_from_text(text)[:5]  # ← نحصل على أول 5 بطاقات
+    session['cards'] = user_cards
+    session['index'] = 0
+    session['show_back'] = False
+    return redirect('/anki')
+
+@app.route('/download_anki')
+def download_anki():
+    cards = session.get('cards') or user_cards = generate_anki_cards_from_text(text)[:5]
+    filename = save_cards_to_apkg(cards)
+    return send_file(filename, as_attachment=True)
+
 
 # بدء البوت
 
