@@ -38,6 +38,8 @@ bot = telebot.TeleBot(BOT_TOKEN)
 
 # --- إعداد المفاتيح والعمل
 
+session = {}  # <--- أضف هذا السطر
+
 # 1. إعداد Google Gemini
 gemini_model = None
 if GEMINI_API_KEY:
