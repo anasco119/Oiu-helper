@@ -1354,7 +1354,7 @@ def handle_user_major(msg):
         user_states.pop(uid, None)
 
         if msg.content_type == "text":
-            content = text[:3000]
+            content = msg.text[:3000]
 
         elif msg.content_type == "document":
             file_info = bot.get_file(msg.document.file_id)
@@ -1555,6 +1555,8 @@ cards = generate_anki_cards_from_text(content, major, user_id, num_cards)
 
 @app.route('/anki', methods=['GET', 'POST'])
 def anki_cards():
+    content = session.get('anki_content')
+    major = session.get('anki_major', 'General')
     if 'cards' not in session:
         session['cards'] = example_cards[:5]
         session['index'] = 0
@@ -1593,3 +1595,24 @@ threading.Thread(target=run_bot).start()
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))  # Render يوفر PORT كمتغير بيئة
     app.run(host="0.0.0.0", port=port)
+
+
+@app.route('/anki_preview')
+def anki_preview():
+    content = session.get('anki_content')
+    major = session.get('anki_major', 'General')
+
+    if not content:
+        return "❌ لا يوجد محتوى لتوليد البطاقات منه. أرسل ملفًا أولًا من البوت."
+
+    cards = generate_anki_cards_from_text(content, major=major, user_id=123, num_cards=10)[:5]
+
+    session['cards'] = cards
+    session['index'] = 0
+    session['show_back'] = False
+    return redirect('/anki')
+
+
+session['anki_content'] = content
+session['anki_major'] = major
+
