@@ -1005,7 +1005,7 @@ def cmd_start(msg):
         InlineKeyboardButton("📝 توليد اختبار", callback_data="go_generate"),
         InlineKeyboardButton("📚 مراجعة سريعة", callback_data="soon_review"),
         InlineKeyboardButton("📄 ملخص PDF", callback_data="soon_summary"),
-        InlineKeyboardButton("🧠 بطاقات Anki", callback_data="soon_anki"),
+        InlineKeyboardButton("🧠 بطاقات Anki", callback_data="anki"),
         InlineKeyboardButton("🎮 ألعاب تعليمية", callback_data="go_games"),
         InlineKeyboardButton("⚙️ حسابي", callback_data="soon_account"),
     ]
@@ -1094,7 +1094,7 @@ def handle_main_menu(c):
             InlineKeyboardButton("📝 توليد اختبار", callback_data="go_generate"),
             InlineKeyboardButton("📚 مراجعة سريعة", callback_data="soon_review"),
             InlineKeyboardButton("📄 ملخص PDF", callback_data="soon_summary"),
-            InlineKeyboardButton("🧠 بطاقات Anki", callback_data="soon_anki"),
+            InlineKeyboardButton("🧠 بطاقات Anki", callback_data="anki"),
             InlineKeyboardButton("🎮 ألعاب تعليمية", callback_data="go_games"),
             InlineKeyboardButton("⚙️ حسابي", callback_data="soon_account"),
         ]
@@ -1295,6 +1295,12 @@ def handle_main_menu(c):
         game_type = parts[1]
         selected = int(parts[2])
         correct = int(parts[3])
+        wrong_responses = [
+        "❌ خطأ! جرب مجددًا 😉\n✅ الصحيح: {correct}",
+        "🚫 للأسف، ليست الصحيحة!\n✅ الجواب: {correct}",
+        "😅 ليست الإجابة الصحيحة، الجواب هو: {correct}",
+        "❌ لا، حاول مرة أخرى!\n✔️ الصحيح هو: {correct}"
+        ]
     
         
         # الرد على الإجابة
@@ -1309,13 +1315,17 @@ def handle_main_menu(c):
         feature_name = {
             "soon_review": "📚 ميزة المراجعة السريعة",
             "soon_summary": "📄 ملخصات PDF",
-            "soon_anki": "🧠 بطاقات Anki",
             "soon_account": "⚙️ إدارة الحساب",
         }.get(data, "هذه الميزة")
 
         bot.answer_callback_query(c.id)
         bot.send_message(chat_id, f"{feature_name} ستكون متاحة قريبًا... 🚧")
         
+    elif data.startswith("anki"):
+        
+
+        
+
 @bot.message_handler(func=lambda m: user_states.get(m.from_user.id) in ["awaiting_major", "awaiting_major_for_games"])
 def handle_user_major(msg):
     if msg.chat.type != "private":
