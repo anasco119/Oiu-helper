@@ -1360,6 +1360,9 @@ def handle_user_major(msg):
         )
         bot.send_message(uid, "🎮 اختر طريقة اللعب:", reply_markup=keyboard)
 
+
+
+
 @bot.message_handler(content_types=['text', 'document'])
 def unified_handler(msg):
     if msg.chat.type != "private":
@@ -1395,6 +1398,10 @@ def unified_handler(msg):
     else:
         return bot.send_message(uid, "⚠️ نوع غير مدعوم.")
 
+    if not content.strip():
+        return bot.send_message(uid, "⚠️ لم أتمكن من قراءة محتوى الملف أو النص.")
+        
+
     # إذا المستخدم في وضع توليد أنكي
     if state == "awaiting_anki_file":
  
@@ -1417,6 +1424,11 @@ def unified_handler(msg):
             return bot.send_message(uid, "⚠️ لقد استنفدت 3 اختبارات مجانية هذا الشهر.")
         
         bot.send_message(uid, "🧠 جاري توليد الاختبار، الرجاء الانتظار...")
+        # ✅ هنا أضف الـ Debug قبل وبعد التوليد
+        print(">>> Major:", major)
+        print(">>> Content:", content[:300])
+        quizzes = generate_quizzes_from_text(content, major, user_id=uid, num_quizzes=10)
+        print(">>> Quizzes result:", quizzes)
 
         quizzes = generate_quizzes_from_text(content, major, user_id=uid, num_quizzes=10)
 
