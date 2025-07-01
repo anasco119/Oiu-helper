@@ -625,7 +625,7 @@ def extract_json_from_string(text: str) -> str:
     # كخيار أخير، أرجع النص كما هو
     return text
     
-def generate_quizzes_from_text(text: str, major: str, user_id: int, num_quizzes: int = 10):  # <-- أضف user_id
+def generate_quizzes_from_text(content: str, major: str, user_id: int, num_quizzes: int = 10):  # <-- أضف user_id
     prompt = (
     f"You are a strict AI quiz generator. Your only task is to generate a JSON array of {num_quizzes} quiz questions "
     f"that are based **strictly and only** on the information explicitly stated in the following content.\n\n"
@@ -702,6 +702,7 @@ Extract the most important {num_cards} points from the following content, and co
 - Don't use Markdown, just clean plain text.
 - Keep the cards diverse and helpful.
 - Output must be a valid JSON array of objects.
+📌 Important: Do not invent generic flashcards. Only generate cards based on the content below.
 
 📘 Content to process (field: {major}):
 {content}
@@ -1418,12 +1419,13 @@ def unified_handler(msg):
         bot.send_message(uid, "🧠 جاري توليد الاختبار، الرجاء الانتظار...")
 
         quizzes = generate_quizzes_from_text(content, major, user_id=uid, num_quizzes=10)
-        if quizzes and len(quizzes) > 0:
+
+        if isinstance(quizzes, list) and len(quizzes) > 0:
             send_quizzes_as_polls(uid, quizzes)
             increment_count(uid)
         else:
+            print("[ERROR] Failed to generate valid quizzes:", quizzes)
             bot.send_message(uid, "❌ فشل توليد الاختبار. حاول لاحقًا.")
-
 
 
 
