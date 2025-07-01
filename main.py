@@ -271,7 +271,50 @@ def translate_text(text, source='en', target='ar'):
     except Exception as e:
         print("ترجمة فشلت:", e)
         return text  # fallback
-        
+
+
+from flask import Flask, render_template, session, request, redirect, url_for
+import random
+
+app = Flask(__name__)
+app.secret_key = 'anki_secret'  # سر الجلسة لتخزين البيانات مؤقتًا
+
+# مثال على بطاقات تجريبية (يمكن استبدالها بالبطاقات الحقيقية من الذكاء الاصطناعي)
+example_cards = [
+    {"front": "What is the capital of Italy?", "back": "Rome"},
+    {"front": "ما معنى كلمة innovate؟", "back": "يبتكر"},
+    {"front": "Define empathy", "back": "The ability to understand and share others' feelings."},
+    {"front": "مضاد كلمة سريع؟", "back": "بطيء"},
+    {"front": "What is 5 × 6?", "back": "30"},
+]
+
+@app.route('/anki', methods=['GET', 'POST'])
+def anki_cards():
+    if 'cards' not in session:
+        session['cards'] = example_cards[:5]
+        session['index'] = 0
+        session['show_back'] = False
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+        if action == 'show':
+            session['show_back'] = True
+        elif action == 'next':
+            session['index'] += 1
+            session['show_back'] = False
+
+    index = session['index']
+    cards = session['cards']
+
+    if index >= len(cards):
+        session.clear()
+        return "<h2>🎉 انتهيت من البطاقات! أحسنت.</h2><a href='/anki'>🔁 ابدأ من جديد</a>"
+
+    return render_template('anki_viewer.html',
+                           card=cards[index],
+                           index=index,
+                           total=len(cards),
+                           show_back=session['show_back'])
 # -------------------------------------------------------------------
 #                  Logging & Database Setup
 # -------------------------------------------------------------------
@@ -427,6 +470,40 @@ def generate_game(prompt: str, translate_question: bool = False, translate_all: 
             game_data['question'] = translate_text(game_data['question'], source='en', target='ar')
 
     return game_data
+
+import genanki
+import time
+
+def save_cards_to_apkg(cards: list, filename='anki_flashcards.apkg', deck_name="My Flashcards"):
+    model = genanki.Model(
+        1607392319,
+        'Simple Model',
+        fields=[
+            {'name': 'Front'},
+            {'name': 'Back'},
+        ],
+        templates=[
+            {
+                'name': 'Card 1',
+                'qfmt': '{{Front}}',
+                'afmt': '{{FrontSide}}<hr id="answer">{{Back}}',
+            },
+        ]
+    )
+
+    deck = genanki.Deck(
+        deck_id=random.randint(1000000, 9999999),
+        name=deck_name
+    )
+
+    for card in cards:
+        front = card['front']
+        back = card['back']
+        note = genanki.Note(model=model, fields=[front, back])
+        deck.add_note(note)
+
+    genanki.Package(deck).write_to_file(filename)
+    return filename
     
 # -------------------------------------------------------------------
 #                     Quota Management
