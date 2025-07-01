@@ -1505,29 +1505,8 @@ def handle_text(msg):
         send_quizzes_as_polls(uid, quizzes)
         increment_count(uid)
     else:
-        bot.send_message(uid, "❌ حدث خطأ أثناء توليد الاختبارات. حاول لاحقًا.")
-
-
- if message.from_user.id in user_state and user_state[message.from_user.id]["mode"] == "awaiting_anki_file":
-    # استخراج النص من الملف أو الرسالة
-    text = extract_text_from_message(message)
-
-    # تخيير المستخدم: هل يريد معاينة أم تحميل
-    keyboard = InlineKeyboardMarkup()
-    keyboard.add(
-        InlineKeyboardButton("👁️ مراجعة 5 بطاقات", callback_data="anki_preview"),
-        InlineKeyboardButton("📥 توليد ملف .apkg", callback_data="anki_download")
-    )
-
-    bot.send_message(
-        message.chat.id,
-        "✅ تم استخراج المحتوى! ماذا تريد أن أفعل؟",
-        reply_markup=keyboard
-    )
-
-    # خزّن النص مؤقتًا لهذا المستخدم
-    user_state[message.from_user.id]["anki_text"] = text
-    user_state[message.from_user.id]["mode"] = "anki_choice"
+        bot.send_message(uid, "❌ حدث خطأ أثناء توليد الاختبارات. حاول لاحقًا.)
+    
 # -------------------------------------------------------------------
 #                   inference handler
 # -------------------------------------------------------------------
