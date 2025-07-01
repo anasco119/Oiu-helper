@@ -745,38 +745,6 @@ def generate_anki_cards_from_json(json_text: str) -> list:
 
 
 
-app.secret_key = 'anki_secret'  # سر الجلسة لتخزين البيانات مؤقتًا
-
-cards = generate_anki_cards_from_text(text, major, user_id, num_cards)
-
-@app.route('/anki', methods=['GET', 'POST'])
-def anki_cards():
-    if 'cards' not in session:
-        session['cards'] = example_cards[:5]
-        session['index'] = 0
-        session['show_back'] = False
-
-    if request.method == 'POST':
-        action = request.form.get('action')
-        if action == 'show':
-            session['show_back'] = True
-        elif action == 'next':
-            session['index'] += 1
-            session['show_back'] = False
-
-    index = session['index']
-    cards = session['cards']
-
-    if index >= len(cards):
-        session.clear()
-        return "<h2>🎉 انتهيت من البطاقات! أحسنت.</h2><a href='/anki'>🔁 ابدأ من جديد</a>"
-
-    return render_template('anki_viewer.html',
-                           card=cards[index],
-                           index=index,
-                           total=len(cards),
-                           show_back=session['show_back'])
-
 # -------------------------------------------------------------------
 #                 games
 # -------------------------------------------------------------------
@@ -1576,13 +1544,42 @@ def home():
     return "✅ البوت يعمل الآن"
 @app.route('/anki_preview')
 def anki_preview():
-    
     user_cards = generate_anki_cards_from_text(text)[:5]  # ← نحصل على أول 5 بطاقات
     session['cards'] = user_cards
     session['index'] = 0
     session['show_back'] = False
     return redirect('/anki')
+    
+app.secret_key = 'anki_secret'  # سر الجلسة لتخزين البيانات مؤقتًا
+cards = generate_anki_cards_from_text(text, major, user_id, num_cards)
 
+@app.route('/anki', methods=['GET', 'POST'])
+def anki_cards():
+    if 'cards' not in session:
+        session['cards'] = example_cards[:5]
+        session['index'] = 0
+        session['show_back'] = False
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+        if action == 'show':
+            session['show_back'] = True
+        elif action == 'next':
+            session['index'] += 1
+            session['show_back'] = False
+
+    index = session['index']
+    cards = session['cards']
+
+    if index >= len(cards):
+        session.clear()
+        return "<h2>🎉 انتهيت من البطاقات! أحسنت.</h2><a href='/anki'>🔁 ابدأ من جديد</a>"
+
+    return render_template('anki_viewer.html',
+                           card=cards[index],
+                           index=index,
+                           total=len(cards),
+                           show_back=session['show_back'])
 # بدء البوت
 
 # تشغيل بوت تيليغرام في Thread منفصل
