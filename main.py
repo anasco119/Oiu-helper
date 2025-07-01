@@ -1505,7 +1505,7 @@ def handle_text(msg):
         send_quizzes_as_polls(uid, quizzes)
         increment_count(uid)
     else:
-        bot.send_message(uid, "❌ حدث خطأ أثناء توليد الاختبارات. حاول لاحقًا.)
+        bot.send_message(uid, "❌ حدث خطأ أثناء توليد الاختبارات. حاول لاحقًا.")
     
 # -------------------------------------------------------------------
 #                   inference handler
