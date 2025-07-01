@@ -1312,7 +1312,7 @@ def handle_main_menu(c):
         bot.answer_callback_query(c.id)
         bot.send_message(chat_id, f"{feature_name} ستكون متاحة قريبًا... 🚧")
         
-    elif data.startswith("anki"):
+    elif data == "anki":
         bot.answer_callback_query(c.id)
         bot.send_message(uid, "📄 أرسل الآن ملف PDF أو Word أو نصًا عاديًا لتوليد بطاقات المراجعة (Anki).")
         user_states[uid] = "awaiting_anki_file"  # ← تحديد حالة المستخدم
