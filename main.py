@@ -1344,8 +1344,7 @@ def set_custom_major(msg):
         f"👤 @{msg.from_user.username or msg.from_user.id}\n"
         f"📚 التخصص: {major}"
         )
-        
-
+ 
 @bot.message_handler(func=lambda m: user_states.get(m.from_user.id) in ["awaiting_major", "awaiting_major_for_games"])
 def handle_user_major(msg):
     if msg.chat.type != "private":
@@ -1371,9 +1370,6 @@ def handle_user_major(msg):
             InlineKeyboardButton("👥 العب في المجموعة", switch_inline_query="game")
         )
         bot.send_message(uid, "🎮 اختر طريقة اللعب:", reply_markup=keyboard)
-
-
-            
 
 @bot.message_handler(content_types=['text', 'document'])
 def unified_handler(msg):
@@ -1448,7 +1444,7 @@ def unified_handler(msg):
 #                   inference handler
 # -------------------------------------------------------------------
 
-user_states = {}
+
 @bot.message_handler(commands=['submit_inference'])
 def handle_submit_inference(msg):
     if msg.chat.type != "private":
