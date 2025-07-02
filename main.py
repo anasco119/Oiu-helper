@@ -1124,6 +1124,7 @@ def handle_main_menu(c):
         user_states[uid] = "awaiting_anki_file"  # ← تحديد حالة المستخدم
 
     elif data == "go_account_settings":
+        bot.answer_callback_query(c.id)
         settings_keyboard = types.InlineKeyboardMarkup()
         settings_keyboard.add(
             InlineKeyboardButton("🎓 تغيير التخصص", callback_data="change_specialty"),
