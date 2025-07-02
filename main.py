@@ -1040,6 +1040,7 @@ def cmd_start(msg):
         " 📌 كل ما تحتاجه لتتعلّم بذكاء... بين يديك الآن..\n\n"
         "اختر ما يناسبك و إبدأ الآن! 👇",
         reply_markup=keyboard
+        parse_mode="Markdown"
     )
 
 @bot.callback_query_handler(func=lambda c: True)
@@ -1135,7 +1136,47 @@ def handle_main_menu(c):
             message_id=message_id,
             reply_markup=keyboard
         )
-    
+
+
+    elif data == "go_account_settings":
+        bot.answer_callback_query(c.id)
+        settings_keyboard = types.InlineKeyboardMarkup()
+        settings_keyboard.add(
+            InlineKeyboardButton("🎓 تغيير التخصص", callback_data="change_specialty"),
+        )
+        settings_keyboard.add(
+            InlineKeyboardButton("⬅️ رجوع", callback_data="go_back_home")
+        )
+
+        bot.send_message(
+            uid,
+            "⚙️ *إعدادات الحساب*\n\n"
+            "يمكنك تخصيص تجربتك التعليمية هنا.\n"
+            "اختر ما ترغب بتعديله 👇",
+            reply_markup=settings_keyboard,
+            parse_mode="Markdown"
+        )
+
+    elif data == "change_specialty":
+        keyboard = InlineKeyboardMarkup()
+        buttons = [
+            ("🩺 الطب", "major_الطب"),
+            ("🛠️ الهندسة", "major_الهندسة"),
+            ("💊 الصيدلة", "major_الصيدلة"),
+            ("🗣️ اللغات", "major_اللغات"),
+            ("❓ غير ذلك...", "major_custom"),
+        ]
+        for text, data_btn in buttons:
+            keyboard.add(InlineKeyboardButton(text, callback_data=data_btn))
+        keyboard.add(InlineKeyboardButton("⬅️ رجوع", callback_data="go_back_home"))
+
+        bot.edit_message_text(
+            "اختر تخصصك للبدء 👇", 
+            chat_id=chat_id,
+            message_id=message_id,
+            reply_markup=keyboard
+        )
+        
     elif data.startswith("major_"):
         major_key = data.split("_", 1)[1]
         if major_key == "custom":
