@@ -413,7 +413,11 @@ def parse_ai_json(raw_text: str) -> dict | None:
     return data
 
 def generate_game(prompt: str, translate_question: bool = False, translate_all: bool = False) -> dict:
-    raw_response = generate_smart_response(prompt)
+    if user_id == ADMIN_ID or can_generate(user_id):  # <-- التحقق هنا
+        raw_response = generate_smart_response(prompt)
+    else:
+        raw_response = generate_gemini_response(prompt)
+        
     game_data = parse_ai_json(raw_response)
 
     if not game_data:
@@ -735,7 +739,11 @@ Extract the most important {num_cards} points from the following content, and co
   ]
 }}
 """
-        raw_output = generate_smart_response(prompt)
+        if user_id == ADMIN_ID or can_generate(user_id):  # <-- التحقق هنا
+            raw_output = generate_smart_response(prompt)
+        else:
+            raw_output = generate_gemini_response(prompt)
+            
         clean_json = extract_json_from_string(raw_output)
 
         try:
