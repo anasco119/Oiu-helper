@@ -1156,7 +1156,7 @@ def handle_main_menu(c):
             InlineKeyboardButton("📄 ملخص PDF", callback_data="soon_summary"),
             InlineKeyboardButton("🧠 بطاقات Anki", callback_data="anki"),
             InlineKeyboardButton("🎮 ألعاب تعليمية", callback_data="go_games"),
-            InlineKeyboardButton("⚙️ حسابي", callback_data="soon_account"),
+            InlineKeyboardButton("⚙️ حسابي", callback_data="go_account_settings"),
         ]
         keyboard.add(*buttons)
 
@@ -1467,7 +1467,6 @@ def handle_main_menu(c):
         feature_name = {
             "soon_review": "📚 ميزة المراجعة السريعة",
             "soon_summary": "📄 ملخصات PDF",
-            "soon_account": "⚙️ إدارة الحساب",
         }.get(data, "هذه الميزة")
 
         bot.answer_callback_query(c.id)
