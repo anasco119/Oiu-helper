@@ -1171,25 +1171,31 @@ def handle_main_menu(c):
         except Exception as e:
             logging.warning(f"❌ فشل حذف الرسالة عند الرجوع: {e}")
     
+    
+
     elif data in ["game_vocab", "game_speed", "game_mistakes", "game_inference"]:
         game_type = data.split("_", 1)[1]
-    
-        # التحقق من إمكانية اللعب
+
+        # التحقق من إمكانية اللعب اليومي (6 مرات)
+        state = game_states.get(uid, {"count": 0})
+        if state["count"] >= 6:
+            return bot.send_message(uid, "🛑 لقد وصلت إلى الحد الأقصى للألعاب المجانية (6 مرات).")
+
         if not can_play_game_today(uid, game_type):
             bot.answer_callback_query(c.id, "❌ لقد لعبت هذه اللعبة اليوم!")
             return
-    
-        # إرسال رسالة التحميل أولاً
+
         loading_msg = bot.send_message(chat_id, "⏳ جاري تحضير السؤال...")
-    
+
         try:
             record_game_attempt(uid, game_type)
-        
-            # توليد السؤال (قد يستغرق وقتاً)
+
+            # التخصص
             cursor.execute("SELECT major FROM users WHERE user_id=?", (uid,))
             row = cursor.fetchone()
             major = row[0] if row else "عام"
-        
+
+            # توليد السؤال حسب نوع اللعبة
             if game_type == "vocab":
                 raw = generate_vocabulary_game(uid, major, native_lang="Arabic")
             elif game_type == "speed":
@@ -1198,53 +1204,49 @@ def handle_main_menu(c):
                 raw = generate_common_mistakes_game(uid, major, native_lang="Arabic")
             elif game_type == "inference":
                 raw = generate_inference_game(uid, major, native_lang="Arabic")
-        
-            q = raw
-            question = q["question"]
-            options = q["options"]
-            correct_index = q["correct_index"]
-        
-            # التحقق من صحة البيانات
+
+            question = raw["question"]
+            options = raw["options"]
+            correct_index = raw["correct_index"]
+
             if not isinstance(options, list) or len(options) < 2:
                 raise ValueError("عدد الخيارات غير صالح")
-        
-            # إنشاء لوحة الأزرار
+
+            # حفظ خيارات السؤال في الذاكرة المؤقتة
+            game_states[uid] = {"count": state["count"] + 1, "options": options}
+
             keyboard = InlineKeyboardMarkup(row_width=2)
-        
-            # أزرار الإجابة
+
+            # أزرار الإجابات
             for i, option in enumerate(options):
                 short_option = (option[:50] + "...") if len(option) > 50 else option
                 callback_data = f"ans_{game_type}_{i}_{correct_index}"
                 keyboard.add(InlineKeyboardButton(short_option, callback_data=callback_data))
-        
+    
             # أزرار التحكم
             keyboard.row(
                 InlineKeyboardButton("🔄 سؤال جديد", callback_data=f"new_{game_type}"),
                 InlineKeyboardButton("⬅️ رجوع", callback_data="back_to_games")
             )
-        
-            # حذف رسالة التحميل أولاً
-            try:
-                bot.delete_message(chat_id, loading_msg.message_id)
-            except Exception as e:
-                logging.warning(f"فشل حذف رسالة التحميل: {e}")
-        
-            # إرسال السؤال الجديد
+
+            # زر المشاركة في المجموعة
+            keyboard.add(
+                InlineKeyboardButton("📢 شارك اللعبة في مجموعتك", url="https://t.me/Uiohelper_bot?startgroup=true")
+            )
+
+            bot.delete_message(chat_id, loading_msg.message_id)
             text = f"🧠 اختر الإجابة الصحيحة:\n\n{question}"
             bot.send_message(chat_id, text, reply_markup=keyboard)
-    
+
         except Exception as e:
-            # في حالة الخطأ، حذف رسالة التحميل وإظهار الخطأ
             try:
                 bot.delete_message(chat_id, loading_msg.message_id)
             except:
                 pass
-        
             logging.error(f"فشل توليد اللعبة: {str(e)}")
             bot.send_message(uid, "❌ حدث خطأ أثناء توليد اللعبة، حاول لاحقاً")
 
-
-# معالجة طلب سؤال جديد
+    # معالجة طلب سؤال جديد
     elif data.startswith("new_"):
         game_type = data.split("_", 1)[1]
 
@@ -1309,19 +1311,20 @@ def handle_main_menu(c):
         game_type = parts[1]
         selected = int(parts[2])
         correct = int(parts[3])
+
+        options = game_states.get(uid, {}).get("options", [])
+        correct_text = options[correct] if correct < len(options) else f"الخيار رقم {correct+1}"
+
         wrong_responses = [
-        "❌ خطأ! جرب مجددًا 😉\n✅ الصحيح: {correct}",
-        "🚫 للأسف، ليست الصحيحة!\n✅ الجواب: {correct}",
-        "😅 ليست الإجابة الصحيحة، الجواب هو: {correct}",
-        "❌ لا، حاول مرة أخرى!\n✔️ الصحيح هو: {correct}"
+            "❌ خطأ! جرب مجددًا 😉\n✅ الصحيح: {correct}",
+            "🚫 للأسف، ليست الصحيحة!\n✅ الجواب: {correct}",
+            "😅 ليست الإجابة الصحيحة، الجواب هو: {correct}",
+            "❌ لا، حاول مرة أخرى!\n✔️ الصحيح هو: {correct}"
         ]
-    
-        
-        # الرد على الإجابة
+
         if selected == correct:
             bot.answer_callback_query(c.id, "✅ إجابة صحيحة!", show_alert=False)
         else:
-            correct_text = options[correct] if correct < len(options) else "؟"
             msg = random.choice(wrong_responses).format(correct=correct_text)
             bot.answer_callback_query(c.id, msg, show_alert=False)
     
