@@ -1247,8 +1247,21 @@ def handle_main_menu(c):
             bot.send_message(uid, "❌ حدث خطأ أثناء توليد اللعبة، حاول لاحقاً")
 
     # معالجة طلب سؤال جديد
+    
+
+
     elif data.startswith("new_"):
         game_type = data.split("_", 1)[1]
+
+        # تحقق من عدد المحاولات (كما في القسم الرئيسي)
+        state = game_states.get(uid, {"count": 0})
+        if state["count"] >= 6:
+            msg = random.choice([
+                "🚫 وصلت إلى الحد الأقصى لعدد الأسئلة اليوم!\n✨ جرب غدًا أو شارك البوت مع أصدقائك!",
+                "❌ انتهت محاولات اليوم! يمكنك المحاولة مجددًا لاحقًا.",
+                "🛑 لا مزيد من الأسئلة الآن. عد لاحقًا لتكمل رحلتك!"
+            ])
+            return bot.answer_callback_query(c.id, msg, show_alert=True)
 
         loading_msg = bot.send_message(c.message.chat.id, "⏳ جاري تحضير السؤال التالي...")
 
@@ -1258,7 +1271,6 @@ def handle_main_menu(c):
             row = cursor.fetchone()
             major = row[0] if row else "عام"
 
-            # اختيار الدالة المناسبة
             game_generators = {
                 "vocab": generate_vocabulary_game,
                 "speed": generate_speed_challenge,
@@ -1267,15 +1279,18 @@ def handle_main_menu(c):
             }
 
             raw = game_generators[game_type](uid, major)
-            q = raw
-            question = q["question"]
-            options = q["options"]
-            correct_index = q["correct_index"]
+            question = raw["question"]
+            options = raw["options"]
+            correct_index = raw["correct_index"]
 
             if not isinstance(options, list) or len(options) < 2:
                 raise ValueError("عدد الخيارات غير صالح")
 
-            # إعداد لوحة الخيارات
+            # حفظ خيارات السؤال الجديد
+            game_states[uid]["count"] += 1
+            game_states[uid]["options"] = options
+
+            # إنشاء الأزرار
             keyboard = InlineKeyboardMarkup(row_width=2)
             for i, option in enumerate(options):
                 short_option = (option[:50] + "...") if len(option) > 50 else option
@@ -1286,8 +1301,11 @@ def handle_main_menu(c):
                 InlineKeyboardButton("🔄 سؤال جديد", callback_data=f"new_{game_type}"),
                 InlineKeyboardButton("⬅️ رجوع", callback_data="back_to_games")
             )
+            keyboard.add(
+                InlineKeyboardButton("📢 شارك اللعبة في مجموعتك", url="https://t.me/Oiuhelper_bot?startgroup=true")
+            )
 
-            # تعديل نفس رسالة السؤال السابق
+            # تعديل نفس الرسالة
             bot.edit_message_text(
                 text=f"🧠 اختر الإجابة الصحيحة:\n\n{question}",
                 chat_id=c.message.chat.id,
@@ -1304,7 +1322,6 @@ def handle_main_menu(c):
                 bot.delete_message(c.message.chat.id, loading_msg.message_id)
             except:
                 pass
-
 
     elif data.startswith("ans_"):
         parts = data.split("_")
