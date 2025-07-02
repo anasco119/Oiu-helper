@@ -412,7 +412,7 @@ def parse_ai_json(raw_text: str) -> dict | None:
 
     return data
 
-def generate_game(prompt: str, translate_question: bool = False, translate_all: bool = False) -> dict:
+def generate_game(prompt, user_id=0, translate_all=False, translate_question=False):
     if user_id == ADMIN_ID or can_generate(user_id):  # <-- التحقق هنا
         raw_response = generate_smart_response(prompt)
     else:
@@ -1236,10 +1236,10 @@ def handle_main_menu(c):
                 InlineKeyboardButton("🔄 سؤال جديد", callback_data=f"new_{game_type}"),
                 InlineKeyboardButton("⬅️ رجوع", callback_data="back_to_games")
             )
-
-            # زر المشاركة في المجموعة
             keyboard.add(
-                InlineKeyboardButton("📢 شارك اللعبة في مجموعتك", url="https://t.me/Uiohelper_bot?startgroup=true")
+                InlineKeyboardButton(
+                    "📤 شارك هذه اللعبة", 
+                    switch_inline_query="جرب هذه اللعبة الرائعة من @Oiuhelper_bot 🎯")
             )
 
             bot.delete_message(chat_id, loading_msg.message_id)
@@ -1310,7 +1310,9 @@ def handle_main_menu(c):
                 InlineKeyboardButton("⬅️ رجوع", callback_data="back_to_games")
             )
             keyboard.add(
-                InlineKeyboardButton("📢 شارك اللعبة في مجموعتك", url="https://t.me/Oiuhelper_bot?startgroup=true")
+                InlineKeyboardButton(
+                    "📤 شارك هذه اللعبة", 
+                    switch_inline_query="جرب هذه اللعبة الرائعة من @Oiuhelper_bot 🎯")
             )
 
             # تعديل نفس الرسالة
