@@ -277,7 +277,15 @@ def translate_text(text, source='en', target='ar'):
 
 from flask import Flask, render_template, session, request, redirect, url_for
 
-
+def save_user_major(user_id, major):
+    with sqlite3.connect("quiz_users.db", check_same_thread=False) as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO users (user_id, major)
+            VALUES (?, ?)
+            ON CONFLICT(user_id) DO UPDATE SET major=excluded.major
+        """, (user_id, major))
+        conn.commit()
 
 # -------------------------------------------------------------------
 #                  Logging & Database Setup
@@ -1043,6 +1051,35 @@ def cmd_start(msg):
         parse_mode="Markdown"
     )
 
+def send_main_menu(chat_id, message_id=None):
+    keyboard = InlineKeyboardMarkup(row_width=2)
+    buttons = [
+        InlineKeyboardButton("📝 توليد اختبار", callback_data="go_generate"),
+        InlineKeyboardButton("📚 مراجعة سريعة", callback_data="soon_review"),
+        InlineKeyboardButton("📄 ملخص PDF", callback_data="soon_summary"),
+        InlineKeyboardButton("🧠 بطاقات Anki", callback_data="anki"),
+        InlineKeyboardButton("🎮 ألعاب تعليمية", callback_data="go_games"),
+        InlineKeyboardButton("⚙️ حسابي", callback_data="go_account_settings"),
+    ]
+    keyboard.add(*buttons)
+
+    text = (
+        "👋 أهلا بك في *TestGenie* ✨\n\n"
+        "🎯 أدوات تعليمية ذكية بين يديك:\n"
+        "- اختبارات من ملفاتك\n"
+        "- بطاقات مراجعة (Anki)\n"
+        "- ملخصات PDF/Word _(قريباً)_\n"
+        "- ألعاب تعليمية\n\n"
+        "📌 كل ما تحتاجه لتتعلّم بذكاء... بين يديك الآن.\n\n"
+        "اختر ما يناسبك وابدأ الآن 👇"
+    )
+
+    if message_id:
+        bot.edit_message_text(text, chat_id=chat_id, message_id=message_id, reply_markup=keyboard, parse_mode="Markdown")
+    else:
+        bot.send_message(chat_id, text, reply_markup=keyboard, parse_mode="Markdown")
+
+
 @bot.callback_query_handler(func=lambda c: True)
 def handle_main_menu(c):
     if c.message.chat.type != "private":
@@ -1160,22 +1197,52 @@ def handle_main_menu(c):
     elif data == "change_specialty":
         keyboard = InlineKeyboardMarkup()
         buttons = [
-            ("🩺 الطب", "major_الطب"),
-            ("🛠️ الهندسة", "major_الهندسة"),
-            ("💊 الصيدلة", "major_الصيدلة"),
-            ("🗣️ اللغات", "major_اللغات"),
-            ("❓ غير ذلك...", "major_custom"),
+            ("🩺 الطب", "set_major_الطب"),
+            ("🛠️ الهندسة", "set_major_الهندسة"),
+            ("💊 الصيدلة", "set_major_الصيدلة"),
+            ("🗣️ اللغات", "set_major_اللغات"),
+            ("❓ غير ذلك...", "set_major_custom"),
         ]
         for text, data_btn in buttons:
             keyboard.add(InlineKeyboardButton(text, callback_data=data_btn))
-        keyboard.add(InlineKeyboardButton("⬅️ رجوع", callback_data="go_back_home"))
+        keyboard.add(InlineKeyboardButton("⬅️ رجوع", callback_data="back_to_main"))
 
         bot.edit_message_text(
-            "اختر تخصصك للبدء 👇", 
+            "🎓 اختر تخصصك من القائمة التالية 👇", 
             chat_id=chat_id,
             message_id=message_id,
             reply_markup=keyboard
         )
+
+    elif data.startswith("set_major_"):
+        selected_major = data.replace("set_major_", "")
+    
+        if selected_major == "custom":
+            user_states[uid] = "awaiting_custom_major"
+            bot.edit_message_text(
+                "📝 من فضلك أرسل تخصصك بدقة (مثال: إدارة أعمال، إعلام، إلخ).",
+                chat_id=chat_id,
+                message_id=message_id
+            )
+            return
+    
+        # حفظ التخصص في قاعدة البيانات
+        save_user_major(uid, selected_major)
+
+        # تعديل الرسالة لإعلام المستخدم ثم تعديلها مرة أخرى بعد ثواني لعرض القائمة
+        bot.edit_message_text(
+            f"✅ تم تسجيل تخصصك بنجاح: *{selected_major}*\n\nجاري تجهيز القائمة الرئيسية...",
+            chat_id=chat_id,
+            message_id=message_id,
+            parse_mode="Markdown"
+        )
+
+    # إعادة إرسال الواجهة الرئيسية بعد ثوانٍ
+        time.sleep(2)  # ← تجنب استخدام sleep في الإنتاج، الأفضل استخدام job queue أو threading
+        try:
+            send_main_menu(chat_id, message_id)  # تعديل نفس الرسالة
+        except:
+            pass  # تجاهل الخطأ إذا تم حذف الرسالة أو تم تعديلها مسبقًا
         
     elif data.startswith("major_"):
         major_key = data.split("_", 1)[1]
@@ -1433,13 +1500,22 @@ def set_custom_major(msg):
         f"📚 التخصص: {major}"
         )
  
-@bot.message_handler(func=lambda m: user_states.get(m.from_user.id) in ["awaiting_major", "awaiting_major_for_games"])
+@bot.message_handler(func=lambda m: user_states.get(m.from_user.id) in [
+    "awaiting_major",
+    "awaiting_major_for_games",
+    "awaiting_custom_major"
+])
 def handle_user_major(msg):
     if msg.chat.type != "private":
         return  # تجاهل الرسائل في المجموعات
+
     uid = msg.from_user.id
     state = user_states.get(uid)
     major = msg.text.strip()
+
+    if len(major) < 2:
+        bot.send_message(uid, "⚠️ يرجى إدخال تخصص صالح.")
+        return
 
     cursor.execute("INSERT OR REPLACE INTO users(user_id, major) VALUES(?, ?)", (uid, major))
     conn.commit()
@@ -1447,11 +1523,11 @@ def handle_user_major(msg):
 
     if state == "awaiting_major":
         bot.send_message(uid, f"✅ تم تسجيل تخصصك: {major}\n"
-                         "الآن أرسل ملف (PDF/DOCX/TXT) أو نصًا مباشرًا لتوليد اختبارك.")
+                              "الآن أرسل ملف (PDF/DOCX/TXT) أو نصًا مباشرًا لتوليد اختبارك.")
+        
     elif state == "awaiting_major_for_games":
         bot.send_message(uid, f"✅ تم تسجيل تخصصك: {major}\n"
-                         "الآن يمكنك اختيار لعبة من قائمة الألعاب التعليمية.")
-        # نرسل واجهة الألعاب مرة أخرى
+                              "الآن يمكنك اختيار لعبة من قائمة الألعاب التعليمية.")
         keyboard = InlineKeyboardMarkup(row_width=1)
         keyboard.add(
             InlineKeyboardButton("🔒 العب في الخاص", callback_data="game_private"),
@@ -1459,7 +1535,18 @@ def handle_user_major(msg):
         )
         bot.send_message(uid, "🎮 اختر طريقة اللعب:", reply_markup=keyboard)
 
-
+    elif state == "awaiting_custom_major":
+        sent = bot.send_message(uid, f"✅ تم تسجيل تخصصك: *{major}*", parse_mode="Markdown")
+        time.sleep(2)
+        try:
+            bot.edit_message_text(
+                "⬇️ هذه هي القائمة الرئيسية:",
+                chat_id=sent.chat.id,
+                message_id=sent.message_id
+            )
+            send_main_menu(uid, message_id=sent.message_id)
+        except:
+            send_main_menu(uid)
 
 
 @bot.message_handler(content_types=['text', 'document'])
