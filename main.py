@@ -1448,11 +1448,17 @@ def unified_handler(msg):
         bot.send_message(uid, "⏳ جاري إنشاء بطاقات المراجعة...")
 
         cards, title = generate_anki_cards_from_text(content, major=major, user_id=uid)
+
         if not cards:
             return bot.send_message(uid, "❌ لم أتمكن من توليد بطاقات.")
 
-        filename = save_cards_to_apkg(cards, filename=f"anki_{uid}.apkg", deck_name=title)
-        bot.send_document(uid, open(filename, 'rb'))
+        # تنظيف العنوان ليكون اسم ملف صالح
+        safe_title = re.sub(r'[^a-zA-Z0-9_\u0600-\u06FF]', '_', title)[:40]  # دعم الأسماء العربية وتحديد الطول
+
+        filename = f"{safe_title}_{uid}.apkg"
+
+        filepath = save_cards_to_apkg(cards, filename=filename, deck_name=title)
+        bot.send_document(uid, open(filepath, 'rb'))
 
 
 
