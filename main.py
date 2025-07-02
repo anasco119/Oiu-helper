@@ -1033,7 +1033,7 @@ def cmd_start(msg):
         InlineKeyboardButton("📄 ملخص PDF", callback_data="soon_summary"),
         InlineKeyboardButton("🧠 بطاقات Anki", callback_data="anki"),
         InlineKeyboardButton("🎮 ألعاب تعليمية", callback_data="go_games"),
-        InlineKeyboardButton("⚙️ حسابي", callback_data="soon_account"),
+        InlineKeyboardButton("⚙️ حسابي", callback_data="go_account_settings"),
     ]
     keyboard.add(*buttons)
 
