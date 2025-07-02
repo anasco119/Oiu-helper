@@ -1122,6 +1122,25 @@ def handle_main_menu(c):
         bot.answer_callback_query(c.id)
         bot.send_message(uid, "📄 أرسل الآن ملف PDF أو Word أو نصًا عاديًا لتوليد بطاقات المراجعة (Anki).")
         user_states[uid] = "awaiting_anki_file"  # ← تحديد حالة المستخدم
+
+    elif data == "go_account_settings":
+        bot.answer_callback_query(c.id)
+        settings_keyboard = types.InlineKeyboardMarkup()
+        settings_keyboard.add(
+            InlineKeyboardButton("🎓 تغيير التخصص", callback_data="change_specialty"),
+        )
+        settings_keyboard.add(
+            InlineKeyboardButton("⬅️ رجوع", callback_data="go_back_home")
+        )
+
+        bot.send_message(
+            uid,
+            "⚙️ *إعدادات الحساب*\n\n"
+            "يمكنك تخصيص تجربتك التعليمية هنا.\n"
+            "اختر ما ترغب بتعديله 👇",
+            reply_markup=settings_keyboard,
+            parse_mode="Markdown"
+        )
         
     elif data == "go_games":
         cursor.execute("SELECT major FROM users WHERE user_id = ?", (uid,))
@@ -1174,25 +1193,6 @@ def handle_main_menu(c):
             reply_markup=keyboard
         )
 
-
-    elif data == "go_account_settings":
-        bot.answer_callback_query(c.id)
-        settings_keyboard = types.InlineKeyboardMarkup()
-        settings_keyboard.add(
-            InlineKeyboardButton("🎓 تغيير التخصص", callback_data="change_specialty"),
-        )
-        settings_keyboard.add(
-            InlineKeyboardButton("⬅️ رجوع", callback_data="go_back_home")
-        )
-
-        bot.send_message(
-            uid,
-            "⚙️ *إعدادات الحساب*\n\n"
-            "يمكنك تخصيص تجربتك التعليمية هنا.\n"
-            "اختر ما ترغب بتعديله 👇",
-            reply_markup=settings_keyboard,
-            parse_mode="Markdown"
-        )
 
     elif data == "change_specialty":
         keyboard = InlineKeyboardMarkup()
