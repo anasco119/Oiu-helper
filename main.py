@@ -439,6 +439,7 @@ def generate_game(prompt: str, translate_question: bool = False, translate_all: 
 
 import genanki
 import time
+import uuid
 
 def save_cards_to_apkg(cards: list, filename='anki_flashcards.apkg', deck_name="My Flashcards"):
     model = genanki.Model(
@@ -458,18 +459,22 @@ def save_cards_to_apkg(cards: list, filename='anki_flashcards.apkg', deck_name="
     )
 
     deck = genanki.Deck(
-        deck_id=random.randint(1000000, 9999999),
+        deck_id=int(str(uuid.uuid4().int)[:9]),  # لتوليد رقم deck عشوائي وفريد
         name=deck_name
     )
 
+    seen = set()
     for card in cards:
-        front = card['front']
-        back = card['back']
-        note = genanki.Note(model=model, fields=[front, back])
-        deck.add_note(note)
+        front = card.get('front', '').strip()
+        back = card.get('back', '').strip()
+        if front and back and front not in seen:
+            note = genanki.Note(model=model, fields=[front, back])
+            deck.add_note(note)
+            seen.add(front)
 
     genanki.Package(deck).write_to_file(filename)
     return filename
+
     
 # -------------------------------------------------------------------
 #                     Quota Management
@@ -687,9 +692,9 @@ def generate_quizzes_from_text(content: str, major: str, user_id: int, num_quizz
     # --- التعديل ينتهي هنا ---
 
 
-    
-def generate_anki_cards_from_text(content: str, major: str = "General", user_id: int = 0, num_cards: int = 15) -> list:
-    prompt = f"""
+def generate_anki_cards_from_text(content: str, major: str = "General", user_id: int = 0, num_cards: int = 15) -> tuple:
+    for attempt in range(3):  # تجربة حتى 3 مرات
+        prompt = f"""
 You are an AI assistant specialized in creating study flashcards.
 
 🎯 Task:
@@ -703,38 +708,59 @@ Extract the most important {num_cards} points from the following content, and co
 - The front must be phrased to encourage recall (e.g. "What is...", "Define...", "How does...").
 - Don't use Markdown, just clean plain text.
 - Keep the cards diverse and helpful.
-- Output must be a valid JSON array of objects.
-📌 Important: Do not invent generic flashcards. Only generate cards based on the content below.
+- Output must be a valid JSON **object** with two keys: "title" and "cards".
+
+🚫 Important:
+- Do NOT generate multiple choice or true/false questions.
+- Only generate flashcards suitable for Anki with a front and a back.
+- The flashcards must be written in the same language as the input content. If the content is in Arabic, answer in Arabic. If English, answer in English.
 
 📘 Content to process (field: {major}):
 {content}
 
 ✅ Example output format:
-[
-  {{
-    "front": "What is the function of mitochondria?",
-    "back": "It is the powerhouse of the cell.",
-    "tag": "Biology"
-  }},
-  {{
-    "front": "ما المقصود بالاستعارة في اللغة العربية؟",
-    "back": "الاستعارة هي استخدام كلمة في غير معناها الحقيقي لعلاقة مع قرينة مانعة.",
-    "tag": "Literature"
-  }}
-]
+{{
+  "title": "Basics of Organic Chemistry",
+  "cards": [
+    {{
+      "front": "What is the function of mitochondria?",
+      "back": "It is the powerhouse of the cell.",
+      "tag": "Biology"
+    }},
+    {{
+      "front": "ما هي الاستعارة؟",
+      "back": "الاستعارة هي استخدام الكلمة في غير معناها الحقيقي لعلاقة مع قرينة مانعة.",
+      "tag": "Literature"
+    }}
+  ]
+}}
 """
-    # إرسال البرومبت إلى النموذج
-    raw_output = generate_smart_response(prompt)  # أو استخدم أي دالة توليد متوفرة
-    clean_json = extract_json_from_string(raw_output)
-    try:
-        data = json.loads(clean_json)
-        # تأكد أن الناتج قائمة من بطاقات
-        if isinstance(data, list):
-            return data
-    except Exception as e:
-        logging.warning(f"⚠️ فشل في تحميل JSON: {e}")
+        raw_output = generate_smart_response(prompt)
+        clean_json = extract_json_from_string(raw_output)
 
-    return []  # fallback الآمن
+        try:
+            data = json.loads(clean_json)
+            title = data.get("title", "بطاقات تعليمية")
+            card_list = data.get("cards", [])
+
+            cards = []
+            for item in card_list:
+                front = item.get("front") or item.get("question")
+                back = item.get("back") or item.get("answer")
+
+                if isinstance(front, str) and isinstance(back, str) and front.strip() and back.strip():
+                    cards.append({"front": front.strip(), "back": back.strip()})
+                else:
+                    logging.warning(f"❌ Skipping invalid card: {item}")
+
+            if len(cards) >= 5:
+                return cards, title
+
+        except json.JSONDecodeError as e:
+            logging.error(f"❌ Failed to parse Anki cards: {e}\nClean JSON:\n{clean_json}\nRaw:\n{raw_output}")
+
+    return [], "بطاقات تعليمية"   
+
     
 
 
@@ -1421,15 +1447,14 @@ def unified_handler(msg):
         user_states.pop(uid, None)
         bot.send_message(uid, "⏳ جاري إنشاء بطاقات المراجعة...")
 
-        
-        cards = generate_anki_cards_from_text(content, major=major, user_id=uid)
-
+        cards, title = generate_anki_cards_from_text(content, major=major, user_id=uid)
         if not cards:
             return bot.send_message(uid, "❌ لم أتمكن من توليد بطاقات.")
-        
-        filename = save_cards_to_apkg(cards, f"anki_{uid}.apkg", deck_name="بطاقات تعليمية")
+
+        filename = save_cards_to_apkg(cards, filename=f"anki_{uid}.apkg", deck_name=title)
         bot.send_document(uid, open(filename, 'rb'))
-        return bot.send_message(uid, "✅ تم إنشاء ملف Anki بنجاح!")
+
+
 
     # الحالة العادية: توليد اختبار
     else:
