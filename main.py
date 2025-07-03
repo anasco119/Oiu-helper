@@ -29,7 +29,10 @@ GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 COHERE_API_KEY = os.getenv("COHERE_API_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-allowed_channels = set(map(int, os.getenv("ALLOWED_CHANNELS", "").split(",")))
+allowed_channels = set()
+env_channels = os.getenv("ALLOWED_CHANNELS", "")
+if env_channels.strip():
+    allowed_channels = set(map(int, env_channels.split(",")))
 bot = telebot.TeleBot(BOT_TOKEN)
 
 #!/usr/bin/env python3
