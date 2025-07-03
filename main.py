@@ -1133,11 +1133,12 @@ def handle_main_menu(c):
             InlineKeyboardButton("⬅️ رجوع", callback_data="go_back_home")
         )
 
-        bot.send_message(
-            uid,
-            "⚙️ *إعدادات الحساب*\n\n"
-            "يمكنك تخصيص تجربتك التعليمية هنا.\n"
-            "اختر ما ترغب بتعديله 👇",
+        bot.edit_message_text(
+            text="⚙️ *إعدادات الحساب*\n\n"
+                 "يمكنك تخصيص تجربتك التعليمية هنا.\n"
+                 "اختر ما ترغب بتعديله 👇",
+            chat_id=c.message.chat.id,
+            message_id=c.message.message_id,
             reply_markup=settings_keyboard,
             parse_mode="Markdown"
         )
