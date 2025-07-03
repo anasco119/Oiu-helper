@@ -1125,7 +1125,7 @@ def handle_main_menu(c):
 
     elif data == "go_account_settings":
         bot.answer_callback_query(c.id)
-        settings_keyboard = types.InlineKeyboardMarkup()
+        settings_keyboard = InlineKeyboardMarkup()
         settings_keyboard.add(
             InlineKeyboardButton("🎓 تغيير التخصص", callback_data="change_specialty"),
         )
