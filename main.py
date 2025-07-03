@@ -1206,7 +1206,7 @@ def handle_main_menu(c):
         ]
         for text, data_btn in buttons:
             keyboard.add(InlineKeyboardButton(text, callback_data=data_btn))
-        keyboard.add(InlineKeyboardButton("⬅️ رجوع", callback_data="back_to_main"))
+        keyboard.add(InlineKeyboardButton("⬅️ رجوع", callback_data="go_back_home"))
 
         bot.edit_message_text(
             "🎓 اختر تخصصك من القائمة التالية 👇", 
