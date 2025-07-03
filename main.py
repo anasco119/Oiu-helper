@@ -1662,18 +1662,25 @@ def unified_handler(msg):
 
 known_channels = set()
 
-@bot.message_handler(func=lambda msg: msg.chat.type == "channel")
-def channel_monitor(msg):
+@bot.channel_post_handler(func=lambda msg: True)
+def handle_channel_post(msg):
     channel_id = msg.chat.id
 
     if channel_id in known_channels:
-        return  # تجاهل إذا تم التقاط هذه القناة مسبقاً
+        return  # تم معالجته من قبل
 
     known_channels.add(channel_id)
 
-    # إرسال المعرف إلى الأدمن
-    bot.send_message(ADMIN_ID, f"📢 تم اكتشاف قناة جديدة أضيف فيها البوت:\n\nID: `{channel_id}`\nاسم: {msg.chat.title}", parse_mode="Markdown")
-
+    try:
+        bot.send_message(
+            ADMIN_ID,
+            f"📢 تم اكتشاف قناة جديدة:\n\n"
+            f"*الاسم:* {msg.chat.title}\n"
+            f"*ID:* `{channel_id}`",
+            parse_mode="Markdown"
+        )
+    except Exception as e:
+        print(f"[ERROR] إرسال المعرف فشل: {e}")
 # -------------------------------------------------------------------
 #                   inference handler
 # -------------------------------------------------------------------
