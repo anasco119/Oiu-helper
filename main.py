@@ -29,7 +29,7 @@ GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 COHERE_API_KEY = os.getenv("COHERE_API_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-
+allowed_channels = set(map(int, os.getenv("ALLOWED_CHANNELS", "").split(",")))
 bot = telebot.TeleBot(BOT_TOKEN)
 
 #!/usr/bin/env python3
@@ -540,10 +540,26 @@ def reset_if_needed(user_id: int):
         conn.commit()
 
 def can_generate(user_id: int) -> bool:
-    # --- بداية التعديل ---
-    # إذا كان المستخدم هو الأدمن، اسمح له دائمًا بالتوليد
+    # ✅ السماح للأدمن دائماً
     if user_id == ADMIN_ID:
         return True
+
+    try:
+        # ✅ الحصول على قائمة القنوات المسموح بها (إذا من env)
+        allowed_channels = set(map(int, os.getenv("ALLOWED_CHANNELS", "").split(",")))
+
+        for channel_id in allowed_channels:
+            try:
+                # التحقق إن كان المستخدم عضواً في القناة
+                member = bot.get_chat_member(chat_id=channel_id, user_id=user_id)
+                if member.status in ['member', 'administrator', 'creator']:
+                    return True
+            except Exception as e:
+                logging.warning(f"فشل التحقق من العضوية في القناة {channel_id} للمستخدم {user_id}: {e}")
+    except Exception as e:
+        logging.error(f"خطأ في can_generate: {e}")
+
+    return False
     # --- نهاية التعديل ---
 
     reset_if_needed(user_id)
@@ -1641,7 +1657,19 @@ def unified_handler(msg):
             print("[ERROR] Failed to generate valid quizzes:", quizzes)
             bot.send_message(uid, "❌ فشل توليد الاختبار. حاول لاحقًا.")
 
+known_channels = set()
 
+@bot.message_handler(func=lambda msg: msg.chat.type == "channel")
+def channel_monitor(msg):
+    channel_id = msg.chat.id
+
+    if channel_id in known_channels:
+        return  # تجاهل إذا تم التقاط هذه القناة مسبقاً
+
+    known_channels.add(channel_id)
+
+    # إرسال المعرف إلى الأدمن
+    bot.send_message(ADMIN_ID, f"📢 تم اكتشاف قناة جديدة أضيف فيها البوت:\n\nID: `{channel_id}`\nاسم: {msg.chat.title}", parse_mode="Markdown")
 
 # -------------------------------------------------------------------
 #                   inference handler
