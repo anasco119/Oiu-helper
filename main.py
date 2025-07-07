@@ -291,6 +291,16 @@ def save_user_major(user_id, major):
         """, (user_id, major))
         conn.commit()
 
+
+from langdetect import detect
+
+def detect_language(text: str) -> str:
+    try:
+        lang = detect(text)
+        return lang
+    except:
+        return "unknown"
+
 # -------------------------------------------------------------------
 #                  Logging & Database Setup
 # -------------------------------------------------------------------
@@ -400,20 +410,44 @@ def split_text(content, chunk_size=3500):
     return [content[i:i+chunk_size] for i in range(0, len(content), chunk_size)]
 
 def summarize_long_text(content: str) -> str:
-    chunks = split_text(content)
-    print("[DEBUG] Start summarization...")
+    """
+    Summarize the content in its original language (Arabic or English) using educational style.
+    """
+    lang = detect_language(content[:1000])  # نكتفي بأول 1000 حرف للتحليل
+    print(f"[DEBUG] Detected language: {lang}")
 
-    # تلخيص كل جزء على حدة
+    if lang.startswith("ar"):
+        summary_prompt = (
+            "أنت مساعد تعليمي محترف. قم بتلخيص المحتوى التالي بأسلوب تعليمي منظم وواضح باللغة العربية فقط،"
+            " مع الحفاظ على النقاط المفيدة والتفاصيل التي يمكن استخدامها لاحقًا لصنع أسئلة أو بطاقات تعليمية."
+            "\n\nالمحتوى:\n{chunk}"
+        )
+        merge_prompt = (
+            "فيما يلي مجموعة من الملخصات الجزئية لمحتوى تعليمي. قم بدمجها في ملخص نهائي شامل ومترابط وواضح"
+            " باللغة العربية، مع الحفاظ على التفاصيل المفيدة التي تساعد على فهم المحتوى أو إعداد اختبار منه.\n\n{merged}"
+        )
+    else:
+        summary_prompt = (
+            "You are a professional educational assistant. Summarize the following content into a clear and concise educational explanation in **English only**.\n\n"
+            "- Preserve factual details and key definitions.\n"
+            "- Avoid vague sentences or repetition.\n"
+            "- Keep the original language (do not translate).\n\nContent:\n{chunk}"
+        )
+        merge_prompt = (
+            "You are an educational summarizer. Merge the following partial summaries into one final, well-structured summary in **English**, preserving all useful learning content.\n\n{merged}"
+        )
+
+    chunks = split_text(content)
     partial_summaries = []
-    for chunk in chunks:
-        prompt = f"""لخص النص التالي بشكل تعليمي واضح ومختصر بنفس اللغة:\n{chunk}"""
-        summary = generate_smart_response(prompt)
+
+    for i, chunk in enumerate(chunks):
+        prompt = summary_prompt.format(chunk=chunk)
+        summary = generate_smart_response(prompt.strip())
         partial_summaries.append(summary)
 
-    # دمج التلخيصات الجزئية وتلخيصها نهائيًا
     merged_summary = "\n".join(partial_summaries)
-    final_prompt = f"""هذه مجموعة من الملخصات الجزئية لمحتوى طويل، قم بدمجها وتلخيصها في ملخص شامل وواضح بنفس اللغة:\n{merged_summary}"""
-    return generate_smart_response(final_prompt)
+    final_prompt = merge_prompt.format(merged=merged_summary)
+    return generate_smart_response(final_prompt.strip())
     
 
 def parse_ai_json(raw_text: str) -> dict | None:
@@ -1660,15 +1694,17 @@ def unified_handler(msg):
         user_states.pop(uid, None)
     
         if len(content) > 10000:
-            bot.send_message(uid, "🔍 المحتوى كبير، جاري تلخيصه قبل إنشاء بطاقات...")
+            msg = bot.send_message(uid, "🔍 المحتوى كبير، يتم تلخيصه الآن لتوليد البطاقات...")
             try:
                 content = summarize_long_text(content)
                 print(">>> تلخيص الناتج:\n", content[:1000])  # اطبع جزء منه للتشخيص
             except Exception as e:
                 print("[ERROR] تلخيص المحتوى فشل:", e)
-                return bot.send_message(uid, "❌ فشل في تلخيص المحتوى. أرسل ملفًا أصغر أو حاول لاحقًا.")
+                return bot.edit_message_text(chat_id=uid, message_id=msg.message_id,
+                                         text="❌ فشل في تلخيص المحتوى. أرسل ملفًا أصغر أو حاول لاحقًا.")
     
-        bot.send_message(uid, "⏳ جاري إنشاء بطاقات المراجعة...")
+        bot.edit_message_text(chat_id=uid, message_id=msg.message_id,
+                              text="⏳ جاري إنشاء بطاقات المراجعة...")
         cards, title = generate_anki_cards_from_text(content, major=major, user_id=uid)
    
         if not cards:
@@ -1689,15 +1725,17 @@ def unified_handler(msg):
             return bot.send_message(uid, "⚠️ لقد استنفدت 3 اختبارات مجانية هذا الشهر.")
 
         if len(content) > 10000:
-            bot.send_message(uid, "🔍 المحتوى كبير، جاري تلخيصه قبل إنشاء بطاقات...")
+            msg = bot.send_message(uid, "🔍 المحتوى كبير، جاري تلخيصه قبل إنشاء بطاقات...")
             try:
                 content = summarize_long_text(content)
                 print(">>> تلخيص الناتج:\n", content[:1000])  # اطبع جزء منه للتشخيص
             except Exception as e:
                 print("[ERROR] تلخيص المحتوى فشل:", e)
-                return bot.send_message(uid, "❌ فشل في تلخيص المحتوى. أرسل ملفًا أصغر أو حاول لاحقًا.")
+                return bot.edit_message_text(chat_id=uid, message_id=msg.message_id,
+                                         text="❌ فشل في تلخيص المحتوى. أرسل ملفًا أصغر أو حاول لاحقًا.")
 
-        bot.send_message(uid, "🧠 جاري توليد الاختبار، الرجاء الانتظار...")
+        bot.edit_message_text(chat_id=uid, message_id=msg.message_id,
+                              text="🧠 جاري توليد الاختبار، الرجاء الانتظار...")
         print(">>> Major:", major)
         print(">>> Content:", content[:300])
         quizzes = generate_quizzes_from_text(content, major=major, user_id=uid, num_quizzes=10)
@@ -1850,5 +1888,3 @@ threading.Thread(target=run_bot).start()
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))  # Render يوفر PORT كمتغير بيئة
     app.run(host="0.0.0.0", port=port)
-
-
