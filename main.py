@@ -397,7 +397,7 @@ def extract_text_from_pptx(path: str) -> str:
         return ""
 
 def split_text(content, chunk_size=3500):
-    return [content[i:i+chunk_size] for i in range(0, len(text), chunk_size)]
+    return [content[i:i+chunk_size] for i in range(0, len(content), chunk_size)]
 
 def summarize_long_text(content: str) -> str:
     chunks = split_text(content)
