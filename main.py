@@ -1700,7 +1700,7 @@ def unified_handler(msg):
         bot.send_message(uid, "🧠 جاري توليد الاختبار، الرجاء الانتظار...")
         print(">>> Major:", major)
         print(">>> Content:", content[:300])
-        quizzes = generate_quizzes_from_text(content, major, user_id=uid, num_quizzes=10)
+        quizzes = generate_quizzes_from_text(content, major=major, user_id=uid, num_quizzes=10)
         
         if isinstance(quizzes, list) and len(quizzes) > 0:
             send_quizzes_as_polls(uid, quizzes)
