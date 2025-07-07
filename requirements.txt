@@ -11,3 +11,4 @@ googleapis-common-protos
 groq
 cohere
 genanki
+python-pptx
