@@ -396,6 +396,25 @@ def extract_text_from_pptx(path: str) -> str:
         logging.error(f"Error extracting PPTX text: {e}")
         return ""
 
+def split_text(text, chunk_size=3500):
+    return [text[i:i+chunk_size] for i in range(0, len(text), chunk_size)]
+
+def summarize_chunk(chunk):
+    prompt = f""" لخص النص التالي بشكل موجز ومنظم للنشر كملخص تعليمي واضح بنفس لغة النص:
+{chunk}"""
+    return generate_smart_response(prompt)
+
+def summarize_text_map_reduce(content):
+    chunks = split_text(content)
+    summaries = [summarize_chunk(chunk) for chunk in chunks]
+    merged_summary = "\n".join(summaries)
+
+    # المرحلة النهائية: تلخيص التلخيصات
+    final_prompt = f"""إليك مجموعة من الملخصات الجزئية، قم بدمجها في ملخص نهائي مختصر وشامل وواضح:
+{merged_summary}"""
+    return generate_smart_response(final_prompt)
+
+
 
 def parse_ai_json(raw_text: str) -> dict | None:
     """
@@ -1599,7 +1618,7 @@ def unified_handler(msg):
 
     # استخراج النص
     if msg.content_type == "text":
-        content = msg.text[:3000]
+        content = msg.text
 
     elif msg.content_type == "document":
         file_info = bot.get_file(msg.document.file_id)
@@ -1615,13 +1634,13 @@ def unified_handler(msg):
 
         ext = path.rsplit(".", 1)[-1].lower()
         if ext == "pdf":
-            content = extract_text_from_pdf(path)[:3000]
+            content = extract_text_from_pdf(path)
         elif ext == "docx":
-            content = extract_text_from_docx(path)[:3000]
+            content = extract_text_from_docx(path)
         elif ext == "txt":
-            content = extract_text_from_txt(path)[:3000]
+            content = extract_text_from_txt(path)
         elif ext == "pptx":
-            content = extract_text_from_pptx(path)[:3000]
+            content = extract_text_from_pptx(path)
         else:
             return bot.send_message(uid, "⚠️ نوع الملف غير مدعوم. أرسل PDF أو Word أو TXT.")
 
