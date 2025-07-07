@@ -396,24 +396,23 @@ def extract_text_from_pptx(path: str) -> str:
         logging.error(f"Error extracting PPTX text: {e}")
         return ""
 
-def split_text(text, chunk_size=3500):
-    return [text[i:i+chunk_size] for i in range(0, len(text), chunk_size)]
+def split_text(content, chunk_size=3500):
+    return [content[i:i+chunk_size] for i in range(0, len(text), chunk_size)]
 
-def summarize_chunk(chunk):
-    prompt = f""" لخص النص التالي بشكل موجز ومنظم للنشر كملخص تعليمي واضح بنفس لغة النص:
-{chunk}"""
-    return generate_smart_response(prompt)
-
-def summarize_text_map_reduce(content):
+def summarize_long_text(content: str) -> str:
     chunks = split_text(content)
-    summaries = [summarize_chunk(chunk) for chunk in chunks]
-    merged_summary = "\n".join(summaries)
 
-    # المرحلة النهائية: تلخيص التلخيصات
-    final_prompt = f"""إليك مجموعة من الملخصات الجزئية، قم بدمجها في ملخص نهائي مختصر وشامل وواضح:
-{merged_summary}"""
+    # تلخيص كل جزء على حدة
+    partial_summaries = []
+    for chunk in chunks:
+        prompt = f"""لخص النص التالي بشكل تعليمي واضح ومختصر بنفس اللغة:\n{chunk}"""
+        summary = generate_smart_response(prompt)
+        partial_summaries.append(summary)
+
+    # دمج التلخيصات الجزئية وتلخيصها نهائيًا
+    merged_summary = "\n".join(partial_summaries)
+    final_prompt = f"""هذه مجموعة من الملخصات الجزئية لمحتوى طويل، قم بدمجها وتلخيصها في ملخص شامل وواضح بنفس اللغة:\n{merged_summary}"""
     return generate_smart_response(final_prompt)
-
 
 
 def parse_ai_json(raw_text: str) -> dict | None:
@@ -1657,12 +1656,15 @@ def unified_handler(msg):
    
     # إذا المستخدم في وضع توليد أنكي
     if state == "awaiting_anki_file":
- 
         user_states.pop(uid, None)
+    
+        if len(content) > 10000:
+            bot.send_message(uid, "🔍 المحتوى كبير، جاري تلخيصه قبل إنشاء بطاقات...")
+            content = summarize_long_text(content)
+    
         bot.send_message(uid, "⏳ جاري إنشاء بطاقات المراجعة...")
-
         cards, title = generate_anki_cards_from_text(content, major=major, user_id=uid)
-
+   
         if not cards:
             return bot.send_message(uid, "❌ لم أتمكن من توليد بطاقات.")
 
@@ -1680,16 +1682,16 @@ def unified_handler(msg):
     else:
         if not can_generate(uid):
             return bot.send_message(uid, "⚠️ لقد استنفدت 3 اختبارات مجانية هذا الشهر.")
-        
+
+        if len(content) > 10000:
+            bot.send_message(uid, "🔍 المحتوى كبير، جاري تلخيصه قبل توليد الاختبار...")
+            content = summarize_long_text(content)
+
         bot.send_message(uid, "🧠 جاري توليد الاختبار، الرجاء الانتظار...")
-        # ✅ هنا أضف الـ Debug قبل وبعد التوليد
         print(">>> Major:", major)
         print(">>> Content:", content[:300])
         quizzes = generate_quizzes_from_text(content, major, user_id=uid, num_quizzes=10)
-        print(">>> Quizzes result:", quizzes)
-
-        quizzes = generate_quizzes_from_text(content, major, user_id=uid, num_quizzes=10)
-
+        
         if isinstance(quizzes, list) and len(quizzes) > 0:
             send_quizzes_as_polls(uid, quizzes)
             increment_count(uid)
@@ -1718,6 +1720,8 @@ def handle_channel_post(msg):
         )
     except Exception as e:
         print(f"[ERROR] إرسال المعرف فشل: {e}")
+
+
 # -------------------------------------------------------------------
 #                   inference handler
 # -------------------------------------------------------------------
@@ -1734,7 +1738,7 @@ def handle_submit_inference(msg):
 @bot.message_handler(func=lambda m: user_states.get(m.from_user.id, {}).get("state") in [
     "awaiting_inference_question", "awaiting_inference_options", "awaiting_inference_correct"])
 def handle_inference_submission(msg):
-    if msg.chat.type != "private":
+    if msg.hat.type != "private":
         return  # تجاهل الرسائل في المجموعات
     uid = msg.from_user.id
     state = user_states.get(uid, {})
