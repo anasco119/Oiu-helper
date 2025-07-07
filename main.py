@@ -401,6 +401,7 @@ def split_text(content, chunk_size=3500):
 
 def summarize_long_text(content: str) -> str:
     chunks = split_text(content)
+    print("[DEBUG] Start summarization...")
 
     # تلخيص كل جزء على حدة
     partial_summaries = []
@@ -413,7 +414,7 @@ def summarize_long_text(content: str) -> str:
     merged_summary = "\n".join(partial_summaries)
     final_prompt = f"""هذه مجموعة من الملخصات الجزئية لمحتوى طويل، قم بدمجها وتلخيصها في ملخص شامل وواضح بنفس اللغة:\n{merged_summary}"""
     return generate_smart_response(final_prompt)
-
+    
 
 def parse_ai_json(raw_text: str) -> dict | None:
     """
@@ -1660,7 +1661,11 @@ def unified_handler(msg):
     
         if len(content) > 10000:
             bot.send_message(uid, "🔍 المحتوى كبير، جاري تلخيصه قبل إنشاء بطاقات...")
-            content = summarize_long_text(content)
+            try:
+                content = summarize_long_text(content)
+            except Exception as e:
+                print("[ERROR] تلخيص المحتوى فشل:", e)
+                return bot.send_message(uid, "❌ فشل في تلخيص المحتوى. أرسل ملفًا أصغر أو حاول لاحقًا.")
     
         bot.send_message(uid, "⏳ جاري إنشاء بطاقات المراجعة...")
         cards, title = generate_anki_cards_from_text(content, major=major, user_id=uid)
@@ -1677,15 +1682,18 @@ def unified_handler(msg):
         bot.send_document(uid, open(filepath, 'rb'))
 
 
-
     # الحالة العادية: توليد اختبار
     else:
         if not can_generate(uid):
             return bot.send_message(uid, "⚠️ لقد استنفدت 3 اختبارات مجانية هذا الشهر.")
 
         if len(content) > 10000:
-            bot.send_message(uid, "🔍 المحتوى كبير، جاري تلخيصه قبل توليد الاختبار...")
-            content = summarize_long_text(content)
+            bot.send_message(uid, "🔍 المحتوى كبير، جاري تلخيصه قبل إنشاء بطاقات...")
+            try:
+                content = summarize_long_text(content)
+            except Exception as e:
+                print("[ERROR] تلخيص المحتوى فشل:", e)
+                return bot.send_message(uid, "❌ فشل في تلخيص المحتوى. أرسل ملفًا أصغر أو حاول لاحقًا.")
 
         bot.send_message(uid, "🧠 جاري توليد الاختبار، الرجاء الانتظار...")
         print(">>> Major:", major)
