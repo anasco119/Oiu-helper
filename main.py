@@ -17,6 +17,7 @@ import cohere
 from groq import Groq
 import json
 import re
+from pptx import Presentation
 
 
 
@@ -379,6 +380,21 @@ def extract_text_from_txt(path: str) -> str:
         logging.error(f"Error extracting TXT text: {e}")
         return ""
         
+
+
+
+def extract_text_from_pptx(path: str) -> str:
+    try:
+        prs = Presentation(path)
+        all_text = []
+        for slide in prs.slides:
+            for shape in slide.shapes:
+                if hasattr(shape, "text"):
+                    all_text.append(shape.text)
+        return "\n".join(all_text).strip()
+    except Exception as e:
+        logging.error(f"Error extracting PPTX text: {e}")
+        return ""
 
 
 def parse_ai_json(raw_text: str) -> dict | None:
@@ -1604,6 +1620,8 @@ def unified_handler(msg):
             content = extract_text_from_docx(path)[:3000]
         elif ext == "txt":
             content = extract_text_from_txt(path)[:3000]
+        elif ext == "pptx":
+            content = extract_text_from_pptx(path)[:3000]
         else:
             return bot.send_message(uid, "⚠️ نوع الملف غير مدعوم. أرسل PDF أو Word أو TXT.")
 
