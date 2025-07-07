@@ -12,3 +12,4 @@ groq
 cohere
 genanki
 python-pptx
+langdetect
