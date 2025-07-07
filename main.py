@@ -1692,20 +1692,23 @@ def unified_handler(msg):
     # إذا المستخدم في وضع توليد أنكي
     if state == "awaiting_anki_file":
         user_states.pop(uid, None)
-    
+
         if len(content) > 10000:
             msg = bot.send_message(uid, "🔍 المحتوى كبير، يتم تلخيصه الآن لتوليد البطاقات...")
             try:
                 content = summarize_long_text(content)
-                print(">>> تلخيص الناتج:\n", content[:1000])  # اطبع جزء منه للتشخيص
             except Exception as e:
                 print("[ERROR] تلخيص المحتوى فشل:", e)
                 return bot.edit_message_text(chat_id=uid, message_id=msg.message_id,
                                          text="❌ فشل في تلخيص المحتوى. أرسل ملفًا أصغر أو حاول لاحقًا.")
-    
-        bot.edit_message_text(chat_id=uid, message_id=msg.message_id,
+
+            bot.edit_message_text(chat_id=uid, message_id=msg.message_id,
                               text="⏳ جاري إنشاء بطاقات المراجعة...")
+        else:
+            bot.send_message(uid, "⏳ جاري إنشاء بطاقات المراجعة...")
+
         cards, title = generate_anki_cards_from_text(content, major=major, user_id=uid)
+    
    
         if not cards:
             return bot.send_message(uid, "❌ لم أتمكن من توليد بطاقات.")
@@ -1725,19 +1728,19 @@ def unified_handler(msg):
             return bot.send_message(uid, "⚠️ لقد استنفدت 3 اختبارات مجانية هذا الشهر.")
 
         if len(content) > 10000:
-            msg = bot.send_message(uid, "🔍 المحتوى كبير، جاري تلخيصه قبل إنشاء بطاقات...")
+            msg = bot.send_message(uid, "🔍 المحتوى كبير، جاري تلخيصه لتوليد اختبار...")
             try:
                 content = summarize_long_text(content)
-                print(">>> تلخيص الناتج:\n", content[:1000])  # اطبع جزء منه للتشخيص
             except Exception as e:
                 print("[ERROR] تلخيص المحتوى فشل:", e)
                 return bot.edit_message_text(chat_id=uid, message_id=msg.message_id,
                                          text="❌ فشل في تلخيص المحتوى. أرسل ملفًا أصغر أو حاول لاحقًا.")
 
-        bot.edit_message_text(chat_id=uid, message_id=msg.message_id,
+            bot.edit_message_text(chat_id=uid, message_id=msg.message_id,
                               text="🧠 جاري توليد الاختبار، الرجاء الانتظار...")
-        print(">>> Major:", major)
-        print(">>> Content:", content[:300])
+        else:
+            bot.send_message(uid, "🧠 جاري توليد الاختبار، الرجاء الانتظار...")
+
         quizzes = generate_quizzes_from_text(content, major=major, user_id=uid, num_quizzes=10)
         
         if isinstance(quizzes, list) and len(quizzes) > 0:
