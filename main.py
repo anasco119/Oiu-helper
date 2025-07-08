@@ -34,6 +34,8 @@ allowed_channels = set()
 env_channels = os.getenv("ALLOWED_CHANNELS", "")
 if env_channels.strip():
     allowed_channels = set(map(int, env_channels.split(",")))
+
+OCR_API_KEY = os.getenv("OCR_SPACE_API_KEY", "helloworld")  # مفتاح افتراضي للاختبار
 bot = telebot.TeleBot(BOT_TOKEN)
 
 #!/usr/bin/env python3
@@ -301,6 +303,34 @@ def detect_language(text: str) -> str:
     except:
         return "unknown"
 
+
+
+
+def extract_text_with_ocr_space(file_path: str, api_key="helloworld", language="eng") -> str:
+    """
+    Uses OCR.Space API to extract text from an image or scanned PDF.
+    """
+    url = 'https://api.ocr.space/parse/image'
+    with open(file_path, 'rb') as f:
+        response = requests.post(
+            url,
+            files={"file": f},
+            data={
+                "apikey": api_key,
+                "language": language,  # "eng" or "ara" or "eng+ara"
+                "isOverlayRequired": False,
+                "OCREngine": 2  # أفضل دقة
+            },
+        )
+    try:
+        result = response.json()
+        if result.get("IsErroredOnProcessing"):
+            print("[OCR ERROR]:", result.get("ErrorMessage"))
+            return ""
+        return result["ParsedResults"][0]["ParsedText"]
+    except Exception as e:
+        print(f"[OCR Exception]: {e}")
+        return ""
 # -------------------------------------------------------------------
 #                  Logging & Database Setup
 # -------------------------------------------------------------------
@@ -390,7 +420,8 @@ def extract_text_from_txt(path: str) -> str:
         logging.error(f"Error extracting TXT text: {e}")
         return ""
         
-
+def is_text_empty(text: str) -> bool:
+    return not text or len(text.strip()) < 30  # يمكن تعديل الحد حسب تجربتك
 
 
 def extract_text_from_pptx(path: str) -> str:
@@ -1667,14 +1698,27 @@ def unified_handler(msg):
             f.write(file_data)
 
         ext = path.rsplit(".", 1)[-1].lower()
+        # بعد الاستخراج العادي
         if ext == "pdf":
             content = extract_text_from_pdf(path)
+            if is_text_empty(content):
+                bot.send_message(uid, "🔍 يبدو أن الملف عبارة عن صور ممسوحة ضوئيًا، سيتم استخدام تقنية OCR لاستخراج النص...")
+                content = extract_text_with_ocr_space(path, api_key="YOUR_API_KEY", language="eng+ara")
         elif ext == "docx":
             content = extract_text_from_docx(path)
+            if is_text_empty(content):
+                bot.send_message(uid, "🔍 يبدو أن الملف عبارة عن صور ممسوحة ضوئيًا، سيتم استخدام تقنية OCR لاستخراج النص...")
+                content = extract_text_with_ocr_space(path, api_key="YOUR_API_KEY", language="eng+ara")
         elif ext == "txt":
             content = extract_text_from_txt(path)
+            if is_text_empty(content):
+                bot.send_message(uid, "🔍 يبدو أن الملف عبارة عن صور ممسوحة ضوئيًا، سيتم استخدام تقنية OCR لاستخراج النص...")
+                content = extract_text_with_ocr_space(path, api_key="YOUR_API_KEY", language="eng+ara")
         elif ext == "pptx":
             content = extract_text_from_pptx(path)
+            if is_text_empty(content):
+                bot.send_message(uid, "🔍 يبدو أن الملف عبارة عن صور ممسوحة ضوئيًا، سيتم استخدام تقنية OCR لاستخراج النص...")
+                content = extract_text_with_ocr_space(path, api_key="YOUR_API_KEY", language="eng+ara")
         else:
             return bot.send_message(uid, "⚠️ نوع الملف غير مدعوم. أرسل PDF أو Word أو TXT.")
 
