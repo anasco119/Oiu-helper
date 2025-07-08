@@ -1725,7 +1725,7 @@ def unified_handler(msg):
 
             bot.send_message(uid, "🖼️ جاري استخراج النص من الصورة...")
 
-            content, ocr_debug = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language="eng+ara")
+            content, ocr_debug = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language="eng")
             if not content.strip():
                 return bot.send_message(uid, f"❌ فشل في استخراج النص من الصورة. {ocr_debug}")
 
