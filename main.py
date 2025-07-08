@@ -1688,11 +1688,11 @@ def handle_user_major(msg):
             send_main_menu(uid)
 
 
-@bot.message_handler(content_types=['text', 'document'])
+@bot.message_handler(content_types=['text', 'document', 'photo'])
 def unified_handler(msg):
     if msg.chat.type != "private":
         return
-    
+
     uid = msg.from_user.id
     state = user_states.get(uid)
 
@@ -1700,6 +1700,34 @@ def unified_handler(msg):
     cursor.execute("SELECT major FROM users WHERE user_id = ?", (uid,))
     row = cursor.fetchone()
     major = row[0] if row else "General"
+
+    content = ""
+    path = ""
+
+    try:
+        # معالجة النص مباشرة
+        if msg.content_type == "text":
+            content = msg.text
+
+        # معالجة الصور (photo)
+        elif msg.content_type == "photo":
+            if not can_generate(uid):
+                return bot.send_message(uid, "⚠️ هذه الميزة متاحة فقط للمشتركين.")
+            
+            file_id = msg.photo[-1].file_id
+            file_info = bot.get_file(file_id)
+            file_data = bot.download_file(file_info.file_path)
+
+            os.makedirs("downloads", exist_ok=True)
+            path = os.path.join("downloads", f"{uid}_photo.jpg")
+            with open(path, "wb") as f:
+                f.write(file_data)
+
+            bot.send_message(uid, "🖼️ جاري استخراج النص من الصورة...")
+
+            content, ocr_debug = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language="eng+ara")
+            if not content.strip():
+                return bot.send_message(uid, f"❌ فشل في استخراج النص من الصورة. {ocr_debug}")
 
     # استخراج النص
     if msg.content_type == "text":
@@ -1999,3 +2027,112 @@ threading.Thread(target=run_bot).start()
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))  # Render يوفر PORT كمتغير بيئة
     app.run(host="0.0.0.0", port=port)
+
+
+
+@bot.message_handler(content_types=['text', 'document', 'photo'])
+def unified_handler(msg):
+    if msg.chat.type != "private":
+        return
+
+    uid = msg.from_user.id
+    state = user_states.get(uid)
+
+    # التخصص من قاعدة البيانات
+    cursor.execute("SELECT major FROM users WHERE user_id = ?", (uid,))
+    row = cursor.fetchone()
+    major = row[0] if row else "General"
+
+    content = ""
+    path = ""
+
+    try:
+        # معالجة النص مباشرة
+        if msg.content_type == "text":
+            content = msg.text
+
+        # معالجة الصور (photo)
+        elif msg.content_type == "photo":
+            if not can_generate(uid):
+                return bot.send_message(uid, "⚠️ هذه الميزة متاحة فقط للمشتركين.")
+            
+            file_id = msg.photo[-1].file_id
+            file_info = bot.get_file(file_id)
+            file_data = bot.download_file(file_info.file_path)
+
+            os.makedirs("downloads", exist_ok=True)
+            path = os.path.join("downloads", f"{uid}_photo.jpg")
+            with open(path, "wb") as f:
+                f.write(file_data)
+
+            bot.send_message(uid, "🖼️ جاري استخراج النص من الصورة...")
+
+            content, ocr_debug = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language="eng+ara")
+            if not content.strip():
+                return bot.send_message(uid, f"❌ فشل في استخراج النص من الصورة. {ocr_debug}")
+
+        # معالجة الملفات (document)
+        elif msg.content_type == "document":
+            file_info = bot.get_file(msg.document.file_id)
+            if file_info.file_size > 5 * 1024 * 1024:
+                return bot.send_message(uid, "❌ الملف كبير جدًا، الحد 5 ميغابايت.")
+
+            file_data = bot.download_file(file_info.file_path)
+            os.makedirs("downloads", exist_ok=True)
+            path = os.path.join("downloads", msg.document.file_name)
+
+            with open(path, "wb") as f:
+                f.write(file_data)
+
+            ext = path.rsplit(".", 1)[-1].lower()
+
+            if ext == "pdf":
+                content = extract_text_from_pdf(path)
+            elif ext == "docx":
+                content = extract_text_from_docx(path)
+            elif ext == "txt":
+                content = extract_text_from_txt(path)
+            elif ext == "pptx":
+                content = extract_text_from_pptx(path)
+            elif ext in ("jpg", "png"):
+                if not can_generate(uid):
+                    return bot.send_message(uid, "⚠️ هذه الميزة متاحة فقط للمشتركين.")
+                bot.send_message(uid, "⏳ جاري تحليل الصورة...")
+                content, ocr_debug = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language="eng+ara")
+                if not content.strip():
+                    return bot.send_message(uid, f"❌ فشل في استخراج النص من الملف. {ocr_debug}")
+            else:
+                return bot.send_message(uid, "⚠️ نوع الملف غير مدعوم. أرسل PDF أو Word أو صورة.")
+
+            # التعامل مع النص الفارغ أو المحتوى المصور
+            if is_text_empty(content):
+                if not can_generate(uid):
+                    return bot.send_message(uid, "⚠️ لا يمكن قراءة هذا الملف تلقائيًا. تتطلب المعالجة المتقدمة اشتراكًا فعالًا.")
+                bot.send_message(uid, "⏳ يتم تحليل الملف باستخدام OCR...")
+                language = detect_language_from_filename(msg.document.file_name)
+                content, ocr_debug = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language=language)
+                if not content.strip():
+                    return bot.send_message(uid, f"❌ فشل في استخراج النص من الملف. {ocr_debug}")
+
+            # للمستخدمين المجانيين: اقتطاع المحتوى
+            if not can_generate(uid):
+                content = content[:3000]
+
+        # في حال لم يتم استخراج أي محتوى
+        if not content or not content.strip():
+            return bot.send_message(uid, "⚠️ لم أتمكن من قراءة محتوى الملف أو النص.")
+
+        print(f">>> Content preview: {content[:300]}")
+
+        # هنا يمكنك متابعة الخطوة التالية مثل:
+        # - حفظ الحالة
+        # - توليد الاختبار أو بطاقات أنكي
+
+    finally:
+        # حذف الملف المؤقت إن وُجد
+        if path and os.path.exists(path):
+            try:
+                os.remove(path)
+            except Exception as e:
+                print(f"[WARNING] لم يتم حذف الملف المؤقت: {e}")
+
