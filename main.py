@@ -307,9 +307,6 @@ def detect_language(text: str) -> str:
 
 
 def extract_text_with_ocr_space(file_path: str, api_key="helloworld", language="eng") -> str:
-    """
-    Uses OCR.Space API to extract text from an image or scanned PDF.
-    """
     url = 'https://api.ocr.space/parse/image'
     with open(file_path, 'rb') as f:
         response = requests.post(
@@ -317,19 +314,22 @@ def extract_text_with_ocr_space(file_path: str, api_key="helloworld", language="
             files={"file": f},
             data={
                 "apikey": api_key,
-                "language": language,  # "eng" or "ara" or "eng+ara"
+                "language": language,
                 "isOverlayRequired": False,
-                "OCREngine": 2  # أفضل دقة
+                "OCREngine": 2
             },
         )
+
     try:
         result = response.json()
         if result.get("IsErroredOnProcessing"):
             print("[OCR ERROR]:", result.get("ErrorMessage"))
+            print("[OCR FULL RESPONSE]:", result)
             return ""
         return result["ParsedResults"][0]["ParsedText"]
     except Exception as e:
         print(f"[OCR Exception]: {e}")
+        print(">>> Response content:", response.content)  # ← أضف هذا
         return ""
 # -------------------------------------------------------------------
 #                  Logging & Database Setup
@@ -1705,31 +1705,39 @@ def unified_handler(msg):
                 if not can_generate(uid):
                     return bot.send_message(uid, "⚠️ لا يمكن قراءة هذا الملف تلقائيًا. تتطلب المعالجة المتقدمة اشتراكًا فعالًا.")
                 bot.send_message(uid, "⏳ يتم تجهيز الملف... الرجاء الانتظار لحظات.")
-                content = extract_text_with_ocr_space(path, api_key="YOUR_API_KEY", language="eng+ara")
+                content = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language="eng+ara")
         elif ext == "docx":
             content = extract_text_from_docx(path)
             if is_text_empty(content):
                 if not can_generate(uid):
                     return bot.send_message(uid, "⚠️ لا يمكن قراءة هذا الملف تلقائيًا. تتطلب المعالجة المتقدمة اشتراكًا فعالًا.")
                 bot.send_message(uid, "⏳ يتم تجهيز الملف... الرجاء الانتظار لحظات.")
-                content = extract_text_with_ocr_space(path, api_key="YOUR_API_KEY", language="eng+ara")
+                content = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language="eng+ara")
         elif ext == "txt":
             content = extract_text_from_txt(path)
             if is_text_empty(content):
                 if not can_generate(uid):
                     return bot.send_message(uid, "⚠️ لا يمكن قراءة هذا الملف تلقائيًا. تتطلب المعالجة المتقدمة اشتراكًا فعالًا.")
                 bot.send_message(uid, "⏳ يتم تجهيز الملف... الرجاء الانتظار لحظات.")
-                content = extract_text_with_ocr_space(path, api_key="YOUR_API_KEY", language="eng+ara")
+                content = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language="eng+ara")
         elif ext == "pptx":
             content = extract_text_from_pptx(path)
             if is_text_empty(content):
                 if not can_generate(uid):
                     return bot.send_message(uid, "⚠️ لا يمكن قراءة هذا الملف تلقائيًا. تتطلب المعالجة المتقدمة اشتراكًا فعالًا.")
                 bot.send_message(uid, "⏳ يتم تجهيز الملف... الرجاء الانتظار لحظات.")
-                content = extract_text_with_ocr_space(path, api_key="YOUR_API_KEY", language="eng+ara")
+                content = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language="eng+ara")
+
+        elif ext == "jpg":
+            if not can_generate(uid):
+                    return bot.send_message(uid, "⚠️ لا يمكن قراءة هذا الملف تلقائيًا. تتطلب المعالجة المتقدمة اشتراكًا فعالًا.")
+            content = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language="eng+ara")
+            bot.send_message(uid, "⏳ يتم تجهيز الملف... الرجاء الانتظار لحظات.")
+               
         else:
             return bot.send_message(uid, "⚠️ نوع الملف غير مدعوم. أرسل PDF أو Word أو TXT.")
-
+  
+    else:
         try:
             os.remove(path)
         except Exception as e:
