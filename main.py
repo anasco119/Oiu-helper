@@ -1805,8 +1805,8 @@ def unified_handler(msg):
                 content, ocr_debug = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language="eng")
             
                
-        else:
-            return bot.send_message(uid, "⚠️ نوع الملف غير مدعوم. أرسل PDF أو Word أو TXT.")
+            else:
+                return bot.send_message(uid, "⚠️ نوع الملف غير مدعوم. أرسل PDF أو Word أو TXT.")
   
         else:
             try:
