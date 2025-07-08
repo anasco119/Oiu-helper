@@ -1729,95 +1729,90 @@ def unified_handler(msg):
             if not content.strip():
                 return bot.send_message(uid, f"❌ فشل في استخراج النص من الصورة. {ocr_debug}")
 
-    # استخراج النص
-    if msg.content_type == "text":
-        content = msg.text
 
-    elif msg.content_type == "document":
-        file_info = bot.get_file(msg.document.file_id)
-        if file_info.file_size > 5 * 1024 * 1024:
-            return bot.send_message(uid, "❌ الملف كبير جدًا، الحد 5 ميغابايت.")
+        elif msg.content_type == "document":
+            file_info = bot.get_file(msg.document.file_id)
+            if file_info.file_size > 5 * 1024 * 1024:
+                return bot.send_message(uid, "❌ الملف كبير جدًا، الحد 5 ميغابايت.")
     
-        file_data = bot.download_file(file_info.file_path)
-        os.makedirs("downloads", exist_ok=True)
-        path = os.path.join("downloads", msg.document.file_name)
+            file_data = bot.download_file(file_info.file_path)
+            os.makedirs("downloads", exist_ok=True)
+            path = os.path.join("downloads", msg.document.file_name)
 
-        with open(path, "wb") as f:
-            f.write(file_data)
+            with open(path, "wb") as f:
+                f.write(file_data)
 
-        ext = path.rsplit(".", 1)[-1].lower()
-        # بعد الاستخراج العادي
-        if ext == "pdf":
-            content = extract_text_from_pdf(path)
-            # إذا المستخدم غير مشترك، اقتطع فقط 3000 حرف
-            if not can_generate(uid):
-                content = content[:3000]
-            if is_text_empty(content):
+            ext = path.rsplit(".", 1)[-1].lower()
+            # بعد الاستخراج العادي
+            if ext == "pdf":
+                content = extract_text_from_pdf(path)
+                # إذا المستخدم غير مشترك، اقتطع فقط 3000 حرف
                 if not can_generate(uid):
-                    return bot.send_message(uid, "⚠️ لا يمكن قراءة هذا الملف تلقائيًا. تتطلب المعالجة المتقدمة اشتراكًا فعالًا.")
-                bot.send_message(uid, "⏳ يتم تجهيز الملف... الرجاء الانتظار لحظات.")
-                language = detect_language_from_filename(msg.document.file_name)
-                content, ocr_debug = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language=language)
-                if not content.strip():
-                    bot.send_message(uid, f"❌ فشل في استخراج النص من الملف. {ocr_debug}")
-                    return
+                    content = content[:3000]
+                if is_text_empty(content):
+                    if not can_generate(uid):
+                        return bot.send_message(uid, "⚠️ لا يمكن قراءة هذا الملف تلقائيًا. تتطلب المعالجة المتقدمة اشتراكًا فعالًا.")
+                    bot.send_message(uid, "⏳ يتم تجهيز الملف... الرجاء الانتظار لحظات.")
+                    language = detect_language_from_filename(msg.document.file_name)
+                    content, ocr_debug = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language=language)
+                    if not content.strip():
+                        bot.send_message(uid, f"❌ فشل في استخراج النص من الملف. {ocr_debug}")
+                        return
 
-                # إرسال النص المستخرج للمستخدم — ⚠️ يُفضل فقط إذا كان حجمه صغيرًا
-                preview = content[:1500]
-                bot.send_message(uid, f"📄 تم استخراج النص بنجاح (جزء منه):\n\n{preview}")
-        elif ext == "docx":
-            content = extract_text_from_docx(path)
-            # إذا المستخدم غير مشترك، اقتطع فقط 3000 حرف
-            if not can_generate(uid):
-                content = content[:3000]
-            if is_text_empty(content):
+                    # إرسال النص المستخرج للمستخدم — ⚠️ يُفضل فقط إذا كان حجمه صغيرًا
+                    preview = content[:1500]
+                    bot.send_message(uid, f"📄 تم استخراج النص بنجاح (جزء منه):\n\n{preview}")
+            elif ext == "docx":
+                content = extract_text_from_docx(path)
+                # إذا المستخدم غير مشترك، اقتطع فقط 3000 حرف
                 if not can_generate(uid):
-                    return bot.send_message(uid, "⚠️ لا يمكن قراءة هذا الملف تلقائيًا. تتطلب المعالجة المتقدمة اشتراكًا فعالًا.")
-                bot.send_message(uid, "⏳ يتم تجهيز الملف... الرجاء الانتظار لحظات.")
-                language = detect_language_from_filename(msg.document.file_name)
-                content = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language=language)
-        elif ext == "txt":
-            content = extract_text_from_txt(path)
-            # إذا المستخدم غير مشترك، اقتطع فقط 3000 حرف
-            if not can_generate(uid):
-                content = content[:3000]
-            if is_text_empty(content):
+                    content = content[:3000]
+                if is_text_empty(content):
+                    if not can_generate(uid):
+                        return bot.send_message(uid, "⚠️ لا يمكن قراءة هذا الملف تلقائيًا. تتطلب المعالجة المتقدمة اشتراكًا فعالًا.")
+                    bot.send_message(uid, "⏳ يتم تجهيز الملف... الرجاء الانتظار لحظات.")
+                    language = detect_language_from_filename(msg.document.file_name)
+                    content = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language=language)
+            elif ext == "txt":
+                content = extract_text_from_txt(path)
+                # إذا المستخدم غير مشترك، اقتطع فقط 3000 حرف
                 if not can_generate(uid):
-                    return bot.send_message(uid, "⚠️ لا يمكن قراءة هذا الملف تلقائيًا. تتطلب المعالجة المتقدمة اشتراكًا فعالًا.")
-                bot.send_message(uid, "⏳ يتم تجهيز الملف... الرجاء الانتظار لحظات.")
-                content = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language="eng+ara")
+                    content = content[:3000]
+                if is_text_empty(content):
+                    if not can_generate(uid):
+                        return bot.send_message(uid, "⚠️ لا يمكن قراءة هذا الملف تلقائيًا. تتطلب المعالجة المتقدمة اشتراكًا فعالًا.")
+                    bot.send_message(uid, "⏳ يتم تجهيز الملف... الرجاء الانتظار لحظات.")
+                    content = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language="eng+ara")
                 
-        elif ext == "pptx":
-            content = extract_text_from_pptx(path)
+            elif ext == "pptx":
+                content = extract_text_from_pptx(path)
             
-            # إذا المستخدم غير مشترك، اقتطع فقط 3000 حرف
-            if not can_generate(uid):
-                content = content[:3000]
-                
-            if is_text_empty(content):
+                # إذا المستخدم غير مشترك، اقتطع فقط 3000 حرف
                 if not can_generate(uid):
-                    return bot.send_message(uid, "⚠️ لا يمكن قراءة هذا الملف تلقائيًا. تتطلب المعالجة المتقدمة اشتراكًا فعالًا.")
-                bot.send_message(uid, "⏳ يتم تجهيز الملف... الرجاء الانتظار لحظات.")
-                language = detect_language_from_filename(msg.document.file_name)
-                content = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language=language)
+                    content = content[:3000]
+                
+                if is_text_empty(content):
+                    if not can_generate(uid):
+                        return bot.send_message(uid, "⚠️ لا يمكن قراءة هذا الملف تلقائيًا. تتطلب المعالجة المتقدمة اشتراكًا فعالًا.")
+                    bot.send_message(uid, "⏳ يتم تجهيز الملف... الرجاء الانتظار لحظات.")
+                    language = detect_language_from_filename(msg.document.file_name)
+                    content = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language=language)
 
-        elif ext == "jpg":
-            if not can_generate(uid):
-                    return bot.send_message(uid, "⚠️ لا يمكن قراءة هذا الملف تلقائيًا. تتطلب المعالجة المتقدمة اشتراكًا فعالًا.")
-
-            bot.send_message(uid, "⏳ يتم تجهيز الملف... الرجاء الانتظار لحظات.")
-            language = detect_language_from_filename(msg.document.file_name)
-            content = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language=language)
+            elif ext in ("jpg", "png"):
+                if not can_generate(uid):
+                    return bot.send_message(uid, "⚠️ هذه الميزة متاحة فقط للمشتركين.")
+                bot.send_message(uid, "⏳ جاري تحليل الصورة...")
+                content, ocr_debug = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language="eng")
             
                
         else:
             return bot.send_message(uid, "⚠️ نوع الملف غير مدعوم. أرسل PDF أو Word أو TXT.")
   
-    else:
-        try:
-            os.remove(path)
-        except Exception as e:
-            print(f"[WARNING] لم يتم حذف الملف المؤقت: {e}")
+        else:
+            try:
+                os.remove(path)
+            except Exception as e:
+                print(f"[WARNING] لم يتم حذف الملف المؤقت: {e}")
 
         if not content or not content.strip():
             return bot.send_message(uid, "⚠️ لم أتمكن من قراءة محتوى الملف أو النص.")
@@ -1826,65 +1821,74 @@ def unified_handler(msg):
 
    
     # إذا المستخدم في وضع توليد أنكي
-    if state == "awaiting_anki_file":
-        user_states.pop(uid, None)
+        if state == "awaiting_anki_file":
+            user_states.pop(uid, None)
 
-        if len(content) > 10000:
-            msg = bot.send_message(uid, "🔍 المحتوى كبير، يتم تلخيصه الآن لتوليد البطاقات...")
-            try:
-                content = summarize_long_text(content)
-            except Exception as e:
-                print("[ERROR] تلخيص المحتوى فشل:", e)
-                return bot.edit_message_text(chat_id=uid, message_id=msg.message_id,
+            if len(content) > 10000:
+                msg = bot.send_message(uid, "🔍 المحتوى كبير، يتم تلخيصه الآن لتوليد البطاقات...")
+                try:
+                    content = summarize_long_text(content)
+                except Exception as e:
+                    print("[ERROR] تلخيص المحتوى فشل:", e)
+                    return bot.edit_message_text(chat_id=uid, message_id=msg.message_id,
                                          text="❌ فشل في تلخيص المحتوى. أرسل ملفًا أصغر أو حاول لاحقًا.")
 
-            bot.edit_message_text(chat_id=uid, message_id=msg.message_id,
+                bot.edit_message_text(chat_id=uid, message_id=msg.message_id,
                               text="⏳ جاري إنشاء بطاقات المراجعة...")
-        else:
-            bot.send_message(uid, "⏳ جاري إنشاء بطاقات المراجعة...")
+            else:
+                bot.send_message(uid, "⏳ جاري إنشاء بطاقات المراجعة...")
 
-        cards, title = generate_anki_cards_from_text(content, major=major, user_id=uid)
+            cards, title = generate_anki_cards_from_text(content, major=major, user_id=uid)
     
    
-        if not cards:
-            return bot.send_message(uid, "❌ لم أتمكن من توليد بطاقات.")
+            if not cards:
+                return bot.send_message(uid, "❌ لم أتمكن من توليد بطاقات.")
 
-        # تنظيف العنوان ليكون اسم ملف صالح
-        safe_title = re.sub(r'[^a-zA-Z0-9_\u0600-\u06FF]', '_', title)[:40]  # دعم الأسماء العربية وتحديد الطول
+            # تنظيف العنوان ليكون اسم ملف صالح
+            safe_title = re.sub(r'[^a-zA-Z0-9_\u0600-\u06FF]', '_', title)[:40]  # دعم الأسماء العربية وتحديد الطول
 
-        filename = f"{safe_title}_{uid}.apkg"
+            filename = f"{safe_title}_{uid}.apkg"
 
-        filepath = save_cards_to_apkg(cards, filename=filename, deck_name=title)
-        bot.send_document(uid, open(filepath, 'rb'))
+            filepath = save_cards_to_apkg(cards, filename=filename, deck_name=title)
+            bot.send_document(uid, open(filepath, 'rb'))
 
 
-    # الحالة العادية: توليد اختبار
-    else:
-        if not can_generate(uid):
-            return bot.send_message(uid, "⚠️ لقد استنفدت 3 اختبارات مجانية هذا الشهر.")
+        # الحالة العادية: توليد اختبار
+        else:
+            if not can_generate(uid):
+                return bot.send_message(uid, "⚠️ لقد استنفدت 3 اختبارات مجانية هذا الشهر.")
 
-        if len(content) > 10000:
-            msg = bot.send_message(uid, "🔍 المحتوى كبير، جاري تلخيصه لتوليد اختبار...")
-            try:
-                content = summarize_long_text(content)
-            except Exception as e:
-                print("[ERROR] تلخيص المحتوى فشل:", e)
-                return bot.edit_message_text(chat_id=uid, message_id=msg.message_id,
+            if len(content) > 10000:
+                msg = bot.send_message(uid, "🔍 المحتوى كبير، جاري تلخيصه لتوليد اختبار...")
+                try:
+                    content = summarize_long_text(content)
+                except Exception as e:
+                    print("[ERROR] تلخيص المحتوى فشل:", e)
+                    return bot.edit_message_text(chat_id=uid, message_id=msg.message_id,
                                          text="❌ فشل في تلخيص المحتوى. أرسل ملفًا أصغر أو حاول لاحقًا.")
 
-            bot.edit_message_text(chat_id=uid, message_id=msg.message_id,
+                bot.edit_message_text(chat_id=uid, message_id=msg.message_id,
                               text="🧠 جاري توليد الاختبار، الرجاء الانتظار...")
-        else:
-            bot.send_message(uid, "🧠 جاري توليد الاختبار، الرجاء الانتظار...")
+            else:
+                bot.send_message(uid, "🧠 جاري توليد الاختبار، الرجاء الانتظار...")
 
-        quizzes = generate_quizzes_from_text(content, major=major, user_id=uid, num_quizzes=10)
+            quizzes = generate_quizzes_from_text(content, major=major, user_id=uid, num_quizzes=10)
         
-        if isinstance(quizzes, list) and len(quizzes) > 0:
-            send_quizzes_as_polls(uid, quizzes)
-            increment_count(uid)
-        else:
-            print("[ERROR] Failed to generate valid quizzes:", quizzes)
-            bot.send_message(uid, "❌ فشل توليد الاختبار. حاول لاحقًا.")
+            if isinstance(quizzes, list) and len(quizzes) > 0:
+                send_quizzes_as_polls(uid, quizzes)
+                increment_count(uid)
+            else:
+                print("[ERROR] Failed to generate valid quizzes:", quizzes)
+                bot.send_message(uid, "❌ فشل توليد الاختبار. حاول لاحقًا.")
+
+    finally:
+        # حذف الملف المؤقت إن وُجد
+        if path and os.path.exists(path):
+            try:
+                os.remove(path)
+            except Exception as e:
+                print(f"[WARNING] لم يتم حذف الملف المؤقت: {e}")
+
 
 known_channels = set()
 
@@ -2027,112 +2031,3 @@ threading.Thread(target=run_bot).start()
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))  # Render يوفر PORT كمتغير بيئة
     app.run(host="0.0.0.0", port=port)
-
-
-
-@bot.message_handler(content_types=['text', 'document', 'photo'])
-def unified_handler(msg):
-    if msg.chat.type != "private":
-        return
-
-    uid = msg.from_user.id
-    state = user_states.get(uid)
-
-    # التخصص من قاعدة البيانات
-    cursor.execute("SELECT major FROM users WHERE user_id = ?", (uid,))
-    row = cursor.fetchone()
-    major = row[0] if row else "General"
-
-    content = ""
-    path = ""
-
-    try:
-        # معالجة النص مباشرة
-        if msg.content_type == "text":
-            content = msg.text
-
-        # معالجة الصور (photo)
-        elif msg.content_type == "photo":
-            if not can_generate(uid):
-                return bot.send_message(uid, "⚠️ هذه الميزة متاحة فقط للمشتركين.")
-            
-            file_id = msg.photo[-1].file_id
-            file_info = bot.get_file(file_id)
-            file_data = bot.download_file(file_info.file_path)
-
-            os.makedirs("downloads", exist_ok=True)
-            path = os.path.join("downloads", f"{uid}_photo.jpg")
-            with open(path, "wb") as f:
-                f.write(file_data)
-
-            bot.send_message(uid, "🖼️ جاري استخراج النص من الصورة...")
-
-            content, ocr_debug = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language="eng+ara")
-            if not content.strip():
-                return bot.send_message(uid, f"❌ فشل في استخراج النص من الصورة. {ocr_debug}")
-
-        # معالجة الملفات (document)
-        elif msg.content_type == "document":
-            file_info = bot.get_file(msg.document.file_id)
-            if file_info.file_size > 5 * 1024 * 1024:
-                return bot.send_message(uid, "❌ الملف كبير جدًا، الحد 5 ميغابايت.")
-
-            file_data = bot.download_file(file_info.file_path)
-            os.makedirs("downloads", exist_ok=True)
-            path = os.path.join("downloads", msg.document.file_name)
-
-            with open(path, "wb") as f:
-                f.write(file_data)
-
-            ext = path.rsplit(".", 1)[-1].lower()
-
-            if ext == "pdf":
-                content = extract_text_from_pdf(path)
-            elif ext == "docx":
-                content = extract_text_from_docx(path)
-            elif ext == "txt":
-                content = extract_text_from_txt(path)
-            elif ext == "pptx":
-                content = extract_text_from_pptx(path)
-            elif ext in ("jpg", "png"):
-                if not can_generate(uid):
-                    return bot.send_message(uid, "⚠️ هذه الميزة متاحة فقط للمشتركين.")
-                bot.send_message(uid, "⏳ جاري تحليل الصورة...")
-                content, ocr_debug = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language="eng+ara")
-                if not content.strip():
-                    return bot.send_message(uid, f"❌ فشل في استخراج النص من الملف. {ocr_debug}")
-            else:
-                return bot.send_message(uid, "⚠️ نوع الملف غير مدعوم. أرسل PDF أو Word أو صورة.")
-
-            # التعامل مع النص الفارغ أو المحتوى المصور
-            if is_text_empty(content):
-                if not can_generate(uid):
-                    return bot.send_message(uid, "⚠️ لا يمكن قراءة هذا الملف تلقائيًا. تتطلب المعالجة المتقدمة اشتراكًا فعالًا.")
-                bot.send_message(uid, "⏳ يتم تحليل الملف باستخدام OCR...")
-                language = detect_language_from_filename(msg.document.file_name)
-                content, ocr_debug = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language=language)
-                if not content.strip():
-                    return bot.send_message(uid, f"❌ فشل في استخراج النص من الملف. {ocr_debug}")
-
-            # للمستخدمين المجانيين: اقتطاع المحتوى
-            if not can_generate(uid):
-                content = content[:3000]
-
-        # في حال لم يتم استخراج أي محتوى
-        if not content or not content.strip():
-            return bot.send_message(uid, "⚠️ لم أتمكن من قراءة محتوى الملف أو النص.")
-
-        print(f">>> Content preview: {content[:300]}")
-
-        # هنا يمكنك متابعة الخطوة التالية مثل:
-        # - حفظ الحالة
-        # - توليد الاختبار أو بطاقات أنكي
-
-    finally:
-        # حذف الملف المؤقت إن وُجد
-        if path and os.path.exists(path):
-            try:
-                os.remove(path)
-            except Exception as e:
-                print(f"[WARNING] لم يتم حذف الملف المؤقت: {e}")
-
