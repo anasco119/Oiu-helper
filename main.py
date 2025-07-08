@@ -305,8 +305,11 @@ def detect_language(text: str) -> str:
 
 
 
-
-def extract_text_with_ocr_space(file_path: str, api_key="helloworld", language="eng") -> str:
+def extract_text_with_ocr_space(file_path: str, api_key="helloworld", language="eng") -> tuple:
+    """
+    Uses OCR.Space API to extract text from an image or scanned PDF.
+    Returns: (text, debug_info)
+    """
     url = 'https://api.ocr.space/parse/image'
     with open(file_path, 'rb') as f:
         response = requests.post(
@@ -323,14 +326,19 @@ def extract_text_with_ocr_space(file_path: str, api_key="helloworld", language="
     try:
         result = response.json()
         if result.get("IsErroredOnProcessing"):
-            print("[OCR ERROR]:", result.get("ErrorMessage"))
-            print("[OCR FULL RESPONSE]:", result)
-            return ""
-        return result["ParsedResults"][0]["ParsedText"]
+            error_msg = result.get("ErrorMessage", "Unknown OCR error")
+            return "", f"[OCR ERROR] {error_msg}"
+        
+        parsed = result.get("ParsedResults")
+        if not parsed:
+            return "", "[OCR ERROR] No ParsedResults returned."
+
+        text = parsed[0].get("ParsedText", "").strip()
+        return text, f"[OCR DEBUG] Length: {len(text)} | Excerpt: {text[:100]}"
+    
     except Exception as e:
-        print(f"[OCR Exception]: {e}")
-        print(">>> Response content:", response.content)  # ← أضف هذا
-        return ""
+        return "", f"[OCR EXCEPTION] {e}"
+
 # -------------------------------------------------------------------
 #                  Logging & Database Setup
 # -------------------------------------------------------------------
@@ -1705,7 +1713,14 @@ def unified_handler(msg):
                 if not can_generate(uid):
                     return bot.send_message(uid, "⚠️ لا يمكن قراءة هذا الملف تلقائيًا. تتطلب المعالجة المتقدمة اشتراكًا فعالًا.")
                 bot.send_message(uid, "⏳ يتم تجهيز الملف... الرجاء الانتظار لحظات.")
-                content = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language="eng+ara")
+                content, ocr_debug = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language="eng+ara")
+                if not content.strip():
+                    bot.send_message(uid, f"❌ فشل في استخراج النص من الملف. {ocr_debug}")
+                    return
+
+                # إرسال النص المستخرج للمستخدم — ⚠️ يُفضل فقط إذا كان حجمه صغيرًا
+                preview = content[:1500]
+                bot.send_message(uid, f"📄 تم استخراج النص بنجاح (جزء منه):\n\n{preview}")
         elif ext == "docx":
             content = extract_text_from_docx(path)
             if is_text_empty(content):
