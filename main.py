@@ -1703,29 +1703,29 @@ def unified_handler(msg):
             content = extract_text_from_pdf(path)
             if is_text_empty(content):
                 if not can_generate(uid):
-                    return bot.send_message(uid, "⚠️ هذا الملف يتطلب معالجة OCR وهي متاحة فقط للمشتركين  .")
-                bot.send_message(uid, "🔍 يبدو أن الملف عبارة عن صور ممسوحة ضوئيًا، سيتم استخدام تقنية OCR لاستخراج النص...")
+                    return bot.send_message(uid, "⚠️ لا يمكن قراءة هذا الملف تلقائيًا. تتطلب المعالجة المتقدمة اشتراكًا فعالًا.")
+                bot.send_message(uid, "⏳ يتم تجهيز الملف... الرجاء الانتظار لحظات.")
                 content = extract_text_with_ocr_space(path, api_key="YOUR_API_KEY", language="eng+ara")
         elif ext == "docx":
             content = extract_text_from_docx(path)
             if is_text_empty(content):
                 if not can_generate(uid):
-                    return bot.send_message(uid, "⚠️ هذا الملف يتطلب معالجة OCR وهي متاحة فقط للمشتركين  .")
-                bot.send_message(uid, "🔍 يبدو أن الملف عبارة عن صور ممسوحة ضوئيًا، سيتم استخدام تقنية OCR لاستخراج النص...")
+                    return bot.send_message(uid, "⚠️ لا يمكن قراءة هذا الملف تلقائيًا. تتطلب المعالجة المتقدمة اشتراكًا فعالًا.")
+                bot.send_message(uid, "⏳ يتم تجهيز الملف... الرجاء الانتظار لحظات.")
                 content = extract_text_with_ocr_space(path, api_key="YOUR_API_KEY", language="eng+ara")
         elif ext == "txt":
             content = extract_text_from_txt(path)
             if is_text_empty(content):
                 if not can_generate(uid):
-                    return bot.send_message(uid, "⚠️ هذا الملف يتطلب معالجة OCR وهي متاحة فقط للمشتركين  .")
-                bot.send_message(uid, "🔍 يبدو أن الملف عبارة عن صور ممسوحة ضوئيًا، سيتم استخدام تقنية OCR لاستخراج النص...")
+                    return bot.send_message(uid, "⚠️ لا يمكن قراءة هذا الملف تلقائيًا. تتطلب المعالجة المتقدمة اشتراكًا فعالًا.")
+                bot.send_message(uid, "⏳ يتم تجهيز الملف... الرجاء الانتظار لحظات.")
                 content = extract_text_with_ocr_space(path, api_key="YOUR_API_KEY", language="eng+ara")
         elif ext == "pptx":
             content = extract_text_from_pptx(path)
             if is_text_empty(content):
                 if not can_generate(uid):
-                    return bot.send_message(uid, "⚠️ هذا الملف يتطلب معالجة OCR وهي متاحة فقط للمشتركين  .")
-                bot.send_message(uid, "🔍 يبدو أن الملف عبارة عن صور ممسوحة ضوئيًا، سيتم استخدام تقنية OCR لاستخراج النص...")
+                    return bot.send_message(uid, "⚠️ لا يمكن قراءة هذا الملف تلقائيًا. تتطلب المعالجة المتقدمة اشتراكًا فعالًا.")
+                bot.send_message(uid, "⏳ يتم تجهيز الملف... الرجاء الانتظار لحظات.")
                 content = extract_text_with_ocr_space(path, api_key="YOUR_API_KEY", language="eng+ara")
         else:
             return bot.send_message(uid, "⚠️ نوع الملف غير مدعوم. أرسل PDF أو Word أو TXT.")
@@ -1943,15 +1943,3 @@ threading.Thread(target=run_bot).start()
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))  # Render يوفر PORT كمتغير بيئة
     app.run(host="0.0.0.0", port=port)
-
-
-
-if ext == "pdf":
-    content = extract_text_from_pdf(path)
-
-    if is_text_empty(content):
-        if not can_generate(uid):
-            return bot.send_message(uid, "⚠️ هذا الملف يتطلب معالجة OCR وهي متاحة فقط للمشتركين أو المشرفين.")
-        
-        bot.send_message(uid, "🔍 الملف عبارة عن صور ممسوحة ضوئيًا، جاري استخدام OCR لاستخراج النص...")
-        content = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language="eng+ara")
