@@ -264,6 +264,9 @@ def generate_smart_response(prompt: str) -> str:
     logging.error("❌ All API providers failed. Returning empty string.")
     return ""
 
+# -------------------------------------------------------------------
+#                 OCR + language detection & translation 
+# -------------------------------------------------------------------
 
 def translate_text(text, source='en', target='ar'):
     url = 'https://libretranslate.de/translate'
@@ -303,7 +306,16 @@ def detect_language(text: str) -> str:
     except:
         return "unknown"
 
-
+def detect_language_from_filename(filename: str) -> str:
+    """
+    يحاول تحديد اللغة المناسبة من اسم الملف.
+    إذا احتوى على حروف عربية → يرجّح العربية.
+    خلاف ذلك → الإنجليزية.
+    """
+    for char in filename:
+        if '\u0600' <= char <= '\u06FF':  # نطاق الحروف العربية
+            return "ara"
+    return "eng"
 
 def extract_text_with_ocr_space(file_path: str, api_key="helloworld", language="eng") -> tuple:
     """
@@ -1716,7 +1728,8 @@ def unified_handler(msg):
                 if not can_generate(uid):
                     return bot.send_message(uid, "⚠️ لا يمكن قراءة هذا الملف تلقائيًا. تتطلب المعالجة المتقدمة اشتراكًا فعالًا.")
                 bot.send_message(uid, "⏳ يتم تجهيز الملف... الرجاء الانتظار لحظات.")
-                content, ocr_debug = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language="eng+ara")
+                language = detect_language_from_filename(msg.document.file_name)
+                content, ocr_debug = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language=language)
                 if not content.strip():
                     bot.send_message(uid, f"❌ فشل في استخراج النص من الملف. {ocr_debug}")
                     return
@@ -1733,7 +1746,8 @@ def unified_handler(msg):
                 if not can_generate(uid):
                     return bot.send_message(uid, "⚠️ لا يمكن قراءة هذا الملف تلقائيًا. تتطلب المعالجة المتقدمة اشتراكًا فعالًا.")
                 bot.send_message(uid, "⏳ يتم تجهيز الملف... الرجاء الانتظار لحظات.")
-                content = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language="eng+ara")
+                language = detect_language_from_filename(msg.document.file_name)
+                content = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language=language)
         elif ext == "txt":
             content = extract_text_from_txt(path)
             # إذا المستخدم غير مشترك، اقتطع فقط 3000 حرف
@@ -1756,13 +1770,17 @@ def unified_handler(msg):
                 if not can_generate(uid):
                     return bot.send_message(uid, "⚠️ لا يمكن قراءة هذا الملف تلقائيًا. تتطلب المعالجة المتقدمة اشتراكًا فعالًا.")
                 bot.send_message(uid, "⏳ يتم تجهيز الملف... الرجاء الانتظار لحظات.")
-                content = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language="eng+ara")
+                language = detect_language_from_filename(msg.document.file_name)
+                content = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language=language)
 
         elif ext == "jpg":
             if not can_generate(uid):
                     return bot.send_message(uid, "⚠️ لا يمكن قراءة هذا الملف تلقائيًا. تتطلب المعالجة المتقدمة اشتراكًا فعالًا.")
-            content = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language="eng+ara")
+
             bot.send_message(uid, "⏳ يتم تجهيز الملف... الرجاء الانتظار لحظات.")
+            language = detect_language_from_filename(msg.document.file_name)
+            content = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language=language)
+            
                
         else:
             return bot.send_message(uid, "⚠️ نوع الملف غير مدعوم. أرسل PDF أو Word أو TXT.")
