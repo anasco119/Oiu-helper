@@ -1709,6 +1709,9 @@ def unified_handler(msg):
         # بعد الاستخراج العادي
         if ext == "pdf":
             content = extract_text_from_pdf(path)
+            # إذا المستخدم غير مشترك، اقتطع فقط 3000 حرف
+            if not can_generate(uid):
+                content = content[:3000]
             if is_text_empty(content):
                 if not can_generate(uid):
                     return bot.send_message(uid, "⚠️ لا يمكن قراءة هذا الملف تلقائيًا. تتطلب المعالجة المتقدمة اشتراكًا فعالًا.")
@@ -1723,6 +1726,9 @@ def unified_handler(msg):
                 bot.send_message(uid, f"📄 تم استخراج النص بنجاح (جزء منه):\n\n{preview}")
         elif ext == "docx":
             content = extract_text_from_docx(path)
+            # إذا المستخدم غير مشترك، اقتطع فقط 3000 حرف
+            if not can_generate(uid):
+                content = content[:3000]
             if is_text_empty(content):
                 if not can_generate(uid):
                     return bot.send_message(uid, "⚠️ لا يمكن قراءة هذا الملف تلقائيًا. تتطلب المعالجة المتقدمة اشتراكًا فعالًا.")
@@ -1730,13 +1736,22 @@ def unified_handler(msg):
                 content = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language="eng+ara")
         elif ext == "txt":
             content = extract_text_from_txt(path)
+            # إذا المستخدم غير مشترك، اقتطع فقط 3000 حرف
+            if not can_generate(uid):
+                content = content[:3000]
             if is_text_empty(content):
                 if not can_generate(uid):
                     return bot.send_message(uid, "⚠️ لا يمكن قراءة هذا الملف تلقائيًا. تتطلب المعالجة المتقدمة اشتراكًا فعالًا.")
                 bot.send_message(uid, "⏳ يتم تجهيز الملف... الرجاء الانتظار لحظات.")
                 content = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language="eng+ara")
+                
         elif ext == "pptx":
             content = extract_text_from_pptx(path)
+            
+            # إذا المستخدم غير مشترك، اقتطع فقط 3000 حرف
+            if not can_generate(uid):
+                content = content[:3000]
+                
             if is_text_empty(content):
                 if not can_generate(uid):
                     return bot.send_message(uid, "⚠️ لا يمكن قراءة هذا الملف تلقائيًا. تتطلب المعالجة المتقدمة اشتراكًا فعالًا.")
