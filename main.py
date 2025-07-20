@@ -1855,7 +1855,6 @@ def unified_handler(msg):
             user_states.pop(uid, None)
 
             
-
             if len(content) > 10000:
                 msg = bot.send_message(uid, "🔍 المحتوى كبير، يتم تلخيصه الآن لتوليد البطاقات...")
                 
@@ -1914,8 +1913,22 @@ def unified_handler(msg):
 
                 bot.edit_message_text(chat_id=uid, message_id=msg.message_id,
                               text="🧠 جاري توليد الاختبار، الرجاء الانتظار...")
+                time.sleep(1.5)
+                for progress_msg in progress_messages:
+                    bot.edit_message_text(chat_id=uid, message_id=msg.message_id, text=progress_msg)
+                    time.sleep(1.5)
+                bot.edit_message_text(chat_id=uid, message_id=msg.message_id,
+                         text=random.choice(waiting_messages_quiz))
+                time.sleep(2)
             else:
                 bot.send_message(uid, "🧠 جاري توليد الاختبار، الرجاء الانتظار...")
+                time.sleep(1.5)
+                for progress_msg in progress_messages:
+                    bot.edit_message_text(chat_id=uid, message_id=msg.message_id, text=progress_msg)
+                    time.sleep(1.5)
+                bot.edit_message_text(chat_id=uid, message_id=msg.message_id,
+                         text=random.choice(waiting_messages_quiz))
+                time.sleep(2)
 
             quizzes = generate_quizzes_from_text(content, major=major, user_id=uid, num_quizzes=10)
         
