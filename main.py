@@ -1175,6 +1175,7 @@ def cmd_start(msg):
         InlineKeyboardButton("⚙️ حسابي", callback_data="go_account_settings"),
     ]
     keyboard.add(*buttons)
+    keyboard.add(InlineKeyboardButton("➕ أضفني إلى مجموعة", url=f"https://t.me/{bot.get_me().username}?startgroup=true"))
 
     bot.send_message(
         msg.chat.id,
@@ -1201,6 +1202,7 @@ def send_main_menu(chat_id, message_id=None):
         InlineKeyboardButton("⚙️ حسابي", callback_data="go_account_settings"),
     ]
     keyboard.add(*buttons)
+    keyboard.add(InlineKeyboardButton("➕ أضفني إلى مجموعة", url=f"https://t.me/{bot.get_me().username}?startgroup=true"))
 
     text = (
         "👋 أهلا بك في *TestGenie* ✨\n\n"
