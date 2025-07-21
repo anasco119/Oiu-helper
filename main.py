@@ -1973,15 +1973,7 @@ def unified_handler(msg):
 
             except Exception as e:
                 print("[ERROR] فشل في معالجة الملف:", e)
-                bot.edit_message_text(
-                    chat_id=uid,
-                    message_id=loading_msg.message_id,
-                    text="❌ حدث خطأ غير متوقع أثناء معالجة الملف.\n\nيرجى المحاولة مرة أخرى أو التواصل مع الدعم."
-                )
-        
                 
-
-
         # الحالة العادية: توليد اختبار
         else:
             if not can_generate(uid):
