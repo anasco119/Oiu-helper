@@ -1875,7 +1875,7 @@ def unified_handler(msg):
                     time.sleep(1.5)
                 
             else:
-                bot.send_message(uid, "⏳ جاري إنشاء بطاقات المراجعة...")
+                msg = bot.send_message(uid, "⏳ جاري إنشاء بطاقات المراجعة...")
                 time.sleep(1.5)
                 for progress_msg in progress_messages:
                     bot.edit_message_text(chat_id=uid, message_id=msg.message_id, text=progress_msg)
@@ -1923,7 +1923,7 @@ def unified_handler(msg):
                          text=random.choice(waiting_messages_quiz))
                 time.sleep(2)
             else:
-                bot.send_message(uid, "🧠 جاري توليد الاختبار، الرجاء الانتظار...")
+                msg = bot.send_message(uid, "🧠 جاري توليد الاختبار، الرجاء الانتظار...")
                 time.sleep(1.5)
                 for progress_msg in progress_messages:
                     bot.edit_message_text(chat_id=uid, message_id=msg.message_id, text=progress_msg)
