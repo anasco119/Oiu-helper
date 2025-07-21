@@ -1190,6 +1190,153 @@ def send_quizzes_as_polls(chat_id: int, quizzes: list, message_id=None):
         reply_markup=keyboard
     )
 
+
+
+
+
+# تخزين حالة الاختبار لكل مستخدم
+user_quiz_state = {}
+
+def start_quiz(chat_id, lesson_id, bot):
+    """بدء اختبار معين وإرسال أول سؤال"""
+    # تحديد نوع المعرف
+    if isinstance(lesson_id, str) and lesson_id.startswith("old_lesson_"):
+        # استعلام خاص للدروس القديمة
+        with sqlite3.connect(DB_FILE) as conn:
+            c = conn.cursor()
+            c.execute("""
+                SELECT quiz_number, question, options, answer 
+                FROM quizzes 
+                WHERE lesson_id = ? 
+                ORDER BY quiz_number, id
+            """, (lesson_id,))
+            quizzes = c.fetchall()
+    else:
+        # استعلام للدروس الجديدة
+        with sqlite3.connect(DB_FILE) as conn:
+            c = conn.cursor()
+            c.execute("""
+                SELECT quiz_number, question, options, answer 
+                FROM quizzes 
+                WHERE lesson_id = ? 
+                ORDER BY quiz_number, id
+            """, (lesson_id,))
+            quizzes = c.fetchall()
+
+   
+    # ... باقي الكود بدون تغيير ...
+
+    if not quizzes:
+        bot.send_message(chat_id, "❌ لا توجد اختبارات محفوظة لهذا الدرس بعد.")
+        return
+
+    # تحويل النتائج إلى هيكل مناسب
+    quiz_data = []
+    current_quiz = []
+    current_quiz_number = None
+
+    for quiz in quizzes:
+        quiz_number, question, options, answer = quiz
+        options = json.loads(options)
+        
+        if current_quiz_number != quiz_number:
+            if current_quiz:
+                quiz_data.append(current_quiz)
+            current_quiz = []
+            current_quiz_number = quiz_number
+        
+        current_quiz.append({
+            "question": question,
+            "options": options,
+            "answer": answer
+        })
+    
+    if current_quiz:
+        quiz_data.append(current_quiz)
+
+    # حفظ حالة الاختبار للمستخدم
+    user_quiz_state[chat_id] = {
+        'lesson_id': lesson_id,
+        'quizzes': quiz_data,
+        'current_quiz': 0,
+        'current_question': 0,
+        'score': 0
+    }
+
+    # إرسال أول سؤال
+    send_next_question(chat_id, bot)
+
+def send_next_question(chat_id, bot):
+    """إرسال السؤال التالي في الاختبار"""
+    if chat_id not in user_quiz_state:
+        return
+
+    state = user_quiz_state[chat_id]
+    quizzes = state['quizzes']
+    quiz_idx = state['current_quiz']
+    question_idx = state['current_question']
+
+    if quiz_idx >= len(quizzes):
+        # انتهاء جميع الاختبارات
+        bot.send_message(
+            chat_id,
+            f"🏁 انتهت جميع الاختبارات! النتيجة النهائية: {state['score']}/{sum(len(q) for q in quizzes)}"
+        )
+        del user_quiz_state[chat_id]
+        return
+
+    current_quiz = quizzes[quiz_idx]
+    
+    if question_idx >= len(current_quiz):
+        # الانتقال إلى الاختبار التالي
+        state['current_quiz'] += 1
+        state['current_question'] = 0
+        send_next_question(chat_id, bot)
+        return
+
+    question_data = current_quiz[question_idx]
+    
+    # إرسال السؤال الحالي
+    poll = bot.send_poll(
+        chat_id=chat_id,
+        question=question_data["question"],
+        options=question_data["options"],
+        is_anonymous=False,
+        type='quiz',
+        correct_option_id=question_data["options"].index(question_data["answer"])
+    )
+
+    # حفظ معرف الرسالة لتتبع الإجابة
+    state['last_poll_message_id'] = poll.message_id
+
+@bot.poll_answer_handler()
+def handle_poll_answer(poll_answer):
+    """معالجة إجابة المستخدم على السؤال"""
+    chat_id = poll_answer.user.id
+    
+    if chat_id not in user_quiz_state:
+        return
+
+    state = user_quiz_state[chat_id]
+    
+    # الحصول على تفاصيل السؤال الحالي
+    current_quiz = state['quizzes'][state['current_quiz']]
+    current_question = current_quiz[state['current_question']]
+    
+    # التحقق من الإجابة
+    correct_option = current_question["options"].index(current_question["answer"])
+    if poll_answer.option_ids and poll_answer.option_ids[0] == correct_option:
+        state['score'] += 1
+        feedback = "✅ إجابة صحيحة!"
+    else:
+        feedback = f"❌ إجابة خاطئة! الإجابة الصحيحة هي: {current_question['answer']}"
+    
+    # إرسال التغذية الراجعة
+    bot.send_message(chat_id, feedback)
+    
+    # الانتقال إلى السؤال التالي
+    state['current_question'] += 1
+    send_next_question(chat_id, bot)
 # -------------------------------------------------------------------
 #                  Telegram Bot Handlers
 # -------------------------------------------------------------------
@@ -1212,7 +1359,7 @@ def unified_start_handler(message):
             if result:
                 quizzes = json.loads(result[0])
                 bot.send_message(message.chat.id, "🧠 هذا اختبار تمت مشاركته معك. استعد!")
-                send_quizzes_as_polls(message.chat.id, quizzes)
+                start_quiz(message.chat.id, quizzes, bot)
             else:
                 bot.send_message(message.chat.id, "❌ لم يتم العثور على هذا الاختبار.")
             return  # ⛔ لا تكمل للواجهة الرئيسية
