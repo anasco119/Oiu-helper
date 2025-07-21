@@ -1873,6 +1873,10 @@ def unified_handler(msg):
                 for progress_msg in progress_messages:
                     bot.edit_message_text(chat_id=uid, message_id=msg.message_id, text=progress_msg)
                     time.sleep(1.5)
+
+                bot.edit_message_text(chat_id=uid, message_id=msg.message_id,
+                          text=random.choice(waiting_messages_anki))
+                time.sleep(2)
                 
             else:
                 msg = bot.send_message(uid, "⏳ جاري إنشاء بطاقات المراجعة...")
