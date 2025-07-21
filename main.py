@@ -1124,7 +1124,7 @@ def generate_quiz_code(length=6):
     return ''.join(random.choices(string.ascii_lowercase + string.digits, k=length))
 
 def store_user_quiz(user_id, quizzes, quiz_code):
-    conn = sqlite3.connect("your_database.db")
+    conn = sqlite3.connect("quiz_users.db")
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS user_quizzes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1180,7 +1180,7 @@ def send_quizzes_as_polls(chat_id: int, quizzes: list, message_id=None):
     keyboard = types.InlineKeyboardMarkup()
     keyboard.add(
         types.InlineKeyboardButton("👍 العودة للقائمة", callback_data="go_home"),
-        types.InlineKeyboardButton("🤝 مشاركة الاختبار", url=f"https://t.me/YourBotUsername?start={quiz_code}")
+        types.InlineKeyboardButton("🤝 مشاركة الاختبار", url=f"https://t.me/Oiuhelper_bot?start={quiz_code}")
     )
     time.sleep(5)
 
@@ -1193,7 +1193,33 @@ def send_quizzes_as_polls(chat_id: int, quizzes: list, message_id=None):
 # -------------------------------------------------------------------
 #                  Telegram Bot Handlers
 # -------------------------------------------------------------------
+@bot.message_handler(commands=['start'])
+def handle_start(message):
+    args = message.text.split()
+    
+    if len(args) > 1:
+        param = args[1]
 
+        if param.startswith("quiz_"):
+            quiz_code = param
+            conn = sqlite3.connect("your_database.db")
+            c = conn.cursor()
+            c.execute("SELECT quiz_data FROM user_quizzes WHERE quiz_code = ?", (quiz_code,))
+            result = c.fetchone()
+            conn.close()
+
+            if result:
+                quizzes = json.loads(result[0])
+                bot.send_message(message.chat.id, "🧠 هذا اختبار تمت مشاركته معك. استعد!")
+                send_quizzes_as_polls(message.chat.id, quizzes)
+            else:
+                bot.send_message(message.chat.id, "❌ لم يتم العثور على هذا الاختبار.")
+        else:
+            bot.send_message(message.chat.id, "👋 مرحبًا بك! استخدم القائمة أو شارك رمز صحيح.")
+    else:
+        # إذا لم يوجد أي معلمة، عرض القائمة الرئيسية أو ترحيب بسيط
+        bot.send_message(message.chat.id, "👋 مرحبًا بك في البوت! استخدم الأزرار أو الأوامر للبدء.")
+        
 @bot.message_handler(commands=['start'])
 def cmd_start(msg):
     if msg.chat.type != "private":
