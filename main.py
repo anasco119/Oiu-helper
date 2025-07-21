@@ -1968,6 +1968,15 @@ def unified_handler(msg):
                     )
         
                 usage_count[uid] = usage_count.get(uid, 0) + 1
+
+            except Exception as e:
+                print("[ERROR] فشل في معالجة الملف:", e)
+                bot.edit_message_text(
+                    chat_id=uid,
+                    message_id=loading_msg.message_id,
+                    text="❌ حدث خطأ غير متوقع أثناء معالجة الملف.\n\nيرجى المحاولة مرة أخرى أو التواصل مع الدعم."
+                )
+        
                 
 
 
