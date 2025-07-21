@@ -1194,15 +1194,16 @@ def send_quizzes_as_polls(chat_id: int, quizzes: list, message_id=None):
 #                  Telegram Bot Handlers
 # -------------------------------------------------------------------
 @bot.message_handler(commands=['start'])
-def handle_start(message):
+def unified_start_handler(message):
     args = message.text.split()
-    
+
+    # ✅ إذا كان هناك باراميتر (مثل quiz_ab12cd)
     if len(args) > 1:
         param = args[1]
 
         if param.startswith("quiz_"):
             quiz_code = param
-            conn = sqlite3.connect("your_database.db")
+            conn = sqlite3.connect("quiz_users.db")
             c = conn.cursor()
             c.execute("SELECT quiz_data FROM user_quizzes WHERE quiz_code = ?", (quiz_code,))
             result = c.fetchone()
@@ -1214,16 +1215,12 @@ def handle_start(message):
                 send_quizzes_as_polls(message.chat.id, quizzes)
             else:
                 bot.send_message(message.chat.id, "❌ لم يتم العثور على هذا الاختبار.")
-        else:
-            bot.send_message(message.chat.id, "👋 مرحبًا بك! استخدم القائمة أو شارك رمز صحيح.")
-    else:
-        # إذا لم يوجد أي معلمة، عرض القائمة الرئيسية أو ترحيب بسيط
-        bot.send_message(message.chat.id, "👋 مرحبًا بك في البوت! استخدم الأزرار أو الأوامر للبدء.")
-        
-@bot.message_handler(commands=['start'])
-def cmd_start(msg):
-    if msg.chat.type != "private":
+            return  # ⛔ لا تكمل للواجهة الرئيسية
+
+    # ✅ إذا لم يكن هناك أي باراميتر أو ليس "quiz_" → عرض الواجهة الرئيسية
+    if message.chat.type != "private":
         return  # تجاهل الرسائل في المجموعات
+
     keyboard = InlineKeyboardMarkup(row_width=2)
     buttons = [
         InlineKeyboardButton("📝 توليد اختبار", callback_data="go_generate"),
@@ -1237,18 +1234,19 @@ def cmd_start(msg):
     keyboard.add(InlineKeyboardButton("➕ أضفني إلى مجموعة", url=f"https://t.me/{bot.get_me().username}?startgroup=true"))
 
     bot.send_message(
-        msg.chat.id,
+        message.chat.id,
         "👋 أهلا بك في *TestGenie* ✨\n\n"
-        "🎯  أدوات تعليمية ذكية بين يديك:\n"
+        "🎯 أدوات تعليمية ذكية بين يديك:\n"
         "- اختبارات من ملفاتك\n"
         "- بطاقات مراجعة (Anki)\n"
         "- ملخصات PDF/Word _(قريباً)_\n"
         "- ألعاب تعليمية \n\n"
-        " 📌 كل ما تحتاجه لتتعلّم بذكاء... بين يديك الآن..\n\n"
-        "اختر ما يناسبك و إبدأ الآن! 👇",
+        "📌 كل ما تحتاجه لتتعلّم بذكاء... بين يديك الآن..\n\n"
+        "اختر ما يناسبك وابدأ الآن 👇",
         reply_markup=keyboard,
         parse_mode="Markdown"
     )
+
 
 def send_main_menu(chat_id, message_id=None):
     keyboard = InlineKeyboardMarkup(row_width=2)
