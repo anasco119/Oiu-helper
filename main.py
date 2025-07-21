@@ -1851,56 +1851,124 @@ def unified_handler(msg):
             "🎉 اللمسات الأخيرة... 90% من الطريق"
         ]
 
-
-    # إذا المستخدم في وضع توليد أنكي
         if state == "awaiting_anki_file":
             user_states.pop(uid, None)
-
-            
-            if len(content) > 10000:
-                msg = bot.send_message(uid, "🔍 المحتوى كبير، يتم تلخيصه الآن لتوليد البطاقات...")
-                
-                try:
-                    content = summarize_long_text(content)
-                except Exception as e:
-                    print("[ERROR] تلخيص المحتوى فشل:", e)
-                    return bot.edit_message_text(chat_id=uid, message_id=msg.message_id,
-                                         text="❌ فشل في تلخيص المحتوى. أرسل ملفًا أصغر أو حاول لاحقًا.")
-
-                bot.edit_message_text(chat_id=uid, message_id=msg.message_id,
-                              text="⏳ جاري إنشاء بطاقات المراجعة...")
-                time.sleep(1.5)
-                for progress_msg in progress_messages:
-                    bot.edit_message_text(chat_id=uid, message_id=msg.message_id, text=progress_msg)
-                    time.sleep(1.5)
-
-                bot.edit_message_text(chat_id=uid, message_id=msg.message_id,
-                          text=random.choice(waiting_messages_anki))
-                time.sleep(2)
-                
-            else:
-                msg = bot.send_message(uid, "⏳ جاري إنشاء بطاقات المراجعة...")
-                time.sleep(1.5)
-                for progress_msg in progress_messages:
-                    bot.edit_message_text(chat_id=uid, message_id=msg.message_id, text=progress_msg)
-                    time.sleep(1.5)
-                bot.edit_message_text(chat_id=uid, message_id=msg.message_id,
-                          text=random.choice(waiting_messages_anki))
-                time.sleep(2)
-
-            cards, title = generate_anki_cards_from_text(content, major=major, user_id=uid)
     
-   
-            if not cards:
-                return bot.send_message(uid, "❌ لم أتمكن من توليد بطاقات.")
-
-            # تنظيف العنوان ليكون اسم ملف صالح
-            safe_title = re.sub(r'[^a-zA-Z0-9_\u0600-\u06FF]', '_', title)[:40]  # دعم الأسماء العربية وتحديد الطول
-
-            filename = f"{safe_title}_{uid}.apkg"
-
-            filepath = save_cards_to_apkg(cards, filename=filename, deck_name=title)
-            bot.send_document(uid, open(filepath, 'rb'))
+            # إعداد رسالة التحميل الأولية
+            loading_msg = bot.send_message(uid, "🔄 جاري معالجة الملف...")
+    
+            try:
+                # إذا كان المحتوى كبيراً
+                if len(content) > 10000:
+                    try:
+                        # تحديث الرسالة لعملية التلخيص
+                        bot.edit_message_text(
+                            chat_id=uid,
+                            message_id=loading_msg.message_id,
+                            text="📚 المحتوى كبير جداً\n🔍 جاري تلخيص المحتوى..."
+                        )
+                
+                        content = summarize_long_text(content)
+                
+                        # تأكيد نجاح التلخيص
+                        bot.edit_message_text(
+                            chat_id=uid,
+                            message_id=loading_msg.message_id,
+                            text="✅ تم تلخيص المحتوى بنجاح\n⏳ جاري إنشاء البطاقات..."
+                        )
+                        time.sleep(1)
+                
+                    except Exception as e:
+                        print("[ERROR] فشل في تلخيص المحتوى:", e)
+                        return bot.edit_message_text(
+                            chat_id=uid,
+                            message_id=loading_msg.message_id,
+                            text="❌ فشل في تلخيص المحتوى.\n\nيرجى إرسال ملف أصغر أو المحاولة لاحقاً."
+                        )
+        
+                # مؤشر تقدم متحرك
+                progress_phrases = [
+                    "📖 جاري تحليل المحتوى...",
+                    "🧠 معالجة المعلومات...",
+                    "🛠️ إنشاء البطاقات...",
+                    "✨ جاري التنسيق النهائي..."
+                ]
+        
+                for i, phrase in enumerate(progress_phrases):
+                    # إضافة شريط تقدم بصري
+                    progress_bar = "[" + "=" * (i+1) + " " * (len(progress_phrases)-i-1) + "]"
+            
+                    bot.edit_message_text(
+                        chat_id=uid,
+                        message_id=loading_msg.message_id,
+                        text=f"{progress_bar}\n\n{phrase}\n\n⏳ يرجى الانتظار..."
+                    )
+                    time.sleep(1.5)
+        
+                # إضافة رسالة انتظار جذابة
+                bot.edit_message_text(
+                    chat_id=uid,
+                    message_id=loading_msg.message_id,
+                    text=f"🎯 {random.choice(waiting_messages_anki)}\n\n⚡ جاري الانتهاء من التحضير..."
+                )
+                time.sleep(2)
+        
+                # إنشاء البطاقات
+                cards, title = generate_anki_cards_from_text(content, major=major, user_id=uid)
+        
+                if not cards:
+                    return bot.edit_message_text(
+                        chat_id=uid,
+                        message_id=loading_msg.message_id,
+                        text="❌ لم أتمكن من إنشاء أي بطاقات.\n\nقد يكون المحتوى غير مناسب أو حدث خطأ أثناء المعالجة."
+                    )
+        
+                # تنظيف العنوان ليكون اسم ملف صالح
+                safe_title = re.sub(r'[^a-zA-Z0-9_\u0600-\u06FF]', '_', title)[:40]
+                filename = f"{safe_title}_{uid}.apkg"
+        
+                # حفظ الملف وإرساله مع تحديث الرسالة السابقة
+                filepath = save_cards_to_apkg(cards, filename=filename, deck_name=title)
+        
+                 # تحرير الرسالة الأخيرة لإظهار نجاح العملية
+                bot.edit_message_text(
+                    chat_id=uid,
+                    message_id=loading_msg.message_id,
+                    text=f"✅ تم إنشاء {len(cards)} بطاقة بنجاح!\n\n📚 العنوان: {title}\n\n⚡ جاري إرسال الملف..."
+                )
+        
+                # إرسال الملف مع caption
+                with open(filepath, 'rb') as file:
+                    bot.send_document(
+                        chat_id=uid,
+                        document=file,
+                        caption=f"📂 {title}\n\n🎴 عدد البطاقات: {len(cards)}\n\nاستمتع بالدراسة!",
+                        reply_to_message_id=loading_msg.message_id
+                    )
+        
+                # إرسال التقييم (بنسبة 25% أو إذا كان أول استخدام)
+                if random.random() < 0.25 or usage_count.get(uid, 0) == 1:
+                    rating_markup = types.InlineKeyboardMarkup()
+                    rating_markup.row(
+                        types.InlineKeyboardButton("⭐ 1", callback_data="rate_1"),
+                        types.InlineKeyboardButton("⭐ 2", callback_data="rate_2"),
+                        types.InlineKeyboardButton("⭐ 3", callback_data="rate_3")
+                    )
+                    rating_markup.row(
+                        types.InlineKeyboardButton("⭐ 4", callback_data="rate_4"),
+                        types.InlineKeyboardButton("⭐ 5", callback_data="rate_5"),
+                        types.InlineKeyboardButton("تجاهل", callback_data="rate_ignore")
+                    )
+            
+                    bot.send_message(
+                        uid,
+                        "✨ كيف كانت تجربتك مع البوت؟\n\nاختر عدد النجوم للتقييم:",
+                        reply_markup=rating_markup,
+                        reply_to_message_id=sent_msg.message_id
+                    )
+        
+                usage_count[uid] = usage_count.get(uid, 0) + 1
+                
 
 
         # الحالة العادية: توليد اختبار
