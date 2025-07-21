@@ -1193,74 +1193,41 @@ def send_quizzes_as_polls(chat_id: int, quizzes: list, message_id=None):
 
 
 
-
 # تخزين حالة الاختبار لكل مستخدم
 user_quiz_state = {}
 
-def start_quiz(chat_id, lesson_id, bot):
-    """بدء اختبار معين وإرسال أول سؤال"""
-    # تحديد نوع المعرف
-    if isinstance(lesson_id, str) and lesson_id.startswith("old_lesson_"):
-        # استعلام خاص للدروس القديمة
-        with sqlite3.connect(DB_FILE) as conn:
-            c = conn.cursor()
-            c.execute("""
-                SELECT quiz_number, question, options, answer 
-                FROM quizzes 
-                WHERE lesson_id = ? 
-                ORDER BY quiz_number, id
-            """, (lesson_id,))
-            quizzes = c.fetchall()
-    else:
-        # استعلام للدروس الجديدة
-        with sqlite3.connect(DB_FILE) as conn:
-            c = conn.cursor()
-            c.execute("""
-                SELECT quiz_number, question, options, answer 
-                FROM quizzes 
-                WHERE lesson_id = ? 
-                ORDER BY quiz_number, id
-            """, (lesson_id,))
-            quizzes = c.fetchall()
+def start_quiz(chat_id, quiz_code, bot):
+    """بدء اختبار باستخدام كود الاختبار المخزن"""
+    # جلب الاختبار من قاعدة البيانات باستخدام الكود
+    with sqlite3.connect("your_database.db") as conn:
+        c = conn.cursor()
+        c.execute("SELECT quiz_data FROM user_quizzes WHERE quiz_code = ?", (quiz_code,))
+        result = c.fetchone()
+        
+        if not result:
+            bot.send_message(chat_id, "❌ لم يتم العثور على الاختبار المطلوب.")
+            return
 
-   
-    # ... باقي الكود بدون تغيير ...
+        quizzes = json.loads(result[0])
 
-    if not quizzes:
-        bot.send_message(chat_id, "❌ لا توجد اختبارات محفوظة لهذا الدرس بعد.")
-        return
-
-    # تحويل النتائج إلى هيكل مناسب
+    # تحويل البيانات من [question, options, correct_index, explanation] إلى التنسيق المطلوب
     quiz_data = []
-    current_quiz = []
-    current_quiz_number = None
-
     for quiz in quizzes:
-        quiz_number, question, options, answer = quiz
-        options = json.loads(options)
-        
-        if current_quiz_number != quiz_number:
-            if current_quiz:
-                quiz_data.append(current_quiz)
-            current_quiz = []
-            current_quiz_number = quiz_number
-        
-        current_quiz.append({
+        question, options, correct_index, explanation = quiz
+        quiz_data.append([{
             "question": question,
             "options": options,
-            "answer": answer
-        })
-    
-    if current_quiz:
-        quiz_data.append(current_quiz)
+            "answer": options[correct_index],
+            "explanation": explanation  # إضافة التفسير للاستخدام لاحقًا إذا needed
+        }])
 
     # حفظ حالة الاختبار للمستخدم
     user_quiz_state[chat_id] = {
-        'lesson_id': lesson_id,
         'quizzes': quiz_data,
         'current_quiz': 0,
         'current_question': 0,
-        'score': 0
+        'score': 0,
+        'quiz_code': quiz_code  # حفظ كود الاختبار لأغراض التتبع
     }
 
     # إرسال أول سؤال
@@ -1278,9 +1245,21 @@ def send_next_question(chat_id, bot):
 
     if quiz_idx >= len(quizzes):
         # انتهاء جميع الاختبارات
+        total_questions = sum(len(q) for q in quizzes)
+        score_message = f"🏁 انتهى الاختبار!\n\nنتيجتك: {state['score']}/{total_questions}"
+        
+        # إضافة زر لمشاركة الاختبار
+        keyboard = types.InlineKeyboardMarkup()
+        share_button = types.InlineKeyboardButton(
+            "مشاركة الاختبار", 
+            url=f"https://t.me/Oiuhelper_bot?start=qc_{state['quiz_code']}"
+        )
+        keyboard.add(share_button)
+        
         bot.send_message(
             chat_id,
-            f"🏁 انتهت جميع الاختبارات! النتيجة النهائية: {state['score']}/{sum(len(q) for q in quizzes)}"
+            score_message,
+            reply_markup=keyboard
         )
         del user_quiz_state[chat_id]
         return
@@ -1303,7 +1282,8 @@ def send_next_question(chat_id, bot):
         options=question_data["options"],
         is_anonymous=False,
         type='quiz',
-        correct_option_id=question_data["options"].index(question_data["answer"])
+        correct_option_id=question_data["options"].index(question_data["answer"]),
+        explanation=question_data.get("explanation", "")  # إضافة التفسير إذا موجود
     )
 
     # حفظ معرف الرسالة لتتبع الإجابة
@@ -1331,12 +1311,17 @@ def handle_poll_answer(poll_answer):
     else:
         feedback = f"❌ إجابة خاطئة! الإجابة الصحيحة هي: {current_question['answer']}"
     
+    # إضافة التفسير إذا كان موجودًا
+    if "explanation" in current_question and current_question["explanation"]:
+        feedback += f"\n\n💡 التفسير: {current_question['explanation']}"
+    
     # إرسال التغذية الراجعة
     bot.send_message(chat_id, feedback)
     
     # الانتقال إلى السؤال التالي
     state['current_question'] += 1
     send_next_question(chat_id, bot)
+
 # -------------------------------------------------------------------
 #                  Telegram Bot Handlers
 # -------------------------------------------------------------------
@@ -1359,7 +1344,7 @@ def unified_start_handler(message):
             if result:
                 quizzes = json.loads(result[0])
                 bot.send_message(message.chat.id, "🧠 هذا اختبار تمت مشاركته معك. استعد!")
-                start_quiz(message.chat.id, quizzes, bot)
+                start_quiz(message.chat.id, quiz_code, bot)
             else:
                 bot.send_message(message.chat.id, "❌ لم يتم العثور على هذا الاختبار.")
             return  # ⛔ لا تكمل للواجهة الرئيسية
