@@ -1117,13 +1117,19 @@ def process_pending_inference_questions():
             cursor.execute("DELETE FROM inference_questions WHERE id = ?", (qid,))
 
     conn.commit()
-
-def send_quizzes_as_polls(chat_id: int, quizzes: list):
+def send_quizzes_as_polls(chat_id: int, quizzes: list, message_id=None):
     """
     Sends a list of quizzes to a user as separate Telegram polls.
     :param quizzes: A list of quiz tuples: (question, options, correct_index, explanation)
+    :param message_id: Optional message_id to edit instead of sending a new message.
     """
-    bot.send_message(chat_id, f"تم تجهيز {len(quizzes)} سؤالًا. استعد للاختبار!")
+    intro_text = f"✅ تم تجهيز {len(quizzes)} سؤالًا. استعد للاختبار!"
+    
+    if message_id:
+        bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=intro_text)
+    else:
+        bot.send_message(chat_id, intro_text)
+
     time.sleep(2)
 
     for i, quiz_data in enumerate(quizzes):
@@ -1134,24 +1140,20 @@ def send_quizzes_as_polls(chat_id: int, quizzes: list):
             if len(question_text) > 300:
                 question_text = question_text[:297] + "..."
 
-            if not explanation:
-                explanation = f"الإجابة الصحيحة: {options[correct_index]}"
-
             bot.send_poll(
-                chat_id=chat_id,
+                chat_id,
                 question=question_text,
                 options=options,
-                type='quiz',
+                type="quiz",
                 correct_option_id=correct_index,
                 is_anonymous=False,
-                explanation=explanation[:200]  # ⚠️ حد تيليجرام
+                explanation=explanation
             )
 
-            time.sleep(1)
-
+            time.sleep(1.5)
         except Exception as e:
-            logging.error(f"Error sending poll: {e}")
-            bot.send_message(chat_id, f"⚠️ خطأ في إرسال السؤال رقم {i+1}.")
+            print(f"خطأ في إرسال السؤال {i+1}: {e}")
+
             continue
 
     bot.send_message(chat_id, "🎉 انتهى الاختبار! بالتوفيق.")
@@ -2016,7 +2018,7 @@ def unified_handler(msg):
             quizzes = generate_quizzes_from_text(content, major=major, user_id=uid, num_quizzes=10)
         
             if isinstance(quizzes, list) and len(quizzes) > 0:
-                send_quizzes_as_polls(uid, quizzes)
+                send_quizzes_as_polls(uid, quizzes, message_id=msg.message_id)
                 increment_count(uid)
             else:
                 print("[ERROR] Failed to generate valid quizzes:", quizzes)
