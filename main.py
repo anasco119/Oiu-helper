@@ -1117,11 +1117,31 @@ def process_pending_inference_questions():
             cursor.execute("DELETE FROM inference_questions WHERE id = ?", (qid,))
 
     conn.commit()
+
+import string
+
+def generate_quiz_code(length=6):
+    return ''.join(random.choices(string.ascii_lowercase + string.digits, k=length))
+
+def store_user_quiz(user_id, quizzes, quiz_code):
+    conn = sqlite3.connect("your_database.db")
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS user_quizzes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        quiz_data TEXT,
+        quiz_code TEXT UNIQUE,
+        created_at TEXT
+    )''')
+
+    c.execute('INSERT INTO user_quizzes (user_id, quiz_data, quiz_code, created_at) VALUES (?, ?, ?, ?)',
+              (user_id, json.dumps(quizzes), quiz_code, datetime.utcnow().isoformat()))
+    conn.commit()
+    conn.close()
+
 def send_quizzes_as_polls(chat_id: int, quizzes: list, message_id=None):
     """
     Sends a list of quizzes to a user as separate Telegram polls.
-    :param quizzes: A list of quiz tuples: (question, options, correct_index, explanation)
-    :param message_id: Optional message_id to edit instead of sending a new message.
     """
     intro_text = f"✅ تم تجهيز {len(quizzes)} سؤالًا. استعد للاختبار!"
     
@@ -1129,13 +1149,11 @@ def send_quizzes_as_polls(chat_id: int, quizzes: list, message_id=None):
         bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=intro_text)
     else:
         bot.send_message(chat_id, intro_text)
-
     time.sleep(2)
 
     for i, quiz_data in enumerate(quizzes):
         try:
             question, options, correct_index, explanation = quiz_data
-
             question_text = f"❓ السؤال {i+1}:\n\n{question}"
             if len(question_text) > 300:
                 question_text = question_text[:297] + "..."
@@ -1149,15 +1167,28 @@ def send_quizzes_as_polls(chat_id: int, quizzes: list, message_id=None):
                 is_anonymous=False,
                 explanation=explanation
             )
-
             time.sleep(1.5)
         except Exception as e:
             print(f"خطأ في إرسال السؤال {i+1}: {e}")
-
             continue
 
-    bot.send_message(chat_id, "🎉 انتهى الاختبار! بالتوفيق.")
+    # 🧾 بعد إرسال كل الأسئلة، نخزن الاختبار ونرسل رسالة تنظيمية
+    quiz_code = generate_quiz_code()
+    store_user_quiz(chat_id, quizzes, quiz_code)
 
+    # 📥 إنشاء أزرار المشاركة والرجوع
+    keyboard = types.InlineKeyboardMarkup()
+    keyboard.add(
+        types.InlineKeyboardButton("👍 العودة للقائمة", callback_data="go_home"),
+        types.InlineKeyboardButton("🤝 مشاركة الاختبار", url=f"https://t.me/YourBotUsername?start={quiz_code}")
+    )
+    time.sleep(5)
+
+    bot.send_message(
+        chat_id,
+        "🎉 انتهى الاختبار! بالتوفيق.",
+        reply_markup=keyboard
+    )
 
 # -------------------------------------------------------------------
 #                  Telegram Bot Handlers
