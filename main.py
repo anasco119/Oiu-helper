@@ -2191,7 +2191,7 @@ def unified_handler(msg):
                 increment_count(uid)
                 try:
                     quiz_code = generate_quiz_code()
-                    store_user_quiz(chat_id=uid, quizzes, quiz_code)
+                    store_user_quiz(uid, quizzes, quiz_code)
             
                     # إنشاء أزرار المشاركة والرجوع
                     keyboard = types.InlineKeyboardMarkup()
