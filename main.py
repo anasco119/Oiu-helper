@@ -1143,53 +1143,62 @@ def send_quizzes_as_polls(chat_id: int, quizzes: list, message_id=None):
     """
     Sends a list of quizzes to a user as separate Telegram polls.
     """
-    intro_text = f"✅ تم تجهيز {len(quizzes)} سؤالًا. استعد للاختبار!"
-    
-    if message_id:
-        bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=intro_text)
-    else:
-        bot.send_message(chat_id, intro_text)
-    time.sleep(2)
+    try:
+        intro_text = f"✅ تم تجهيز {len(quizzes)} سؤالًا. استعد للاختبار!"
 
-    for i, quiz_data in enumerate(quizzes):
+        if message_id:
+            bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=intro_text)
+        else:
+            bot.send_message(chat_id, intro_text)
+        time.sleep(2)
+
+        for i, quiz_data in enumerate(quizzes):
+            try:
+                question, options, correct_index, explanation = quiz_data
+                question_text = f"❓ السؤال {i+1}:\n\n{question}"
+                if len(question_text) > 300:
+                    question_text = question_text[:297] + "..."
+
+                bot.send_poll(
+                    chat_id,
+                    question=question_text,
+                    options=options,
+                    type="quiz",
+                    correct_option_id=correct_index,
+                    is_anonymous=False,
+                    explanation=explanation
+                )
+                time.sleep(1.5)
+            except Exception as e:
+                print(f"خطأ في إرسال السؤال {i+1}: {e}")
+                continue
+
+        # تخزين الاختبار في قاعدة البيانات
         try:
-            question, options, correct_index, explanation = quiz_data
-            question_text = f"❓ السؤال {i+1}:\n\n{question}"
-            if len(question_text) > 300:
-                question_text = question_text[:297] + "..."
-
-            bot.send_poll(
-                chat_id,
-                question=question_text,
-                options=options,
-                type="quiz",
-                correct_option_id=correct_index,
-                is_anonymous=False,
-                explanation=explanation
+            quiz_code = generate_quiz_code()
+            store_user_quiz(chat_id, quizzes, quiz_code)
+            
+            # إنشاء أزرار المشاركة والرجوع
+            keyboard = types.InlineKeyboardMarkup()
+            keyboard.add(
+                types.InlineKeyboardButton("👍 العودة للقائمة", callback_data="go_home"),
+                types.InlineKeyboardButton("🤝 مشاركة الاختبار", url=f"https://t.me/Oiuhelper_bot?start={quiz_code}")
             )
-            time.sleep(1.5)
-        except Exception as e:
-            print(f"خطأ في إرسال السؤال {i+1}: {e}")
-            continue
-
-    # 🧾 بعد إرسال كل الأسئلة، نخزن الاختبار ونرسل رسالة تنظيمية
-    quiz_code = generate_quiz_code()
-    store_user_quiz(chat_id, quizzes, quiz_code)
-
-    # 📥 إنشاء أزرار المشاركة والرجوع
-    keyboard = types.InlineKeyboardMarkup()
-    keyboard.add(
-        types.InlineKeyboardButton("👍 العودة للقائمة", callback_data="go_home"),
-        types.InlineKeyboardButton("🤝 مشاركة الاختبار", url=f"https://t.me/Oiuhelper_bot?start={quiz_code}")
-    )
-    
-
-    bot.send_message(
-        chat_id,
-        "🎉 انتهى الاختبار! بالتوفيق.",
-        reply_markup=keyboard
-    )
-
+            
+            # إرسال رسالة النهاية مع الأزرار
+            bot.send_message(
+                chat_id,
+                "🎉 انتهى الاختبار! بالتوفيق.\n\n🧾 هذا هو اختبارك الشخصي.\nاختر أحد الخيارات التالية 👇",
+                reply_markup=keyboard
+            )
+            
+        except Exception as db_error:
+            print(f"خطأ في تخزين الاختبار أو إرسال الرسالة النهائية: {db_error}")
+            bot.send_message(chat_id, "🎉 انتهى الاختبار! بالتوفيق.")
+            
+    except Exception as main_error:
+        print(f"خطأ رئيسي في إرسال الاختبار: {main_error}")
+        bot.send_message(chat_id, "حدث خطأ أثناء إرسال الاختبار. يرجى المحاولة مرة أخرى.")
 
 
 
