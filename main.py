@@ -1182,7 +1182,7 @@ def send_quizzes_as_polls(chat_id: int, quizzes: list, message_id=None):
         types.InlineKeyboardButton("👍 العودة للقائمة", callback_data="go_home"),
         types.InlineKeyboardButton("🤝 مشاركة الاختبار", url=f"https://t.me/Oiuhelper_bot?start={quiz_code}")
     )
-    time.sleep(5)
+    
 
     bot.send_message(
         chat_id,
