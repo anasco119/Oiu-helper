@@ -1175,7 +1175,7 @@ def send_quizzes_as_polls(chat_id: int, quizzes: list, message_id=None):
 
 
             
-            bot.send_message(chat_id, "🎉 انتهى الاختبار! بالتوفيق.")
+        bot.send_message(chat_id, "🎉 انتهى الاختبار! بالتوفيق.")
             
     except Exception as main_error:
         print(f"خطأ رئيسي في إرسال الاختبار: {main_error}")
