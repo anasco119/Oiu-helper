@@ -401,6 +401,7 @@ CREATE TABLE IF NOT EXISTS recent_questions (
     added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )
 """)
+cursor.execute("""
 CREATE TABLE IF NOT EXISTS user_quizzes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
@@ -409,7 +410,7 @@ CREATE TABLE IF NOT EXISTS user_quizzes (
     created_at TEXT NOT NULL,
     status TEXT DEFAULT 'pending'
 )
- """)
+""")
 conn.commit()
 
 
