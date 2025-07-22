@@ -514,12 +514,7 @@ def summarize_long_text(content: str) -> str:
     
 
 def parse_ai_json(raw_text: str) -> dict | None:
-    """
-    1) يحوّل هاربات Unicode إلى نص عربي.
-    2) يقطّع أول كتلة JSON موجودة داخل النص إن لم يكن الرد نقيًّا.
-    3) يحاول json.loads عدة مرات.
-    4) يتحقق من بنية الناتج قبل الإرجاع.
-    """
+
     # 1. فكُّ هاربات Unicode (\u0627 → ا)
     def _unescape(match):
         code = match.group(1)
