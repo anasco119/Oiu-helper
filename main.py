@@ -1186,7 +1186,7 @@ def send_quizzes_as_polls(chat_id: int, quizzes: list, message_id=None):
 # تخزين حالة الاختبار لكل مستخدم
 user_quiz_state = {}
 
-def start_quiz(chat_id, quiz_code, bot):
+def start_quiz(chat_id=uid, quiz_code, bot):
     """بدء اختبار باستخدام كود الاختبار المخزن"""
     # جلب الاختبار من قاعدة البيانات باستخدام الكود
     with sqlite3.connect("your_database.db") as conn:
@@ -2191,7 +2191,7 @@ def unified_handler(msg):
                 increment_count(uid)
                 try:
                     quiz_code = generate_quiz_code()
-                    store_user_quiz(chat_id, quizzes, quiz_code)
+                    store_user_quiz(chat_id=uid, quizzes, quiz_code)
             
                     # إنشاء أزرار المشاركة والرجوع
                     keyboard = types.InlineKeyboardMarkup()
