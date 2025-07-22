@@ -18,6 +18,8 @@ from groq import Groq
 import json
 import re
 from pptx import Presentation
+import traceback
+
 
 
 
@@ -1152,6 +1154,22 @@ def send_quizzes_as_polls(chat_id: int, quizzes: list, message_id=None):
             bot.send_message(chat_id, intro_text)
         time.sleep(2)
 
+        # 1. تخزين الاختبار أولاً قبل إرسال الأسئلة
+        quiz_code = None
+        try:
+            quiz_code = generate_quiz_code()
+            store_user_quiz(chat_id, quizzes, quiz_code)
+            print(f"تم تخزين الاختبار بنجاح: {quiz_code}")
+        except Exception as e:
+            print(f"خطأ في تخزين الاختبار: {e}")
+            # داخل معالجة الأخطاء
+            traceback.print_exc()
+            # حاول مرة أخرى بكود جديد
+            quiz_code = generate_quiz_code()
+            store_user_quiz(chat_id, quizzes, quiz_code)
+            print(f"تم تخزين الاختبار في المحاولة الثانية: {quiz_code}")
+
+        # 2. إرسال الأسئلة
         for i, quiz_data in enumerate(quizzes):
             try:
                 question, options, correct_index, explanation = quiz_data
@@ -1170,16 +1188,33 @@ def send_quizzes_as_polls(chat_id: int, quizzes: list, message_id=None):
                 )
                 time.sleep(1.5)
             except Exception as e:
+                # داخل معالجة الأخطاء
+                traceback.print_exc()
                 print(f"خطأ في إرسال السؤال {i+1}: {e}")
                 continue
 
-
+        # 3. إرسال رسالة النهاية مع الأزرار
+        if quiz_code:
+            keyboard = types.InlineKeyboardMarkup()
+            keyboard.add(
+                types.InlineKeyboardButton("👍 العودة للقائمة", callback_data="go_home"),
+                types.InlineKeyboardButton("🤝 مشاركة الاختبار", url=f"https://t.me/Oiuhelper_bot?start={quiz_code}")
+            )
             
-        bot.send_message(chat_id, "🎉 انتهى الاختبار! بالتوفيق.")
+            bot.send_message(
+                chat_id,
+                "🎉 انتهى الاختبار! بالتوفيق.\n\n🧾 هذا هو اختبارك الشخصي.\nاختر أحد الخيارات التالية 👇",
+                reply_markup=keyboard
+            )
+        else:
+            bot.send_message(chat_id, "🎉 انتهى الاختبار! بالتوفيق.")
             
     except Exception as main_error:
+        # داخل معالجة الأخطاء
+        traceback.print_exc()
         print(f"خطأ رئيسي في إرسال الاختبار: {main_error}")
         bot.send_message(chat_id, "حدث خطأ أثناء إرسال الاختبار. يرجى المحاولة مرة أخرى.")
+
 
 
 
@@ -1189,7 +1224,7 @@ user_quiz_state = {}
 def start_quiz(chat_id, quiz_code, bot):
     """بدء اختبار باستخدام كود الاختبار المخزن"""
     # جلب الاختبار من قاعدة البيانات باستخدام الكود
-    with sqlite3.connect("your_database.db") as conn:
+    with sqlite3.connect("quiz_users.db") as conn:
         c = conn.cursor()
         c.execute("SELECT quiz_data FROM user_quizzes WHERE quiz_code = ?", (quiz_code,))
         result = c.fetchone()
@@ -2189,28 +2224,7 @@ def unified_handler(msg):
             if isinstance(quizzes, list) and len(quizzes) > 0:
                 send_quizzes_as_polls(uid, quizzes, message_id=msg.message_id)
                 increment_count(uid)
-                try:
-                    quiz_code = generate_quiz_code()
-                    store_user_quiz(uid, quizzes, quiz_code)
-            
-                    # إنشاء أزرار المشاركة والرجوع
-                    keyboard = types.InlineKeyboardMarkup()
-                    keyboard.add(
-                        types.InlineKeyboardButton("👍 العودة للقائمة", callback_data="go_home"),
-                        types.InlineKeyboardButton("🤝 مشاركة الاختبار", url=f"https://t.me/Oiuhelper_bot?start={quiz_code}")
-                    )
-            
-                    # إرسال رسالة النهاية مع الأزرار
-                    bot.send_message(
-                        chat_id,
-                        "🎉 انتهى الاختبار! بالتوفيق.\n\n🧾 هذا هو اختبارك الشخصي.\nاختر أحد الخيارات التالية 👇",
-                        reply_markup=keyboard
-                    )
-            
-                except Exception as db_error:
-                    print(f"خطأ في تخزين الاختبار أو إرسال الرسالة النهائية: {db_error}")
-                    bot.send_message(chat_id, "🎉 انتهى الاختبار! بالتوفيق.")
-            
+                
             else:
                 print("[ERROR] Failed to generate valid quizzes:", quizzes)
                 bot.send_message(uid, "❌ فشل توليد الاختبار. حاول لاحقًا.")
