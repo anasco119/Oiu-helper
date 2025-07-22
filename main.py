@@ -1122,119 +1122,124 @@ def process_pending_inference_questions():
     conn.commit()
 
 import string
-import sqlite3
-import traceback
+import time
 from datetime import datetime
+import sqlite3
 
-def generate_quiz_code(length=6):
-    """إنشاء كود اختبار فريد مع التحقق من التكرار"""
-    while True:
-        code = ''.join(random.choices(string.ascii_lowercase + string.digits, k=length))
-        conn = sqlite3.connect("quiz_users.db")
-        c = conn.cursor()
-        c.execute("SELECT 1 FROM user_quizzes WHERE quiz_code = ?", (code,))
-        if not c.fetchone():
-            conn.close()
-            return code
-        conn.close()
 
-def store_user_quiz(user_id, quizzes, quiz_code):
-    """تخزين الاختبار في قاعدة البيانات مع معالجة الأخطاء"""
+def generate_quiz_code(user_id):
+    """يولد كود فريد باستخدام الطابع الزمني ومعرف المستخدم"""
+    timestamp = int(time.time())
+    return f"QC{user_id}_{timestamp % 1000000}"
+
+def store_user_quiz(user_id, quizzes):
+    """نسخة محسنة مع معالجة الأخطاء المتقدمة"""
     max_attempts = 3
+    quiz_code = generate_quiz_code(user_id)
+    
     for attempt in range(max_attempts):
         try:
-            conn = sqlite3.connect("quiz_users.db")
+            conn = sqlite3.connect("quiz_users.db", timeout=10)
             c = conn.cursor()
-            c.execute('''CREATE TABLE IF NOT EXISTS user_quizzes (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER,
-                quiz_data TEXT,
-                quiz_code TEXT UNIQUE,
-                created_at TEXT
-            )''')
             
             c.execute('''
                 INSERT INTO user_quizzes 
                 (user_id, quiz_data, quiz_code, created_at) 
                 VALUES (?, ?, ?, ?)
-            ''', (user_id, json.dumps(quizzes), quiz_code, datetime.utcnow().isoformat()))
+            ''', (
+                user_id,
+                json.dumps(quizzes),
+                quiz_code,
+                datetime.utcnow().isoformat()
+            ))
             
             conn.commit()
             conn.close()
-            return True
+            return quiz_code
             
         except sqlite3.IntegrityError:
-            print(f"الكود مكرر، محاولة أخرى {attempt + 1}/{max_attempts}")
             if attempt == max_attempts - 1:
                 raise
-            time.sleep(1)
+            time.sleep(0.5)
+            quiz_code = generate_quiz_code(user_id)
             continue
             
-        except Exception as e:
-            print(f"خطأ في قاعدة البيانات: {str(e)}")
-            traceback.print_exc()
+        except sqlite3.Error as e:
+            print(f"خطأ في SQLite: {e}")
             raise
 
+
 def send_quizzes_as_polls(chat_id: int, quizzes: list, message_id=None):
-    """إرسال الاختبارات كاستطلاعات مع معالجة شاملة للأخطاء"""
+    """إرسال الاختبارات كاستطلاعات مع مرونة أعلى في معالجة الأخطاء"""
     try:
         # 1. إرسال رسالة البدء
-        intro_text = f"✅ تم تجهيز {len(quizzes)} سؤالًا. استعد للاختبار!"
-        
-        if message_id:
-            bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=intro_text)
-        else:
-            bot.send_message(chat_id, intro_text)
-        time.sleep(2)
+        intro_msg = bot.send_message(chat_id, f"✅ تم تجهيز {len(quizzes)} سؤالًا. استعد للاختبار!")
+        time.sleep(1)
 
-        # 2. تخزين الاختبار أولاً
-        quiz_code = generate_quiz_code()
-        if not store_user_quiz(chat_id, quizzes, quiz_code):
-            raise Exception("فشل تخزين الاختبار في قاعدة البيانات")
+        # 2. محاولة تخزين الاختبار (ليست ضرورية لإرسال الأسئلة)
+        quiz_code = None
+        try:
+            quiz_code = generate_quiz_code()
+            if store_user_quiz(chat_id, quizzes, quiz_code):
+                print(f"تم تخزين الاختبار بالكود: {quiz_code}")
+            else:
+                print("تحذير: تم إرسال الاختبار دون تخزينه")
+        except Exception as storage_error:
+            print(f"تحذير في التخزين: {storage_error}")
+            quiz_code = None
 
-        # 3. إرسال الأسئلة
+        # 3. إرسال الأسئلة (الجزء الأساسي)
+        successful_questions = 0
         for i, quiz_data in enumerate(quizzes):
             try:
                 question, options, correct_index, explanation = quiz_data
-                question_text = f"❓ السؤال {i+1}:\n\n{question[:300] + '...' if len(question) > 300 else question}"
+                question_text = f"السؤال {i+1}:\n\n{question[:300]}{'...' if len(question)>300 else ''}"
                 
-                bot.send_poll(
+                # إرسال الاستطلاع مع ضبط الإعدادات المثالية
+                sent_poll = bot.send_poll(
                     chat_id=chat_id,
                     question=question_text,
                     options=options,
                     type="quiz",
                     correct_option_id=correct_index,
                     is_anonymous=False,
-                    explanation=explanation[:200] if explanation else None,
-                    open_period=30  # زمن الإجابة (30 ثانية)
+                    explanation=explanation[:200] if explanation else "",
+                    open_period=15  # وقت كاف للإجابة
                 )
-                time.sleep(1.5)  # تأخير بين الأسئلة
-                
-            except Exception as e:
-                print(f"خطأ في إرسال السؤال {i+1}: {str(e)}")
-                traceback.print_exc()
+                successful_questions += 1
+                time.sleep(1)  # فاصل زمني آمن
+
+            except Exception as poll_error:
+                print(f"فشل إرسال السؤال {i+1}: {poll_error}")
                 continue
 
-        # 4. إرسال رسالة النهاية مع الأزرار
-        keyboard = types.InlineKeyboardMarkup()
-        keyboard.add(
-            types.InlineKeyboardButton("👍 العودة للقائمة", callback_data="go_home"),
-            types.InlineKeyboardButton("🤝 مشاركة الاختبار", 
-                url=f"https://t.me/Oiuhelper_bot?start=qc_{quiz_code}")
-        )
-        
-        bot.send_message(
-            chat_id,
-            "🎉 انتهى الاختبار! بالتوفيق.\n\n🧾 هذا هو اختبارك الشخصي.\nاختر أحد الخيارات التالية 👇",
-            reply_markup=keyboard
-        )
+        # 4. النتائج النهائية
+        if successful_questions > 0:
+            # إرسال رسالة النجاح مع الأزرار
+            markup = types.InlineKeyboardMarkup()
+            if quiz_code:
+                markup.add(types.InlineKeyboardButton(
+                    "مشاركة الاختبار",
+                    url=f"https://t.me/Oiuhelper_bot?start=qc_{quiz_code}"
+                ))
+            markup.add(types.InlineKeyboardButton(
+                "العودة للقائمة",
+                callback_data="go_home"
+            ))
+            
+            bot.send_message(
+                chat_id,
+                f"🎉 تم إرسال {successful_questions}/{len(quizzes)} أسئلة بنجاح!\n"
+                "🧾 يمكنك مشاركة هذا الاختبار مع الآخرين",
+                reply_markup=markup
+            )
+        else:
+            raise Exception("فشل إرسال جميع الأسئلة")
 
-    except Exception as e:
-        print(f"خطأ رئيسي: {str(e)}")
+    except Exception as global_error:
+        print(f"خطأ رئيسي: {global_error}")
         traceback.print_exc()
-        bot.send_message(chat_id, "حدث خطأ أثناء إرسال الاختبار. يرجى المحاولة مرة أخرى.")
-
-
+        
 
 
 # تخزين حالة الاختبار لكل مستخدم
