@@ -32,6 +32,7 @@ GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 COHERE_API_KEY = os.getenv("COHERE_API_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+WEBHOOK_URL = os.getenv('WEBHOOK_URL')
 allowed_channels = set()
 env_channels = os.getenv("ALLOWED_CHANNELS", "")
 if env_channels.strip():
@@ -2386,14 +2387,21 @@ def anki_cards():
                            show_back=session['show_back'])
 # بدء البوت
 
-# تشغيل بوت تيليغرام في Thread منفصل
-def run_bot():
-    print("🤖 Bot polling started...")
-    bot.infinity_polling()
+# نقطة نهاية الويب هوك
+@app.route('/' + os.getenv('BOT_TOKEN'), methods=['POST'])
+def webhook():
+    if request.method == "POST":
+        update = telebot.types.Update.de_json(request.stream.read().decode('utf-8'))
+        bot.process_new_updates([update])
+        return 'ok', 200
+    return 'Method Not Allowed', 405
 
-threading.Thread(target=run_bot).start()
+def set_webhook():
+    bot.remove_webhook()
+    bot.set_webhook(url=WEBHOOK_URL + '/' + BOT_TOKEN)
+    logging.info(f"🌍 تم تعيين الويب هوك على: {WEBHOOK_URL}/{BOT_TOKEN}")
 
-# تشغيل خادم Flask على المنفذ الذي تحدده Render
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))  # Render يوفر PORT كمتغير بيئة
-    app.run(host="0.0.0.0", port=port)
+    set_webhook()
+    port = int(os.environ.get('PORT', 10000))  # Render يستخدم 10000
+    app.run(host='0.0.0.0', port=port)
