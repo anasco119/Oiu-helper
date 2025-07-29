@@ -1347,7 +1347,6 @@ def send_quizzes(chat_id, quizzes, message_id=None):
     except Exception as e:
         print(f"Error in send_quizzes: {e}")
         bot.send_message(chat_id, "حدث خطأ أثناء بدء الاختبار")
-    )
 
 # -------------------------------------------------------------------
 #                  Telegram Bot Handlers
