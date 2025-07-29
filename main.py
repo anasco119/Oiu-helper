@@ -2237,7 +2237,7 @@ def unified_handler(msg):
                 
                     except Exception as e:
                          print(f"Error in quiz generation: {e}")
-                        bot.send_message(uid, "حدث خطأ غير متوقع أثناء بدء الاختبار.")
+                         bot.send_message(uid, "حدث خطأ غير متوقع أثناء بدء الاختبار.")
                 else:
                     print("[ERROR] Failed to generate valid quizzes:", quizzes)
                     bot.send_message(uid, "❌ فشل توليد الاختبار. حاول لاحقًا.")
