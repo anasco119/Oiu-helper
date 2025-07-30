@@ -1598,10 +1598,7 @@ def handle_main_menu(c):
             pass  # تجاهل الخطأ إذا تم حذف الرسالة أو تم تعديلها مسبقًا
 
 
-    elif data.startswith("retry:"):
-        quiz_code = data[6:]
-        quiz_manager.start_quiz(chat_id, quiz_code, bot)
-        
+    
     elif data.startswith("major_"):
         major_key = data.split("_", 1)[1]
         if major_key == "custom":
@@ -1829,7 +1826,11 @@ def handle_main_menu(c):
 
         bot.answer_callback_query(c.id)
         bot.send_message(chat_id, f"{feature_name} ستكون متاحة قريبًا... 🚧")
-
+        
+    elif data.startswith("retry:"):
+        quiz_code = data[6:]
+        quiz_manager.start_quiz(chat_id, quiz_code, bot)
+        
 
 
 @bot.message_handler(func=lambda m: user_states.get(m.from_user.id) == "awaiting_major", content_types=['text'])
