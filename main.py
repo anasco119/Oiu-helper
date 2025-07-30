@@ -413,7 +413,6 @@ CREATE TABLE IF NOT EXISTS
     is_active BOOLEAN DEFAULT 1
 )""")
 conn.commit()
-conn.close()
 
 # track temporary state for custom-major input
 user_states = {}
