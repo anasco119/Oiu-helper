@@ -2254,17 +2254,6 @@ def unified_handler(msg):
 
 known_channels = set()
 
-def handle_callbacks(call):
-    chat_id = call.message.chat.id
-    data = call.data
-    
-    if data.startswith("retry:"):
-        quiz_code = data[6:]
-        quiz_manager.start_quiz(chat_id, quiz_code, bot)
-    elif data == "main_menu":
-        # عرض القائمة الرئيسية
-        pass
-    bot.answer_callback_query(call.id)
 
 @bot.channel_post_handler(func=lambda msg: True)
 def handle_channel_post(msg):
