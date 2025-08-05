@@ -1835,7 +1835,7 @@ def handle_main_menu(c):
     # معالجة اختيار الفئة الرئيسية
     elif data.startswith("category_"):
         parts = data.split("_", 2)
-        category = parts[1]
+        category = data[len("category_"):]
         source = parts[2] if len(parts) > 2 else "source1"
     
         keyboard = InlineKeyboardMarkup()
@@ -2666,31 +2666,24 @@ def unified_handler(msg):
                 return bot.send_message(uid, "⚠️ لقد استنفدت 3 اختبارات مجانية هذا الشهر.")
 
             if len(content) > 10000:
-                summ_msg = bot.reply_to(msg, "🔍 المحتوى كبير، جاري تلخيصه لتوليد اختبار...")
+                loading_msg = bot.reply_to(msg, "🔍 المحتوى كبير، جاري تلخيصه...")
                 try:
                     content = summarize_long_text(content)
                 except Exception as e:
                     print("[ERROR] تلخيص المحتوى فشل:", e)
                     return bot.send_message(uid, "❌ فشل في تلخيص المحتوى. أرسل ملفًا أصغر أو حاول لاحقًا.")
-
-                bot.edit_message_text(chat_id=uid, message_id=summ_msg.message_id,
-                              text="🧠 جاري توليد الاختبار، الرجاء الانتظار...")
-                time.sleep(1.5)
-                for progress_msg in progress_messages:
-                    bot.edit_message_text(chat_id=uid, message_id=summ_msg.message_id, text=progress_msg)
-                    time.sleep(1.5)
-                bot.edit_message_text(chat_id=uid, message_id=summ_msg.message_id,
-                         text=random.choice(waiting_messages_quiz))
-                time.sleep(2)
             else:
-                msg = bot.reply_to(msg, "🧠 جاري توليد الاختبار، الرجاء الانتظار...")
+                loading_msg = bot.reply_to(msg, "🧠 جاري توليد الاختبار، الرجاء الانتظار...")
+
+            # عرض رسائل التحميل
+            for progress_msg in progress_messages:
+                bot.edit_message_text(chat_id=uid, message_id=loading_msg.message_id, text=progress_msg)
                 time.sleep(1.5)
-                for progress_msg in progress_messages:
-                    bot.edit_message_text(chat_id=uid, message_id=summ_msg.message_id, text=progress_msg)
-                    time.sleep(1.5)
-                bot.edit_message_text(chat_id=uid, message_id=summ_msg.message_id,
-                         text=random.choice(waiting_messages_quiz))
-                time.sleep(2)
+
+            bot.edit_message_text(chat_id=uid, message_id=loading_msg.message_id,
+                      text=random.choice(waiting_messages_quiz))
+            time.sleep(2)
+            
 
                 quizzes = generate_quizzes_from_text(content, major=major, user_id=uid, num_quizzes=10)
     
