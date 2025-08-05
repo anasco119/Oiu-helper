@@ -1360,7 +1360,7 @@ class QuizManager:
             bot.edit_message_text(
                 chat_id=chat_id, 
                 message_id=message_id, 
-                text=f"*تم توليد {len(formatted_quizzes)} سؤالاً*\n*استعد للإختبار!*"
+                text=f"*تم توليد {len(formatted_quizzes)} سؤالاً*\n*استعد للإختبار!*",
                 parse_mode=Markdown
                 )
         else:
