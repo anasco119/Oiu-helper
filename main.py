@@ -2659,7 +2659,7 @@ def unified_handler(msg):
                     bot.delete_message(uid, waiting_msg.message_id)
                     for step_msg in step_messages:
                         bot.delete_message(uid, step_msg.message_id)
-                    bot.send_message(uid, "❌ لم يتم العثور على أي بطاقات صالحة
+                    bot.send_message(uid, "❌ لم يتم العثور على أي بطاقات صالحة")
             else:
                 bot.send_message(uid, "❌ يرجى إرسال النص فقط لإنشاء بطاقات Anki يدويًا.")
 
