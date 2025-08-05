@@ -1721,13 +1721,13 @@ def handle_main_menu(c):
             "- ملخصات PDF/Word _(قريباً)_\n"
             "- ألعاب تعليمية\n\n"
             "📌 كل ما تحتاجه لتتعلّم بذكاء... بين يديك الآن.\n\n"
-            "اختر ما يناسبك وابدأ الآن 👇"
-
+            "اختر ما يناسبك وابدأ الآن 👇",
             chat_id=chat_id,
             message_id=message_id,
             reply_markup=keyboard
         )
-
+                
+        
 
     elif data == "change_specialty":
         keyboard = InlineKeyboardMarkup()
