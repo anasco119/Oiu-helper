@@ -1832,11 +1832,11 @@ def handle_main_menu(c):
         )
 
 
-# معالجة اختيار الفئة الرئيسية
+    # معالجة اختيار الفئة الرئيسية
     elif data.startswith("category_"):
-    parts = data.split("_", 2)
-    category = parts[1]
-    source = parts[2] if len(parts) > 2 else "source1"
+        parts = data.split("_", 2)
+        category = parts[1]
+        source = parts[2] if len(parts) > 2 else "source1"
     
         keyboard = InlineKeyboardMarkup()
     
