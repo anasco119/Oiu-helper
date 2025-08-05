@@ -1652,7 +1652,6 @@ def handle_main_menu(c):
             message_id=message_id,
             reply_markup=choice_markup
         )
-        user_states[uid] = "awaiting_anki_file"  # ← تحديد حالة المستخدم
 
     elif data == "go_account_settings":
         bot.answer_callback_query(c.id)
@@ -1835,10 +1834,9 @@ def handle_main_menu(c):
 
 # معالجة اختيار الفئة الرئيسية
     elif data.startswith("category_"):
-            # استخراج الفئة والمصدر
-        parts = data.split("_", 2)
-        category = parts[1]
-        source = parts[2]  # source1 أو source2
+    parts = data.split("_", 2)
+    category = parts[1]
+    source = parts[2] if len(parts) > 2 else "source1"
     
         keyboard = InlineKeyboardMarkup()
     
