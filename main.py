@@ -1649,7 +1649,7 @@ def handle_main_menu(c):
         bot.edit_message_text(
             uid,
             "🔧 حدد طريقة إنشاء بطاقات Anki:",
-            message_id=message_id
+            message_id=message_id,
             reply_markup=choice_markup
         )
         user_states[uid] = "awaiting_anki_file"  # ← تحديد حالة المستخدم
