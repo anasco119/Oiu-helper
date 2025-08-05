@@ -2184,9 +2184,7 @@ def handle_main_menu(c):
     elif call.data.startswith("ai_anki_"):
                                                                           
         bot.answer_callback_query(call.id)
-        bot.edit_message_text(
-            "# معالجة توليد آلي بالذكاء الإصطناعي
-        bot.answer_callback_query(call.id)
+
         bot.edit_message_text(
             "✨ *توليد بطاقات Anki بواسطة الذكاء الإصطناعي*\n\n"
             "ارفع ملفًا بصيغة PDF، Word، أو نص عادي، وسيقوم الذكاء الإصطناعي بتحليل المحتوى وتوليد بطاقات Anki متوافقة بشكل تلقائي.\n\n"
