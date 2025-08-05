@@ -1647,11 +1647,12 @@ def handle_main_menu(c):
         )
 
         bot.edit_message_text(
-            uid,
-            "🔧 حدد طريقة إنشاء بطاقات Anki:",
+            chat_id=chat_id,
             message_id=message_id,
+            text="🔧 حدد طريقة إنشاء بطاقات Anki:",
             reply_markup=choice_markup
         )
+        
 
     elif data == "go_account_settings":
         bot.answer_callback_query(c.id)
@@ -2681,31 +2682,30 @@ def unified_handler(msg):
                 time.sleep(1.5)
 
             bot.edit_message_text(chat_id=uid, message_id=loading_msg.message_id,
-                      text=random.choice(waiting_messages_quiz))
+                          text=random.choice(waiting_messages_quiz))
             time.sleep(2)
-            
 
-                quizzes = generate_quizzes_from_text(content, major=major, user_id=uid, num_quizzes=10)
-    
-                if isinstance(quizzes, list) and len(quizzes) > 0:
-                    try:
-                        # تخزين الاختبار أولاً
-                        quiz_code = store_quiz(uid, quizzes)
-                        if not quiz_code:
-                            raise Exception("Failed to store quiz")
+            quizzes = generate_quizzes_from_text(content, major=major, user_id=uid, num_quizzes=10)
+        
+            if isinstance(quizzes, list) and len(quizzes) > 0:
+                try:
+                    # تخزين الاختبار أولاً
+                    quiz_code = store_quiz(uid, quizzes)
+                    if not quiz_code:
+                        raise Exception("Failed to store quiz")
             
-                        # بدء الاختبار
-                        if quiz_manager.start_quiz(uid, quiz_code, bot):
-                            increment_count(uid)
-                        else:
-                            bot.send_message(uid, "❌ فشل بدء الاختبار. يرجى المحاولة لاحقاً.")
+                    # بدء الاختبار
+                    if quiz_manager.start_quiz(uid, quiz_code, bot):
+                        increment_count(uid)
+                    else:
+                        bot.send_message(uid, "❌ فشل بدء الاختبار. يرجى المحاولة لاحقاً.")
                 
-                    except Exception as e:
-                         print(f"Error in quiz generation: {e}")
-                         bot.send_message(uid, "حدث خطأ غير متوقع أثناء بدء الاختبار.")
-                else:
-                    print("[ERROR] Failed to generate valid quizzes:", quizzes)
-                    bot.send_message(uid, "❌ فشل توليد الاختبار. حاول لاحقًا.")
+                except Exception as e:
+                    print(f"Error in quiz generation: {e}")
+                    bot.send_message(uid, "حدث خطأ غير متوقع أثناء بدء الاختبار.")
+            else:
+                print("[ERROR] Failed to generate valid quizzes:", quizzes)
+                bot.send_message(uid, "❌ فشل توليد الاختبار. حاول لاحقًا.")
 
     finally:
         # حذف الملف المؤقت إن وُجد
