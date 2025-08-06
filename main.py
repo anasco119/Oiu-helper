@@ -1516,25 +1516,31 @@ def send_quizzes(chat_id, quizzes, message_id=None):
 
 @bot.message_handler(commands=['start'])
 def unified_start_handler(message):
+    # ✅ تجاهل الرسائل من المجموعات أو القنوات
+    if message.chat.type != "private":
+        return
+
+    chat_id = message.chat.id
     args = message.text.split()
 
-    # ✅ إذا كان هناك باراميتر (مثل quiz_ab12cd)
-        # معالجة رابط مشاركة الاختبار
+    # ✅ معالجة رابط المشاركة مثل /start quiz_ab12cd
     if len(args) > 1:
         param = args[1]
 
         if param.startswith("quiz_"):
-            quiz_code = param[5:]  # إزالة البادئة "quiz_"
+            quiz_code = param[5:]  # إزالة "quiz_"
+            notice = bot.send_message(chat_id, "🧠 تم استلام رابط اختبار، جاري التحميل...")
 
-            share_msg = bot.send_message(message.chat.id, "🧠 هذا اختبار تمت مشاركته معك. استعد!")
-            if not quiz_manager.start_quiz(message.chat.id, quiz_code, bot):
-                bot.edit_message_text(chat_id=message.chat.id, message_id=share_msg.message_id, text="❌ لم يتم العثور على هذا الاختبار أو انتهت صلاحيته.")
+            started = quiz_manager.start_quiz(chat_id, quiz_code, bot)
+            if not started:
+                bot.edit_message_text(
+                    chat_id=chat_id,
+                    message_id=notice.message_id,
+                    text="❌ لم يتم العثور على هذا الاختبار أو انتهت صلاحيته."
+                )
             return
 
-    # ✅ إذا لم يكن هناك أي باراميتر أو ليس "quiz_" → عرض الواجهة الرئيسية
-    if message.chat.type != "private":
-        return  # تجاهل الرسائل في المجموعات
-
+    # ✅ لا يوجد باراميتر → عرض الواجهة الرئيسية
     keyboard = InlineKeyboardMarkup(row_width=2)
     buttons = [
         InlineKeyboardButton("📝 توليد اختبار", callback_data="go_generate"),
@@ -1548,18 +1554,19 @@ def unified_start_handler(message):
     keyboard.add(InlineKeyboardButton("➕ أضفني إلى مجموعة", url=f"https://t.me/{bot.get_me().username}?startgroup=true"))
 
     bot.send_message(
-        message.chat.id,
-        "👋 أهلا بك في *TestGenie* ✨\n\n"
+        chat_id,
+        "👋 <b>أهلاً بك في TestGenie!</b> ✨\n\n"
         "🎯 أدوات تعليمية ذكية بين يديك:\n"
         "- اختبارات من ملفاتك\n"
         "- بطاقات مراجعة (Anki)\n"
         "- ملخصات PDF/Word _(قريباً)_\n"
-        "- ألعاب تعليمية \n\n"
-        "📌 كل ما تحتاجه لتتعلّم بذكاء... بين يديك الآن..\n\n"
-        "اختر ما يناسبك وابدأ الآن 👇",
+        "- ألعاب تعليمية ممتعة\n\n"
+        "📌 كل ما تحتاجه لتتعلّم بذكاء... بين يديك الآن.\n\n"
+        "👇 اختر ما يناسبك وابدأ الآن:",
         reply_markup=keyboard,
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
+
 
 
 def send_main_menu(chat_id, message_id=None):
