@@ -2228,7 +2228,7 @@ def handle_main_menu(c):
         )
 
         # ✉️ رسالة المشاركة بتنسيق HTML
-        share_link = f"https://t.me/{BOT_USERNAME}?start=quiz{quiz_code}"
+        share_link = f"https://t.me/Oiuhelper_bot?start=quiz{quiz_code}"
         msg_text = f"""<b>🎉 شارك هذا الاختبار مع زملائك!</b>
 
         انسخ الرابط أدناه أو اضغط لفتحه مباشرة:
