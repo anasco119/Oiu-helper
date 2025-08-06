@@ -2214,27 +2214,34 @@ def handle_main_menu(c):
         quiz_manager.start_quiz(chat_id, quiz_code, bot)
         
     elif data.startswith("share_quiz:"):
-        quiz_code = data[6:]  # ← تصحيح لاستخراج الكود بدقة
+        quiz_code = data.split(":", 1)[1]  # ← تأكد من استخراج الكود بشكل دقيق
+
+        # 🎯 لوحة الأزرار
         keyboard = types.InlineKeyboardMarkup()
-        keyboard.add(types.InlineKeyboardButton("🏠 القائمة الرئيسية", callback_data="go_back_home"))
+        keyboard.row(
+            types.InlineKeyboardButton("🏠 الرئيسية", callback_data="go_back_home"),
+            types.InlineKeyboardButton("🔙 رجوع", callback_data="back_to_result")
+        )
 
+        # ✉️ رسالة المشاركة بتنسيق HTML
         share_text = (
-            "🔗 *شارك التحدي مع أصدقائك!*\n\n"
-            "🎯 هل يمكنك أنت وأصدقاؤك الإجابة على نفس الأسئلة؟\n"
+            "<b>🔗 شارك التحدي مع أصدقائك!</b>\n\n"
+            "🎯 <b>هل يمكنك أنت وأصدقاؤك الإجابة على نفس الأسئلة؟</b>\n"
             "اختبر معلوماتك، قارن نتائجك، وتحدى زملاءك في نفس التخصص!\n\n"
-            "👇 اضغط على الرابط وارسله لأي شخص:\n"
-            f"https://t.me/Oiuhelper_bot?start={quiz_code}\n\n"
+            "👇 اضغط على الرابط وأرسله لأي شخص:\n"
+            f"<a href='https://t.me/Oiuhelper_bot?start={quiz_code}'>https://t.me/Oiuhelper_bot?start={quiz_code}</a>\n\n"
             "📚 اجعل التعلم أكثر متعة بمشاركة الاختبارات الجماعية 💬"
-    )
+        )
 
-    bot.edit_message_text(
-        text=share_text,
-        chat_id=c.message.chat.id,
-        message_id=c.message.message_id,
-        reply_markup=keyboard,
-        parse_mode="Markdown"
-    )
-
+        bot.edit_message_text(
+            text=share_text,
+            chat_id=c.message.chat.id,
+            message_id=c.message.message_id,
+            reply_markup=keyboard,
+            parse_mode="HTML"
+        )
+    
+        
 
 
 @bot.message_handler(func=lambda m: user_states.get(m.from_user.id) == "awaiting_major", content_types=['text'])
