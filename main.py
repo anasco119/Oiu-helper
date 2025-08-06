@@ -1516,54 +1516,33 @@ def send_quizzes(chat_id, quizzes, message_id=None):
 
 @bot.message_handler(commands=['start'])
 def unified_start_handler(message):
+    # ✅ تجاهل الرسائل في المجموعات
     if message.chat.type != "private":
         return
 
+    chat_id = message.chat.id
     args = message.text.split()
+
+    # ✅ إذا وُجد باراميتر (مثل quiz_ab12cd)
     if len(args) > 1:
         param = args[1]
-        # إن كان يبدأ بـ quiz_ اسقطها وإلا اتركه كما هو
+
+        # ✅ معالجة روابط المشاركة مثل: ?start=quiz_ab12cd
         quiz_code = param[5:] if param.startswith("quiz_") else param
 
-        # حاول تشغيل الاختبار
-        notice = bot.send_message(message.chat.id, "🧠 جاري تحميل الاختبار...")
-        if not quiz_manager.start_quiz(message.chat.id, quiz_code, bot):
+        loading_msg = bot.send_message(chat_id, "🧠 جاري تحميل الاختبار...")
+
+        # ✅ محاولة بدء الاختبار
+        if not quiz_manager.start_quiz(chat_id, quiz_code, bot):
             bot.edit_message_text(
-                chat_id=message.chat.id,
-                message_id=notice.message_id,
+                chat_id=chat_id,
+                message_id=loading_msg.message_id,
                 text="❌ لم يتم العثور على هذا الاختبار أو انتهت صلاحيته."
             )
         return
 
-    # بقية العرض الرئيسي…
-
-    # ✅ لا يوجد باراميتر → عرض الواجهة الرئيسية
-    keyboard = InlineKeyboardMarkup(row_width=2)
-    buttons = [
-        InlineKeyboardButton("📝 توليد اختبار", callback_data="go_generate"),
-        InlineKeyboardButton("📚 مراجعة سريعة", callback_data="soon_review"),
-        InlineKeyboardButton("📄 ملخص PDF", callback_data="soon_summary"),
-        InlineKeyboardButton("🧠 بطاقات Anki", callback_data="anki"),
-        InlineKeyboardButton("🎮 ألعاب تعليمية", callback_data="go_games"),
-        InlineKeyboardButton("⚙️ حسابي", callback_data="go_account_settings"),
-    ]
-    keyboard.add(*buttons)
-    keyboard.add(InlineKeyboardButton("➕ أضفني إلى مجموعة", url=f"https://t.me/{bot.get_me().username}?startgroup=true"))
-
-    bot.send_message(
-        chat_id,
-        "👋 <b>أهلاً بك في TestGenie!</b> ✨\n\n"
-        "🎯 أدوات تعليمية ذكية بين يديك:\n"
-        "- اختبارات من ملفاتك\n"
-        "- بطاقات مراجعة (Anki)\n"
-        "- ملخصات PDF/Word _(قريباً)_\n"
-        "- ألعاب تعليمية ممتعة\n\n"
-        "📌 كل ما تحتاجه لتتعلّم بذكاء... بين يديك الآن.\n\n"
-        "👇 اختر ما يناسبك وابدأ الآن:",
-        reply_markup=keyboard,
-        parse_mode="HTML"
-    )
-
+    # ✅ إذا لم يوجد باراميتر → عرض القائمة الرئيسية
+    send_main_menu(chat_id)
 
 
 def send_main_menu(chat_id, message_id=None):
@@ -1580,21 +1559,31 @@ def send_main_menu(chat_id, message_id=None):
     keyboard.add(InlineKeyboardButton("➕ أضفني إلى مجموعة", url=f"https://t.me/{bot.get_me().username}?startgroup=true"))
 
     text = (
-        "👋 أهلا بك في *TestGenie* ✨\n\n"
+        "👋 <b>أهلاً بك في TestGenie!</b> ✨\n\n"
         "🎯 أدوات تعليمية ذكية بين يديك:\n"
         "- اختبارات من ملفاتك\n"
         "- بطاقات مراجعة (Anki)\n"
-        "- ملخصات PDF/Word _(قريباً)_\n"
-        "- ألعاب تعليمية\n\n"
+        "- ملخصات PDF/Word <i>(قريباً)</i>\n"
+        "- ألعاب تعليمية ممتعة\n\n"
         "📌 كل ما تحتاجه لتتعلّم بذكاء... بين يديك الآن.\n\n"
-        "اختر ما يناسبك وابدأ الآن 👇"
+        "👇 اختر ما يناسبك وابدأ الآن:"
     )
 
     if message_id:
-        bot.edit_message_text(text, chat_id=chat_id, message_id=message_id, reply_markup=keyboard, parse_mode="Markdown")
+        bot.edit_message_text(
+            text,
+            chat_id=chat_id,
+            message_id=message_id,
+            reply_markup=keyboard,
+            parse_mode="HTML"
+        )
     else:
-        bot.send_message(chat_id, text, reply_markup=keyboard, parse_mode="Markdown")
-
+        bot.send_message(
+            chat_id,
+            text,
+            reply_markup=keyboard,
+            parse_mode="HTML"
+    )
 
 @bot.callback_query_handler(func=lambda c: True)
 def handle_main_menu(c):
