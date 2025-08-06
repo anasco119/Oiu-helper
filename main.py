@@ -2158,9 +2158,9 @@ def handle_main_menu(c):
 
 
     
-    elif call.data.startswith("manual_anki_"):
+    elif data.startswith("manual_anki_"):
         # معالجة توليد يدوي
-        bot.answer_callback_query(call.id)
+        bot.answer_callback_query(c.id)
         bot.edit_message_text(
             " ✏️ *صياغة بطاقات Anki يدويًا* \n\n"
             "يرجى إرسال البطاقات بنسق محدد كما يلي:\n\n"
@@ -2180,7 +2180,7 @@ def handle_main_menu(c):
         )
         user_states[uid] = "awaiting_anki_file_manual"
         
-    elif call.data.startswith("ai_anki_"):
+    elif data.startswith("ai_anki_"):
                                                                           
         bot.answer_callback_query(call.id)
 
@@ -2214,7 +2214,7 @@ def handle_main_menu(c):
         quiz_manager.start_quiz(chat_id, quiz_code, bot)
         
     elif data.startswith("share_quiz:"):
-        quiz_code = data[11:]  # ← تصحيح لاستخراج الكود بدقة
+        quiz_code = data[6:]  # ← تصحيح لاستخراج الكود بدقة
         keyboard = types.InlineKeyboardMarkup()
         keyboard.add(types.InlineKeyboardButton("🏠 القائمة الرئيسية", callback_data="go_back_home"))
 
