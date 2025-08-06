@@ -2228,25 +2228,21 @@ def handle_main_menu(c):
         )
 
         # ✉️ رسالة المشاركة بتنسيق HTML
-        share_text = (
-            "<b>🔗 شارك التحدي مع أصدقائك!</b>\n\n"
-            "🎯 <b>هل يمكنك أنت وأصدقاؤك الإجابة على نفس الأسئلة؟</b>\n"
-            "اختبر معلوماتك، قارن نتائجك، وتحدى زملاءك في نفس التخصص!\n\n"
-            "👇 اضغط على الرابط وأرسله لأي شخص:\n"
-            f"<a href='https://t.me/Oiuhelper_bot?start={quiz_code}'>https://t.me/Oiuhelper_bot?start={quiz_code}</a>\n\n"
-            "📚 اجعل التعلم أكثر متعة بمشاركة الاختبارات الجماعية 💬"
-        )
+        share_link = f"https://t.me/{BOT_USERNAME}?start=quiz{quiz_code}"
+        msg_text = f"""<b>🎉 شارك هذا الاختبار مع زملائك!</b>
 
-        bot.edit_message_text(
-            text=share_text,
-            chat_id=c.message.chat.id,
-            message_id=c.message.message_id,
-            reply_markup=keyboard,
-            parse_mode="HTML"
-        )
-    
-        
+        انسخ الرابط أدناه أو اضغط لفتحه مباشرة:
+        🔗 <a href="{share_link}">{share_link}</a>
 
+        📝 عند فتح الرابط، سيبدأ الاختبار تلقائيًا بإذن الله.
+        """
+
+        keyboard = types.InlineKeyboardMarkup()
+        keyboard.add(
+            types.InlineKeyboardButton("🔗 نسخ الرابط", switch_inline_query=share_link),
+            types.InlineKeyboardButton("🏠 القائمة الرئيسية", callback_data="go_back_home")
+        )
+        bot.send_message(chat_id, msg_text, parse_mode="HTML", reply_markup=keyboard)
 
 @bot.message_handler(func=lambda m: user_states.get(m.from_user.id) == "awaiting_major", content_types=['text'])
 def set_custom_major(msg):
