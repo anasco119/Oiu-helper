@@ -1516,29 +1516,26 @@ def send_quizzes(chat_id, quizzes, message_id=None):
 
 @bot.message_handler(commands=['start'])
 def unified_start_handler(message):
-    # ✅ تجاهل الرسائل من المجموعات أو القنوات
     if message.chat.type != "private":
         return
 
-    chat_id = message.chat.id
     args = message.text.split()
-
-    # ✅ معالجة رابط المشاركة مثل /start quiz_ab12cd
     if len(args) > 1:
         param = args[1]
+        # إن كان يبدأ بـ quiz_ اسقطها وإلا اتركه كما هو
+        quiz_code = param[5:] if param.startswith("quiz_") else param
 
-        if param.startswith("quiz_"):
-            quiz_code = param[5:]  # إزالة "quiz_"
-            notice = bot.send_message(chat_id, "🧠 تم استلام رابط اختبار، جاري التحميل...")
+        # حاول تشغيل الاختبار
+        notice = bot.send_message(message.chat.id, "🧠 جاري تحميل الاختبار...")
+        if not quiz_manager.start_quiz(message.chat.id, quiz_code, bot):
+            bot.edit_message_text(
+                chat_id=message.chat.id,
+                message_id=notice.message_id,
+                text="❌ لم يتم العثور على هذا الاختبار أو انتهت صلاحيته."
+            )
+        return
 
-            started = quiz_manager.start_quiz(chat_id, quiz_code, bot)
-            if not started:
-                bot.edit_message_text(
-                    chat_id=chat_id,
-                    message_id=notice.message_id,
-                    text="❌ لم يتم العثور على هذا الاختبار أو انتهت صلاحيته."
-                )
-            return
+    # بقية العرض الرئيسي…
 
     # ✅ لا يوجد باراميتر → عرض الواجهة الرئيسية
     keyboard = InlineKeyboardMarkup(row_width=2)
