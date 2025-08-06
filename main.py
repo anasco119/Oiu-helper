@@ -2218,31 +2218,27 @@ def handle_main_menu(c):
         quiz_manager.start_quiz(chat_id, quiz_code, bot)
         
     elif data.startswith("share_quiz:"):
-        quiz_code = data.split(":", 1)[1]  # ← تأكد من استخراج الكود بشكل دقيق
+        quiz_code = data.split(":", 1)[1]
+        chat_id = c.message.chat.id  # ← تأكد من تعيين chat_id هنا
 
-        # 🎯 لوحة الأزرار
-        keyboard = types.InlineKeyboardMarkup()
-        keyboard.row(
-            types.InlineKeyboardButton("🏠 الرئيسية", callback_data="go_back_home"),
-            types.InlineKeyboardButton("🔙 رجوع", callback_data="back_to_result")
-        )
+        share_link = f"https://t.me/Oiuhelper_bot?start=quiz_{quiz_code}"
 
-        # ✉️ رسالة المشاركة بتنسيق HTML
-        share_link = f"https://t.me/Oiuhelper_bot?start=quiz{quiz_code}"
         msg_text = f"""<b>🎉 شارك هذا الاختبار مع زملائك!</b>
 
-        انسخ الرابط أدناه أو اضغط لفتحه مباشرة:
-        🔗 <a href="{share_link}">{share_link}</a>
+    انسخ الرابط أدناه أو اضغط لفتحه مباشرة:
+    🔗 <a href="{share_link}">{share_link}</a>
 
-        📝 عند فتح الرابط، سيبدأ الاختبار تلقائيًا بإذن الله.
-        """
+    📝 عند فتح الرابط، سيبدأ الاختبار تلقائيًا بإذن الله.
+    """
 
         keyboard = types.InlineKeyboardMarkup()
         keyboard.add(
             types.InlineKeyboardButton("🔗 نسخ الرابط", switch_inline_query=share_link),
             types.InlineKeyboardButton("🏠 القائمة الرئيسية", callback_data="go_back_home")
         )
+
         bot.send_message(chat_id, msg_text, parse_mode="HTML", reply_markup=keyboard)
+
 
 @bot.message_handler(func=lambda m: user_states.get(m.from_user.id) == "awaiting_major", content_types=['text'])
 def set_custom_major(msg):
