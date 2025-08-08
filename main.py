@@ -1751,7 +1751,7 @@ def send_quiz_to_user(chat_id, quiz_data, message_id=None):
     message = f"""
     🏆 تم إنشاء اختبارك الطبي بنجاح!
     العنوان: {quiz_data['title']}
-    عدد الأسئلة: {len(quiz_data['questions']}
+    عدد الأسئلة: {len(quiz_data['questions'])}
     """
     if message_id:
         bot.edit_message_text(
