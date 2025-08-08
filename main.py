@@ -1757,7 +1757,7 @@ def send_quiz_to_user(chat_id, quiz_data, message_id=None):
         bot.edit_message_text(
             chat_id,
             message,
-            message_id=message_id
+            message_id=message_id,
             reply_markup=markup
         )
     else:
@@ -1805,7 +1805,7 @@ def unified_start_handler(message):
         )
         return
 
-@bot.callback_query_handler(func=lambda c: True)
+@bot2.callback_query_handler(func=lambda c: True)
 def handle_main_menu(c):
     
     if c.message.chat.type != "private":
