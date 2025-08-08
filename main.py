@@ -3418,6 +3418,14 @@ def unified_handler(msg):
                         """
                     bot.edit_message_text(chat_id=uid, message_id=loading_msg.message_id, text=quiz_msg)
 
+    finally:
+        # حذف الملف المؤقت إن وُجد
+        if path and os.path.exists(path):
+            try:
+                os.remove(path)
+            except Exception as e:
+                print(f"[WARNING] لم يتم حذف الملف المؤقت: {e}")
+
 
 known_channels = set()
 
