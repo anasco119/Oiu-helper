@@ -2059,7 +2059,7 @@ def handle_main_menu(c):
             chat_id=chat_id,
             message_id=message_id,
             reply_markup=keyboard,
-            reply_markup=Markdown
+            parse_mode="Markdown"
         )
                 
         
