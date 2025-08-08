@@ -1167,7 +1167,6 @@ def generate_Medical_quizzes(content: str, major: str, user_id: int, num_quizzes
         "  \"image_url\": \"https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Melanoma.jpg/640px-Melanoma.jpg\",\n"
         "  \"correct_answer\": \"Malignant melanoma\"\n"
         "}}\n"
-        
     )
 
     # تحديد الدالة بناءً على صلاحية المستخدم
