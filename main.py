@@ -3418,6 +3418,10 @@ def unified_handler(msg):
                         """
                     bot.edit_message_text(chat_id=uid, message_id=loading_msg.message_id, text=quiz_msg)
 
+                except Exception as e:
+                    print(f"Error in quiz generation: {e}")
+                    bot.send_message(uid, "حدث خطأ غير متوقع   .")
+
     except Exception as e:
         print(f"Error in quiz generation: {e}")
         bot.send_message(uid, "حدث خطأ غير متوقع   .")
