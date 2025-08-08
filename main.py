@@ -1933,7 +1933,7 @@ def handle_main_menu(c):
 
 
     # معالجة الصفحة الأولى للفئات
-    elif data == "go_generate":
+    if data == "go_generate":
         keyboard = InlineKeyboardMarkup(row_width=2)
         
         # الفئات الأساسية (الصفحة الأولى)
