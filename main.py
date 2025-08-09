@@ -2457,7 +2457,7 @@ def handle_main_menu(c):
             print("spec_category callback غير متوافق:", data)
             return
 
-         SUBS = {  
+        SUBS = {  
             "health": [  
                 ("🧬 الطب البشري", "change_major:طب_بشري"),  
                 ("💊 الصيدلة", "change_major:صيدلة"),  
