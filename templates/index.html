@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TsetGenie✨ — المساعد الذكي للطلاب</title>
+<meta name="description" content="بوت TsetGenie✨ يولّد اختبارات تفاعلية وملفات Anki بدقة وسرعة، لمساعدتك في دراستك الجامعية." />
+<meta property="og:title" content="TsetGenie✨ — المساعد الذكي للطلاب" />
+<meta property="og:description" content="حوّل ملاحظاتك إلى اختبارات وبطاقات مراجعة باستخدام الذكاء الاصطناعي مع TsetGenie✨." />
+<meta property="og:type" content="website" />
+<meta name="theme-color" content="#0f172a" />
+<style>
+  :root {
+    --bg: #0f172a;
+    --card: #0b1220;
+    --accent: #06b6d4;
+    --muted: #94a3b8;
+    --text: #e6eef8;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0;
+    font-family: "Noto Kufi Arabic", Tahoma, sans-serif;
+    background: linear-gradient(180deg, #071027 0%, #071822 100%);
+    color: var(--text);
+    line-height: 1.6;
+    direction: rtl;
+  }
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 28px 16px;
+  }
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .logo {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--accent), #7c3aed);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 28px;
+    color: white;
+    user-select: none;
+  }
+  h1 {
+    margin: 0;
+    font-weight: 700;
+    font-size: 28px;
+  }
+  .lead {
+    color: var(--muted);
+    margin-top: 6px;
+    font-weight: 400;
+  }
+  .hero {
+    display: grid;
+    grid-template-columns: 1fr 420px;
+    gap: 28px;
+    align-items: center;
+    margin-top: 28px;
+  }
+  .card {
+    background: var(--card);
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 6px 18px rgba(2,6,23,0.6);
+  }
+  .cta {
+    display: flex;
+    gap: 12px;
+    margin-top: 18px;
+    flex-wrap: wrap;
+  }
+  .btn {
+    padding: 12px 20px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+    color: white;
+  }
+  .btn-primary {
+    background: linear-gradient(90deg, var(--accent), #8b5cf6);
+  }
+  .btn-primary:hover {
+    background: linear-gradient(90deg, #8b5cf6, var(--accent));
+  }
+  .btn-ghost {
+    background: transparent;
+    border: 1.5px solid rgba(255,255,255,0.15);
+    color: var(--text);
+  }
+  .btn-ghost:hover {
+    background: rgba(255,255,255,0.1);
+  }
+  .features {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-top: 22px;
+  }
+  .feature {
+    background: rgba(255,255,255,0.04);
+    padding: 14px 18px;
+    border-radius: 10px;
+    font-weight: 500;
+  }
+  .small {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 18px;
+    font-weight: 500;
+  }
+  .foot {
+    margin-top: 48px;
+    padding: 18px;
+    color: var(--muted);
+    font-size: 14px;
+    border-top: 1px dashed rgba(255,255,255,0.03);
+    text-align: center;
+  }
+  @media (max-width: 880px) {
+    .hero {
+      grid-template-columns: 1fr;
+    }
+    .features {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</head>
+<body>
+  <div class="container" role="main">
+    <header class="header" role="banner">
+      <div class="brand" aria-label="شعار بوت TsetGenie">
+        <div class="logo" aria-hidden="true">✨</div>
+        <div>
+          <h1>TsetGenie✨</h1>
+          <div class="small">مساعد الطالب الذكي — اختبارات وملفات Anki بالذكاء الاصطناعي</div>
+        </div>
+      </div>
+      <nav>
+        <a href="https://t.me/TsetGenieBot?start=welcome" target="_blank" class="btn btn-primary" aria-label="ابدأ الآن على تيليغرام">ابدأ الآن</a>
+      </nav>
+    </header>
+
+    <section class="hero" aria-label="نبذة عن بوت TsetGenie">
+      <article>
+        <div class="card" role="region" aria-labelledby="hero-title">
+          <h2 id="hero-title">حوّل ملاحظاتك إلى اختبارات تفاعلية وبطاقات مراجعة ذكية</h2>
+          <p class="lead">TsetGenie✨ هو بوت ذكي يولّد اختبارات من ملفات دراسية متعددة الصيغ، يدعم Polls التفاعلية وملفات Anki (APKG) بدقة وسرعة، ليختصر وقتك ويُسهّل مذاكرتك الجامعية.</p>
+          <div class="cta">
+            <a href="https://t.me/TsetGenieBot?start=init" target="_blank" class="btn btn-primary" aria-label="جرب البوت الآن">جرب البوت</a>
+            <button class="btn btn-ghost" id="watchDemo" aria-label="شاهد عرض تقديمي قصير">شاهد العرض</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top: 22px;">
+          <h3>كيف يعمل في 3 خطوات سهلة</h3>
+          <div class="steps" role="list">
+            <div role="listitem">1. أرسل ملف الدراسة (PDF، DOCX، TXT) إلى البوت.</div>
+            <div role="listitem">2. البوت يحوّل المحتوى إلى أسئلة تفاعلية ويولّد شرحًا موجزًا.</div>
+            <div role="listitem">3. حمّل ملف مراجعة Anki أو شارك الاختبار مع زملائك.</div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top: 22px;">
+          <h3>لماذا تختار TsetGenie✨؟</h3>
+          <ul>
+            <li>تقليل وقت المذاكرة وتحسين الفهم باستخدام اختبارات ذكية وبطاقات مراجعة.</li>
+            <li>يدعم تخصصات متعددة ومناسب لجميع طلاب الجامعات.</li>
+            <li>تجربة سهلة وسريعة مع نتائج دقيقة بفضل الذكاء الاصطناعي.</li>
+          </ul>
+        </div>
+      </article>
+
+      <aside>
+        <div class="card" role="region" aria-labelledby="preview-title">
+          <h3 id="preview-title">معاينة سريعة</h3>
+          <p class="small">مثال اختبار: 10 أسئلة — وقت تقديري: <span id="estimatedTime">—</span></p>
+          <img src="https://via.placeholder.com/380x220?text=Poll+Preview" alt="معاينة اختبار تفاعلي" style="width:100%; border-radius: 12px" />
+          <div style="margin-top: 14px;">
+            <a href="https://t.me/TsetGenieBot?start=init" target="_blank" class="btn btn-primary" aria-label="افتح البوت وابدأ">افتح البوت وابدأ</a>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top: 22px;">
+          <h4>التحديات الحالية</h4>
+          <p class="small">التمويل • الوقت • دعم البنية التحتية والتطوير المستمر</p>
+          <a href="/support" class="small" aria-label="دعم المشروع وتواصل معنا">هل تريد دعمنا؟ تواصل معنا</a>
+        </div>
+
+        <div class="card" style="margin-top: 22px;">
+          <h4>الخصوصية</h4>
+          <p class="small">نحترم خصوصيتك: الملفات تُعالج مؤقتًا ولا تُخزن أو تُستخدم لأي غرض آخر.</p>
+        </div>
+      </aside>
+    </section>
+
+    <footer class="foot" role="contentinfo">
+      © 2025 TsetGenie✨ — المساعد الذكي للطلاب<br />
+      <a href="mailto:hello@example.com" style="color: var(--muted)">hello@example.com</a>
+    </footer>
+  </div>
+
+<script>
+  const perQuestionSeconds = 30;
+  function updateEstimated(total) {
+    const minutes = Math.round((total * perQuestionSeconds) / 60);
+    document.getElementById('estimatedTime').innerText = minutes + ' دقيقة تقريباً';
+  }
+  updateEstimated(10);
+
+  document.getElementById('watchDemo').addEventListener('click', () => {
+    alert('عرض قصير: سيتم إضافة فيديو توضيحي هنا لاحقاً.');
+  });
+</script>
+</body>
+</html>
