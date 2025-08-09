@@ -1666,29 +1666,29 @@ class QuizManager:
 
 
             # حساب الوقت المقدر بالدقائق
-            estimated_time = round(total * 0.5)
+        estimated_time = round(total * 0.5)
 
         # تعديل الرسالة المخزنة بإرسال الرسالة الجديدة
-            if chat_id == user_id:
+        if chat_id == user_id:
         # صاحب الاختبار
-                msg = f"تم توليد {len(formatted_quizzes)} سؤالاً، استعد للإختبار"
-            else:
+            msg = f"تم توليد {len(formatted_quizzes)} سؤالاً، استعد للإختبار"
+        else:
                 # المشارك
-                percent = round((score / total) * 100) if total else 0
-                msg = f"""
-                🎯 <b>{shared_by_name} أرسل لك تحديًا!</b> 🤝<br><br>
-                📋 <b>عدد الأسئلة:</b> {total}<br>
-                🏆 <b>نتيجة {owner_name}:</b> {score}/{total} — ({percent}%)<br>
-                ⏳ <b>الوقت المقدر:</b> حوالي {estimated_time} دقيقة<br><br>
-                🔥 <b>هل تستطيع التفوق عليه؟</b><br>
-                """
-                time.sleep(3)
+            percent = round((score / total) * 100) if total else 0
+            msg = f"""
+            🎯 <b>{shared_by_name} أرسل لك تحديًا!</b> 🤝<br><br>
+            📋 <b>عدد الأسئلة:</b> {total}<br>
+            🏆 <b>نتيجة {owner_name}:</b> {score}/{total} — ({percent}%)<br>
+            ⏳ <b>الوقت المقدر:</b> حوالي {estimated_time} دقيقة<br><br>
+            🔥 <b>هل تستطيع التفوق عليه؟</b><br>
+            """
+            time.sleep(3)
 
-            if message_id:
-                bot2.edit_message_text(chat_id=chat_id, message_id=message_id, text=msg, parse_mode="HTML")
-            else:
-                bot2.send_message(chat_id, msg, parse_mode="HTML")
-                time.sleep(2)
+        if message_id:
+            bot2.edit_message_text(chat_id=chat_id, message_id=message_id, text=msg, parse_mode="HTML")
+        else:
+            bot2.send_message(chat_id, msg, parse_mode="HTML")
+            time.sleep(2)
         self.send_question(chat_id, bot2)
         return True
     
