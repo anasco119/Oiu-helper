@@ -53,7 +53,7 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "✅ البوت يعمل الآن"
+    return render_template('index.html')
     
 
 @app.route('/quiz/<int:quiz_id>')
