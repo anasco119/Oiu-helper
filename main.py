@@ -610,8 +610,6 @@ conn.commit()
 conn.close()
 
 
-    conn.commit()
-    conn.close()
 
 init_db()  # تنفيذ عند بدء التشغيل
 
