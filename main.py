@@ -3383,14 +3383,14 @@ def unified_handler(msg):
                     quiz_link = f"https://t.me/QuizzyAI_bot?start=quiz_{quiz_code}"
                     estimated_time = len(quizzes) * 30  # 30 ثانية لكل سؤال
                     quiz_msg = f"""
-                        ✨📝 إختبارك جاهز! ⏰✅
-                       <b>تم توليد الاختبار بنجاح.</b>
-                        <b>عدد الاختبارات المتاحة: {len(quizzes)}</b>
-                        <b>الزمن المقدر لإكمال الاختبار: {estimated_time // 60} دقيقة و {estimated_time % 60} ثانية</b>
-                        يمكنك بدأ الإختبار من خلال الرابط التالي :
+                            ✨📝 إختبارك جاهز! ⏰✅
+                            <b>تم توليد الاختبار بنجاح.</b>
+                            <b>عدد الاختبارات المتاحة: {len(quizzes)}</b>
+                            <b>الزمن المقدر لإكمال الاختبار: {estimated_time // 60} دقيقة و {estimated_time % 60} ثانية</b>
+                            يمكنك بدأ الإختبار من خلال الرابط التالي :
 
-                        <a href="{quiz_link}">اضغط هنا لبدء الاختبار</a>
-                        """
+                            <a href="{quiz_link}">اضغط هنا لبدء الاختبار</a>
+                            """
                     bot.edit_message_text(chat_id=uid, message_id=loading_msg.message_id, text=quiz_msg)
 
                 except Exception as e:
@@ -3535,12 +3535,25 @@ def anki_cards():
 # بدء البوت
 start_workers()
 # نقطة نهاية الويب هوك
+
+# نقطة نهاية الويب هوك
 @app.route('/' + os.getenv('BOT_TOKEN'), methods=['POST'])
-def webhook():
+def webhook_bot():
     if request.method == "POST":
         update = telebot.types.Update.de_json(request.stream.read().decode('utf-8'))
         bot.process_new_updates([update])
         return 'ok', 200
+    return 'Method Not Allowed', 405
+
+
+
+@app.route('/' + os.getenv('BOT_TOKEN_2'), methods=['POST'])
+def webhook_bot2():
+    if request.method == "POST":
+        update = telebot.types.Update.de_json(request.stream.read().decode('utf-8'))
+        bot2.process_new_updates([update])
+        return 'ok', 200
+
     return 'Method Not Allowed', 405
 
 def set_webhook():
@@ -3548,7 +3561,14 @@ def set_webhook():
     bot.set_webhook(url=WEBHOOK_URL + '/' + BOT_TOKEN)
     logging.info(f"🌍 تم تعيين الويب هوك على: {WEBHOOK_URL}/{BOT_TOKEN}")
 
+
+    bot2.remove_webhook()
+    bot2.set_webhook(url=WEBHOOK_URL + '/' + BOT_TOKEN_2)
+    logging.info(f"🌍 تم تعيين الويب هوك على: {WEBHOOK_URL}/{BOT_TOKEN_2}")
+
+
 if __name__ == "__main__":
     set_webhook()
     port = int(os.environ.get('PORT', 10000))  # Render يستخدم 10000
     app.run(host='0.0.0.0', port=port)
+        
