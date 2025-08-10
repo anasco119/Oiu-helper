@@ -122,14 +122,11 @@
             width: 60px;
             height: 60px;
             border-radius: 16px;
-            background: linear-gradient(135deg, var(--secondary), var(--accent));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 900;
-            font-size: 28px;
-            color: white;
-            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+            object-fit: contain;
+            /* إزالة الخلفية والتدرج القديم */
+            background: transparent;
+            /* إزالة خصائص النص القديمة */
+            display: block;
         }
         
         .brand h1 {
@@ -633,7 +630,7 @@
         <!-- Header -->
         <header>
             <div class="logo-container">
-                <div class="logo">✨</div>
+                <img src="images/logo.png" alt="TsetGenie Logo" class="logo">
                 <div class="brand">
                     <h1>TsetGenie✨</h1>
                     <p>مساعد الطالب الذكي - اختبارات وملفات Anki بالذكاء الاصطناعي</p>
