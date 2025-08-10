@@ -2802,7 +2802,7 @@ def handle_main_menu(c):
 
 
     
-    if data.startswith("manual_anki"):
+    if data == "manual_anki":
         # معالجة توليد يدوي
         bot.answer_callback_query(c.id)
         bot.edit_message_text(
@@ -2824,7 +2824,7 @@ def handle_main_menu(c):
         )
         user_states[uid] = "awaiting_anki_file_manual"
         
-    elif data.startswith("ai_anki"):
+    elif data == "ai_anki":
         
         bot.answer_callback_query(c.id)
 
