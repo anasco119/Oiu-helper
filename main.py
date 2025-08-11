@@ -3699,7 +3699,7 @@ def set_webhook():
     logging.info(f"🌍 تم تعيين الويب هوك على: {WEBHOOK_URL}/{BOT_TOKEN_2}")
 
 if __name__ == "__main__":
-    insert_sample_quiz_if_not_exists()
+    insert_sample_quiz_if_not_exists(cursor, conn)
     set_webhook()
     port = int(os.environ.get('PORT', 10000))  # Render يستخدم 10000
     app.run(host='0.0.0.0', port=port)
