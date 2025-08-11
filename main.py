@@ -498,7 +498,7 @@ def init_user_quiz_db(db_path='quiz_users.db'):
     )
     """)
 
-    c.execute("""
+    cursor.execute("""
         CREATE TABLE IF NOT EXISTS quiz_shares (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         quiz_code TEXT NOT NULL,
@@ -507,7 +507,7 @@ def init_user_quiz_db(db_path='quiz_users.db'):
         shared_at TEXT NOT NULL
     )
     """)
-    c.execute("""
+    cursor.execute("""
         CREATE TABLE IF NOT EXISTS sample_quizzes (
         quiz_code TEXT PRIMARY KEY,
         quiz_data TEXT NOT NULL,
@@ -525,10 +525,10 @@ def init_user_quiz_db(db_path='quiz_users.db'):
         ]
 # التأكد من وجود العمود قبل إضافته
     for col_name, col_type in new_columns:
-        c.execute(f"PRAGMA table_info(user_quizzes)")
+        cursor.execute(f"PRAGMA table_info(user_quizzes)")
         existing_cols = [row[1] for row in c.fetchall()]
         if col_name not in existing_cols:
-            c.execute(f"ALTER TABLE user_quizzes ADD COLUMN {col_name} {col_type}")
+            cursor.execute(f"ALTER TABLE user_quizzes ADD COLUMN {col_name} {col_type}")
     conn.commit()
     conn.close()
 
@@ -537,7 +537,7 @@ def init_request_db(db_path='requests.db'):
     conn = sqlite3.connect(db_path, check_same_thread=False)
     cursor = conn.cursor()
 
-    conn.execute('''
+    cursor.execute('''
     CREATE TABLE IF NOT EXISTS requests (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER,
