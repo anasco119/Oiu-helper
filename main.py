@@ -76,6 +76,21 @@ def show_quiz(quiz_id):
 
 
 
+
+@app.route('/supportme')
+def supportme():
+    # هنا تقوم بجلب البيانات الحقيقية من قاعدة البيانات أو أي مصدر آخر
+    # هذه مجرد قيم افتراضية
+    tests_generated = 1250
+    files_processed = 5780
+    total_users = 2500
+
+    return render_template(
+        'supportme.html',
+        tests_generated=tests_generated,
+        files_processed=files_processed,
+        total_users=total_users
+    )
 @app.route('/generate_quiz')
 def generate_quiz():
     # الحصول على JSON من AI (مثال باستخدام نموذج وهمي)
