@@ -3606,13 +3606,14 @@ def anki_cards():
 start_workers()
 
 
-import json
-from datetime import datetime
 
 import json
 from datetime import datetime
 
-def insert_sample_quiz_if_not_exists(cursor, conn):
+def insert_sample_quiz_if_not_exists(db_path='quiz_users.db'):
+    conn = sqlite3.connect(db_path, check_same_thread=False)
+    cursor = conn.cursor()
+        
     """
     Inserts a sample quiz into the database if it doesn't already exist.
 
@@ -3683,6 +3684,7 @@ def insert_sample_quiz_if_not_exists(cursor, conn):
             ("sample", sample_quiz_json, datetime.utcnow().isoformat())
         )
         conn.commit()
+    conn.close()
 
 
 
@@ -3719,7 +3721,7 @@ def set_webhook():
 
 if __name__ == "__main__":
     init_all_dbs()
-    insert_sample_quiz_if_not_exists(cursor, conn)
+    insert_sample_quiz_if_not_exists()
     set_webhook()
     port = int(os.environ.get('PORT', 10000))  # Render يستخدم 10000
     app.run(host='0.0.0.0', port=port)
