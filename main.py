@@ -3704,7 +3704,7 @@ def set_webhook():
 
 if __name__ == "__main__":
     init_all_dbs()
-    insert_sample_quiz_if_not_exists()
+    insert_sample_quiz_if_not_exists(cursor, conn)
     set_webhook()
     port = int(os.environ.get('PORT', 10000))  # Render يستخدم 10000
     app.run(host='0.0.0.0', port=port)
