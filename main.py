@@ -554,6 +554,7 @@ CREATE TABLE IF NOT EXISTS sample_quizzes (
     quiz_code TEXT PRIMARY KEY,
     quiz_data TEXT NOT NULL,
     created_at TEXT NOT NULL
+)
 """)
 conn.commit()
 
