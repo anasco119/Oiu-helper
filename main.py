@@ -3111,13 +3111,13 @@ def unified_handler(msg):
     sent_msg = bot.reply_to(msg, "📝 جاري توليد المحتوى، يرجى الانتظار قليلاً...")
     try:
 
-        request_queue.put_nowait(msg, sent_msg)
+        request_queue.put_nowait((msg, sent_msg))
     except queue.Full:
         bot.edit_message_text(" العديد من الأشخاص يقومون بتوليد محتوى في الوقت الحالي، يرجى الانتظار قليلاً ️🕰️. الرجاء الإنتظار ...", chat_id=sent_msg.chat.id, message_id=sent_msg.message_id)
         time.sleep(random.randint(1, 2))
         while True:
             try:
-                request_queue.put(msg, sent_msg)
+                request_queue.put((msg, sent_msg))
             
                 break
             except Exception as e:
