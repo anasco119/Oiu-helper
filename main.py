@@ -3027,7 +3027,7 @@ def handle_user_major(msg):
     user_states.pop(uid, None)
 
 
-    elif state == "awaiting_major_for_games":
+    if state == "awaiting_major_for_games":
         bot.send_message(uid, f"✅ تم تسجيل تخصصك: {major}\n"
                               "الآن يمكنك اختيار لعبة من قائمة الألعاب التعليمية.")
         keyboard = InlineKeyboardMarkup(row_width=1)
