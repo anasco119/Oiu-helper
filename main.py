@@ -2236,7 +2236,7 @@ def handle_main_menu(c):
         # إعادة توجيه إلى نفس تنفيذ go_generate
         # نستدعي نفس الكود أو نعيد التوجيه:
         # لإعادة الاستخدام يمكن عمل دالة build_go_generate_keyboard()
-        bot.answer_callback_query(c.id)
+            bot.answer_callback_query(c.id)
         # هنا نعيد نفس الكود أعلاه أو ننادي تنفيذ go_generate:
         # أسهل: نعيد تعيين data ونكولّد الصفحة:
         # ولكن لتبسيط، نعيد واجهة go_generate مباشرة:
