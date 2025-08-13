@@ -2462,7 +2462,7 @@ def handle_main_menu(c):
                 parse_mode="Markdown"
             )
             logging.info("State set: %s -> %s", uid, user_states.get(int(uid)))
-                return
+            return
 
 
         elif data == "ai_anki":
