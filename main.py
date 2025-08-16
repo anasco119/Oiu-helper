@@ -592,7 +592,7 @@ def update_request_status(file_id, new_status):
     try:
         if not file_id:
             return
-        c.execute('UPDATE requests SET status=? WHERE file_id=?', (new_status, file_id))
+        cursor.execute('UPDATE requests SET status=? WHERE file_id=?', (new_status, file_id))
         conn.commit()
     except Exception:
         logging.exception("update_request_status failed")
