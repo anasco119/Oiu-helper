@@ -550,20 +550,18 @@ def init_user_quiz_db(db_path='quiz_users.db'):
 
 def init_request_db(db_path='requests.db'):
     conn = sqlite3.connect(db_path, check_same_thread=False)
-    cursor = conn.cursor()
-
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS requests (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER,
-        username TEXT,
-        file_id TEXT,
-        status TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    cur = conn.cursor()
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS requests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            username TEXT,
+            file_id TEXT,
+            status TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
-        ''')
+    ''')
     conn.commit()
-
     conn.close()
 
 def init_all_dbs():
@@ -573,30 +571,39 @@ def init_all_dbs():
 
 # track temporary state for custom-major input
 user_states = {}
+import sqlite3, logging
 
 
-def save_request(msg):
+
+def save_request(msg, db_path='requests.db'):
     try:
-        # قد تكون الرسالة نص/صورة وليس لها document
+        conn = sqlite3.connect(db_path, check_same_thread=False)
+        cur = conn.cursor()
         file_id = getattr(getattr(msg, "document", None), "file_id", None)
-        cursor.execute(
+        cur.execute(
             'INSERT INTO requests (user_id, username, file_id, status) VALUES (?, ?, ?, ?)',
-            (msg.from_user.id, msg.from_user.username, file_id or "", 'pending')
+            (msg.from_user.id, msg.from_user.username or "", file_id, 'pending')
         )
         conn.commit()
     except Exception:
         logging.exception("save_request failed")
+    finally:
+        try: conn.close()
+        except: pass
 
-
-def update_request_status(file_id, new_status):
+def update_request_status(file_id, new_status, db_path='requests.db'):
     try:
         if not file_id:
             return
-        cursor.execute('UPDATE requests SET status=? WHERE file_id=?', (new_status, file_id))
+        conn = sqlite3.connect(db_path, check_same_thread=False)
+        cur = conn.cursor()
+        cur.execute('UPDATE requests SET status=? WHERE file_id=?', (new_status, file_id))
         conn.commit()
     except Exception:
         logging.exception("update_request_status failed")
-
+    finally:
+        try: conn.close()
+        except: pass
 
 
 # دالة العامل
@@ -3159,9 +3166,12 @@ def process_message(msg, message_id=None, chat_id=None):
         try:
             if file_id:
                 update_request_status(file_id, 'processing')
+                print(f"🚀 بدء معالجة: {file_id}")
             time.sleep(random.randint(1, 2))  # محاكاة معالجة
+            
             if file_id:
                 update_request_status(file_id, 'done')
+                print(f"✅ تم المعالجة: {file_id}")
         except Exception:
             logging.exception("requests status update failed")
 
@@ -3170,13 +3180,7 @@ def process_message(msg, message_id=None, chat_id=None):
         try:
             uid = msg.from_user.id
             username = msg.from_user.username or "بدون اسم مستخدم"
-            print(f"🚀 بدء معالجة: {file_id}")
-            update_request_status(file_id, 'processing')
-        
-            time.sleep(random.randint(2, 5))  # محاكاة وقت المعالجة
-
-            update_request_status(file_id, 'done')
-            print(f"✅ تم المعالجة: {file_id}")
+    
 
             # إرسال إشعار إلى الأدمن فقط
             # بدل user_id استخدم uid
@@ -3572,7 +3576,7 @@ def process_message(msg, message_id=None, chat_id=None):
                     with open(output_file, 'rb') as file:
                         
                         bot.send_document(
-                            chat_id=uid,
+                            chat_id=chat_id,
                             document=file,
                             caption=f"✅ ملف Anki الخاص بك جاهز!\n\nعدد البطاقات : {len(cards)}",
                             reply_to_message_id=message_id
@@ -3623,7 +3627,7 @@ def process_message(msg, message_id=None, chat_id=None):
             quiz_data = generate_Medical_quizzes(
                 content=content,
                 major="General Medicine",
-                user_id=user_id
+                user_id=uid
             )
         
             if quiz_data:
@@ -3677,7 +3681,7 @@ def process_message(msg, message_id=None, chat_id=None):
                     estimated_time = len(quizzes) * 30  # 30 ثانية لكل سؤال
                     quiz_msg = f"""
                         ✨📝 إختبارك جاهز! ⏰✅
-                       <b>تم توليد الاختبار بنجاح.</b>
+                        <b>تم توليد الاختبار بنجاح.</b>
                         <b>عدد الاختبارات المتاحة: {len(quizzes)}</b>
                         <b>الزمن المقدر لإكمال الاختبار: {estimated_time // 60} دقيقة و {estimated_time % 60} ثانية</b>
                         يمكنك بدأ الإختبار من خلال الرابط التالي :
