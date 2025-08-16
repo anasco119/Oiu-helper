@@ -3790,7 +3790,7 @@ def process_message(msg, message_id=None, chat_id=None):
                     f"👇 <a href=\"{quiz_link}\">اضغط هنا لبدء الاختبار</a>"
                     )
                     try:
-                        bot.edit_message_text(chat_id=uid, message_id=loading_msg.message_id, text=quiz_msg, parse_mode="HTML", disable_web_page_preview=True)
+                        bot.edit_message_text(chat_id=chat_id, message_id=loading_msg.message_id, text=quiz_msg, parse_mode="HTML", disable_web_page_preview=True)
                     except Exception as e:
                         logging.exception("[QUIZ] فشل في إرسال رسالة الاختبار")
 
@@ -3801,6 +3801,13 @@ def process_message(msg, message_id=None, chat_id=None):
                 except Exception as e:
                     print(f"Error in quiz generation: {e}")
                     bot.send_message(uid, "حدث خطأ غير متوقع   .")
+                    bot.edit_message_text(
+                        chat_id=chat_id,
+                        message_id=loading_msg.message_id,
+                        text=quiz_msg,
+                        parse_mode="HTML",
+                        disable_web_page_preview=True
+                    )
             else:
                 print("[QUIZ] التوليد فشل أو رجع None")
                 bot.send_message(uid, "❌ لم يتمكن البوت من توليد الاختبار.")
