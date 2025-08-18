@@ -587,6 +587,7 @@ def init_all_dbs():
 
 # track temporary state for custom-major input
 user_states = {}
+usage_count = {}
 import sqlite3, logging
 
 
@@ -3790,10 +3791,12 @@ def process_message(msg, message_id=None, chat_id=None):
                     f"👇 <a href=\"{quiz_link}\">اضغط هنا لبدء الاختبار</a>"
                     )
                     try:
-                        bot.edit_message_text(chat_id=chat_id, message_id=loading_msg.message_id, text=quiz_msg, parse_mode="HTML", disable_web_page_preview=True)
-                    except Exception as e:
-                        logging.exception("[QUIZ] فشل في إرسال رسالة الاختبار")
-
+                        bot.delete_message(chat_id=chat_id, message_id=loading_msg.message_id)
+                    except Exception as del_err:
+                        print(f"لم يتمكن من حذف رسالة التحميل: {del_err}")
+                
+                    bot.send_message(chat_id, quiz_msg, parse_mode="HTML", disable_web_page_preview=True)
+                    
 
                     with state_lock:
                         user_states.pop(uid, None)
@@ -3801,13 +3804,6 @@ def process_message(msg, message_id=None, chat_id=None):
                 except Exception as e:
                     print(f"Error in quiz generation: {e}")
                     bot.send_message(uid, "حدث خطأ غير متوقع   .")
-                    bot.edit_message_text(
-                        chat_id=chat_id,
-                        message_id=loading_msg.message_id,
-                        text=quiz_msg,
-                        parse_mode="HTML",
-                        disable_web_page_preview=True
-                    )
                     
             else:
                 print("[QUIZ] التوليد فشل أو رجع None")
@@ -3830,6 +3826,8 @@ def process_message(msg, message_id=None, chat_id=None):
                 os.remove(path)
             except Exception as e:
                 print(f"[WARNING] لم يتم حذف الملف المؤقت: {e}")
+
+
 
 
 known_channels = set()
