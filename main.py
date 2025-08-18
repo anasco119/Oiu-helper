@@ -3816,7 +3816,11 @@ def process_message(msg, message_id=None, chat_id=None):
 
 
     except Exception as e:
+        import traceback
         logging.exception("process_message error: %s", e)
+        print("!!!!!!!!!!!!!!!!! حدث خطأ !!!!!!!!!!!!!!!!!!")
+        traceback.print_exc() # هذا السطر سيطبع الخطأ الكامل ومكانه بالضبط
+        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         bot.send_message(uid, "حدث خطأ غير متوقع   .")
     finally:
         # حذف الملف المؤقت إن وُجد
@@ -3825,7 +3829,6 @@ def process_message(msg, message_id=None, chat_id=None):
                 os.remove(path)
             except Exception as e:
                 print(f"[WARNING] لم يتم حذف الملف المؤقت: {e}")
-
 
 
 
