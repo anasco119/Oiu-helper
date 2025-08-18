@@ -2059,18 +2059,29 @@ def unified_start_handler(message):
         """)
         return
     
+    # استخراج الكود
     param = args[1]
     quiz_code = param[5:] if param.startswith("quiz_") else param
 
+    # حالة خاصة لاختبار sample
     if quiz_code == "sample":
-        loading_msg = bot2.send_message(chat_id, "🧠 جاري تحميل الاختبار...")
+        loading_msg = bot2.send_message(chat_id, "🧠 جاري تحميل الاختبار التجريبي...")
         if not quiz_manager.start_quiz(chat_id, quiz_code, bot2, loading_msg.message_id):
             bot2.edit_message_text(
                 chat_id=chat_id,
                 message_id=loading_msg.message_id,
-                text="❌ لم يتم العثور على هذا الاختبار أو انتهت صلاحيته."
+                text="❌ لم يتم العثور على الاختبار التجريبي."
             )
         return
+    
+    # أي كود اختبار آخر
+    loading_msg = bot2.send_message(chat_id, "🧠 جاري تحميل الاختبار...")
+    if not quiz_manager.start_quiz(chat_id, quiz_code, bot2, loading_msg.message_id):
+        bot2.edit_message_text(
+            chat_id=chat_id,
+            message_id=loading_msg.message_id,
+            text="❌ لم يتم العثور على هذا الاختبار أو قد تكون صلاحيته انتهت."
+            )
     # إذا كان كود مختلف، تتصرف حسب الكود عادي
     # ... باقي المعالجة ...
     
@@ -3684,45 +3695,57 @@ def process_message(msg, message_id=None, chat_id=None):
         # ============================
         # Awaiting advanced test file
         # ============================
+        # استخدم مكتبة traceback لتشخيص دقيق
+        
         elif state == "awaiting_advanced_test_file":
-            bot.edit_message_text("🤖 جاري معالجة الملف وإنشاء اختبار ذكي باستخدام الذكاء الاصطناعي...", chat_id=chat_id, message_id=message_id)
+            try:
+                import traceback
+                bot.edit_message_text("🤖 جاري معالجة الملف وإنشاء اختبار ذكي باستخدام الذكاء الاصطناعي...", chat_id=chat_id, message_id=message_id)
 
             
-            if not can_generate(uid):
-                return bot.send_message(uid, "⚠️ لقد استنفدت 3 اختبارات مجانية هذا الشهر.")
+                if not can_generate(uid):
+                    return bot.send_message(uid, "⚠️ لقد استنفدت 3 اختبارات مجانية هذا الشهر.")
 
-            if len(content) > 10000:
-                loading_msg = bot.edit_message_text("🔍 المحتوى كبير، جاري تلخيصه...", chat_id=chat_id, message_id=message_id)
-                try:
-                    content = summarize_long_text(content)
-                except Exception as e:
-                    print("[ERROR] تلخيص المحتوى فشل:", e)
-                    return bot.send_message(uid, "❌ فشل في تلخيص المحتوى. أرسل ملفًا أصغر أو حاول لاحقًا.")
-            else:
-                loading_msg = bot.edit_message_text("🧠 جاري توليد الاختبار، الرجاء الانتظار...", chat_id=chat_id, message_id=message_id)
+                if len(content) > 10000:
+                    loading_msg = bot.edit_message_text("🔍 المحتوى كبير، جاري تلخيصه...", chat_id=chat_id, message_id=message_id)
+                    try:
+                        content = summarize_long_text(content)
+                    except Exception as e:
+                        print("[ERROR] تلخيص المحتوى فشل:", e)
+                        return bot.send_message(uid, "❌ فشل في تلخيص المحتوى. أرسل ملفًا أصغر أو حاول لاحقًا.")
+                else:
+                    loading_msg = bot.edit_message_text("🧠 جاري توليد الاختبار، الرجاء الانتظار...", chat_id=chat_id, message_id=message_id)
 
-            # عرض رسائل التحميل
-            for progress_msg in progress_messages:
-                bot.edit_message_text(chat_id=uid, message_id=loading_msg.message_id, text=progress_msg)
-                time.sleep(1.5)
+                # عرض رسائل التحميل
+                for progress_msg in progress_messages:
+                    bot.edit_message_text(chat_id=uid, message_id=loading_msg.message_id, text=progress_msg)
+                    time.sleep(1.5)
 
-            bot.edit_message_text(chat_id=uid, message_id=loading_msg.message_id,
+                bot.edit_message_text(chat_id=uid, message_id=loading_msg.message_id,
                           text=random.choice(waiting_messages_quiz))
-            time.sleep(2)
+                time.sleep(2)
 
-
-            quiz_data = generate_Medical_quizzes(
-                content=content,
-                major="General Medicine",
-                user_id=uid
-            )
+                print("[ADVANCED_QUIZ] بدء توليد الاختبار الطبي المتقدم...")
+                quiz_data = generate_Medical_quizzes(
+                    content=content,
+                    major="General Medicine",
+                    user_id=uid
+                )
+                print(f"[ADVANCED_QUIZ] نتيجة التوليد: {'نجاح' if quiz_data else 'فشل'}")
         
-            if quiz_data:
-                send_quiz_to_user(chat_id or uid, quiz_data, loading_msg.message_id)
-                with state_lock:
-                    user_states.pop(uid, None)
-            else:
-                bot.reply_to(message, "❌ فشل في إنشاء الاختبار. يرجى المحاولة لاحقاً.")
+                if quiz_data:
+                    send_quiz_to_user(chat_id or uid, quiz_data, loading_msg.message_id)
+                    with state_lock:
+                        user_states.pop(uid, None)
+                else:
+                    bot.reply_to(message, "❌ فشل في إنشاء الاختبار. يرجى المحاولة لاحقاً.")
+            except Exception as e:
+                # --- هذا الجزء هو كاشف الأخطاء ---
+                # سيقوم بطباعة الخطأ الكامل في الـ logs لديك
+                print("!!!!!!!!!!!!!!!!!! خطأ فادح في معالجة الاختبار المتقدم !!!!!!!!!!!!!!!!!!")
+                traceback.print_exc()
+                print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        
                 
 
 
