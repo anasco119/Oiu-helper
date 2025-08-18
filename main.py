@@ -3773,7 +3773,7 @@ def process_message(msg, message_id=None, chat_id=None):
                     print(f"تم توليد {len(quizzes)} سؤالا")
                     # تخزين الاختبار أولاً
                     quiz_code = store_quiz(uid, quizzes)
-                    p("[QUIZ] كود الاختبار:", quiz_code)
+                    print("[QUIZ] كود الاختبار:", quiz_code)
 
                     if not quiz_code:
                         raise Exception("Failed to store quiz")
@@ -3808,6 +3808,7 @@ def process_message(msg, message_id=None, chat_id=None):
                         parse_mode="HTML",
                         disable_web_page_preview=True
                     )
+                    
             else:
                 print("[QUIZ] التوليد فشل أو رجع None")
                 bot.send_message(uid, "❌ لم يتمكن البوت من توليد الاختبار.")
