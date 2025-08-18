@@ -3687,8 +3687,7 @@ def process_message(msg, message_id=None, chat_id=None):
         elif state == "awaiting_advanced_test_file":
             bot.edit_message_text("🤖 جاري معالجة الملف وإنشاء اختبار ذكي باستخدام الذكاء الاصطناعي...", chat_id=chat_id, message_id=message_id)
 
-            # يمكنك هنا الانتقال لحالة انتظار الملف مثلاً
-            user_states[uid] = {'message_id': msg.message_id, 'major': 'طب_بشري'}
+            
             if not can_generate(uid):
                 return bot.send_message(uid, "⚠️ لقد استنفدت 3 اختبارات مجانية هذا الشهر.")
 
@@ -3773,7 +3772,7 @@ def process_message(msg, message_id=None, chat_id=None):
                 try:
                     print(f"تم توليد {len(quizzes)} سؤالا")
                     # تخزين الاختبار أولاً
-                    quiz_code = store_quiz(uid, quizzes)
+                    quiz_code = store_quiz(uid, quizzes, bot)
                     print("[QUIZ] كود الاختبار:", quiz_code)
 
                     if not quiz_code:
