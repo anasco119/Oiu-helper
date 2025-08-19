@@ -2459,14 +2459,24 @@ def handle_main_menu(c):
                     bot.send_message(chat_id, f"🎓 {pretty_name}\nاختر تخصصك:", reply_markup=keyboard)
                 except Exception as e2:
                     print("فشل إرسال رسالة الفرعية:", e2)
+            
             return
 
 
 
     # ---------- التخصص المخصص ----------
         if data == "major_custom":
-            user_states[uid] = "awaiting_major"
+            major = msg.text.strip()
+            uid   = msg.from_user.id
+            
             bot.edit_message_text("📝 أرسل اسم تخصصك (مثال: هندسة طيران، علم البيانات):", chat_id=chat_id, message_id=message_id)
+            try:
+                cursor.execute("INSERT OR REPLACE INTO users(user_id, major) VALUES(?, ?)", (uid, major_key))
+                conn.commit()
+            except Exception as e:
+                print("خطأ في حفظ التخصص:", e)
+                user_states[uid] = "awaiting_simple_test_file"
+                
             return
 
 
