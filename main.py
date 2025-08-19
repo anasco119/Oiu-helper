@@ -91,16 +91,6 @@ def supportme():
         files_processed=files_processed,
         total_users=total_users
     )
-@app.route('/generate_quiz')
-def generate_quiz():
-    # الحصول على JSON من AI (مثال باستخدام نموذج وهمي)
-    ai_response = generate_Medical_quizzes()  # هذه دالة افتراضية لتوليد الاختبار
-    
-    # تحويل النص إلى JSON
-    quiz_data = json.loads(ai_response)
-    
-    # تمرير البيانات للقالب
-    return render_template('quiz.html', quiz=quiz_data)
 
 
 # -------------------------------------------------------------------
