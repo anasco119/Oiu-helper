@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام الاختبارات التفاعلي</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Tajawal', sans-serif;
+        }
+        
+        :root {
+            --primary: #4361ee;
+            --secondary: #3f37c9;
+            --success: #4cc9f0;
+            --danger: #f72585;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --gray: #6c757d;
+            --border: #dee2e6;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            --transition: all 0.3s ease;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+            color: var(--dark);
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px 0;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .logo i {
+            font-size: 2.5rem;
+            color: var(--primary);
+        }
+        
+        .logo h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: var(--secondary);
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            color: var(--gray);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .dashboard {
+            display: flex;
+            justify-content: space-between;
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: var(--shadow);
+        }
+        
+        .stats-card {
+            text-align: center;
+            padding: 15px;
+            flex: 1;
+        }
+        
+        .stats-card:not(:last-child) {
+            border-left: 1px solid var(--border);
+        }
+        
+        .stats-card .number {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+        
+        .stats-card .label {
+            font-size: 0.9rem;
+            color: var(--gray);
+        }
+        
+        .progress-container {
+            margin-top: 25px;
+        }
+        
+        .progress-bar {
+            height: 12px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--success));
+            width: 65%;
+            border-radius: 10px;
+            transition: var(--transition);
+        }
+        
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            color: var(--gray);
+        }
+        
+        .quiz-container {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .quiz-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .question-number {
+            background: var(--primary);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+        
+        .question-type {
+            background: var(--light);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            color: var(--gray);
+        }
+        
+        .question-text {
+            font-size: 1.3rem;
+            margin-bottom: 25px;
+            font-weight: 500;
+            line-height: 1.8;
+        }
+        
+        .options-container {
+            margin: 25px 0;
+        }
+        
+        .option {
+            padding: 15px 20px;
+            background: var(--light);
+            border-radius: 12px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border: 2px solid transparent;
+        }
+        
+        .option:hover {
+            background: #e9f7fe;
+            transform: translateY(-2px);
+        }
+        
+        .option.selected {
+            border-color: var(--primary);
+            background: #e9f7fe;
+        }
+        
+        .option.correct {
+            border-color: #28a745;
+            background: rgba(40, 167, 69, 0.1);
+        }
+        
+        .option.incorrect {
+            border-color: var(--danger);
+            background: rgba(220, 53, 69, 0.1);
+        }
+        
+        .option .index {
+            background: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            flex-shrink: 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .text-input-container {
+            margin: 25px 0;
+        }
+        
+        .text-input {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            font-size: 1.1rem;
+            transition: var(--transition);
+        }
+        
+        .text-input:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+        
+        .btn {
+            padding: 12px 30px;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--secondary);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
+        }
+        
+        .btn-outline {
+            background: transparent;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+        }
+        
+        .btn-outline:hover {
+            background: rgba(67, 97, 238, 0.1);
+        }
+        
+        .results-container {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: var(--shadow);
+            display: none;
+        }
+        
+        .results-header {
+            margin-bottom: 30px;
+        }
+        
+        .results-icon {
+            font-size: 4rem;
+            color: var(--success);
+            margin-bottom: 20px;
+        }
+        
+        .score-circle {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: conic-gradient(var(--success) 75%, var(--light) 0%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 30px;
+            position: relative;
+        }
+        
+        .score-inner {
+            width: 160px;
+            height: 160px;
+            border-radius: 50%;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+        }
+        
+        .score-value {
+            font-size: 2.5rem;
+            color: var(--primary);
+            line-height: 1;
+        }
+        
+        .score-label {
+            font-size: 1.1rem;
+            color: var(--gray);
+        }
+        
+        .results-stats {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin: 30px 0;
+        }
+        
+        .result-stat {
+            background: var(--light);
+            padding: 20px;
+            border-radius: 16px;
+            min-width: 150px;
+        }
+        
+        .result-stat .number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        
+        .result-stat .label {
+            color: var(--gray);
+            margin-top: 5px;
+        }
+        
+        .restart-btn {
+            background: var(--primary);
+            color: white;
+            padding: 15px 40px;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            border: none;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .restart-btn:hover {
+            background: var(--secondary);
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(67, 97, 238, 0.4);
+        }
+        
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: var(--gray);
+            font-size: 0.9rem;
+            margin-top: 30px;
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .stats-card:not(:last-child) {
+                border-left: none;
+                border-bottom: 1px solid var(--border);
+                padding-bottom: 20px;
+            }
+            
+            .controls {
+                flex-direction: column-reverse;
+                gap: 15px;
+            }
+            
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .results-stats {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <i class="fas fa-graduation-cap"></i>
+                <h1>نظام الاختبارات التفاعلي</h1>
+            </div>
+            <p class="subtitle">واجهة احترافية لعرض الأسئلة التفاعلية بأنواع متعددة مع دعم كامل للغة العربية</p>
+        </header>
+        
+        <div class="dashboard">
+            <div class="stats-card">
+                <div class="number">8</div>
+                <div class="label">إجمالي الأسئلة</div>
+            </div>
+            <div class="stats-card">
+                <div class="number">3</div>
+                <div class="label">تم الإجابة</div>
+            </div>
+            <div class="stats-card">
+                <div class="number">5</div>
+                <div class="label">متبقي</div>
+            </div>
+            <div class="stats-card">
+                <div class="number">25:14</div>
+                <div class="label">الوقت المتبقي</div>
+            </div>
+        </div>
+        
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div class="progress-fill"></div>
+            </div>
+            <div class="progress-text">
+                <span>التقدم: 37%</span>
+                <span>السؤال 3 من 8</span>
+            </div>
+        </div>
+        
+        <div class="quiz-container">
+            <div class="quiz-header">
+                <div class="question-number">3</div>
+                <div class="question-type">اختيار متعدد</div>
+            </div>
+            
+            <div class="question-text">
+                أي من اللغات التالية تعتبر لغة برمجة منخفضة المستوى (Low-Level) وتستخدم بشكل أساسي في برمجة الأنظمة المدمجة وأنظمة التشغيل؟
+            </div>
+            
+            <div class="options-container">
+                <div class="option selected">
+                    <div class="index">أ</div>
+                    <div class="text">بايثون (Python)</div>
+                </div>
+                <div class="option">
+                    <div class="index">ب</div>
+                    <div class="text">جافا (Java)</div>
+                </div>
+                <div class="option correct">
+                    <div class="index">ج</div>
+                    <div class="text">سي (C)</div>
+                </div>
+                <div class="option">
+                    <div class="index">د</div>
+                    <div class="text">جافاسكريبت (JavaScript)</div>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <button class="btn btn-outline">
+                    <i class="fas fa-arrow-right"></i> السابق
+                </button>
+                <button class="btn btn-primary">
+                    التالي <i class="fas fa-arrow-left"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div class="quiz-container">
+            <div class="quiz-header">
+                <div class="question-number">4</div>
+                <div class="question-type">إدخال نص</div>
+            </div>
+            
+            <div class="question-text">
+                أكمل الجملة التالية: في نموذج OSI للشبكات، توجد ________ طبقات مسؤولة عن عملية الاتصال بين الأجهزة.
+            </div>
+            
+            <div class="text-input-container">
+                <input type="text" class="text-input" placeholder="أدخل إجابتك هنا...">
+            </div>
+            
+            <div class="controls">
+                <button class="btn btn-outline">
+                    <i class="fas fa-arrow-right"></i> السابق
+                </button>
+                <button class="btn btn-primary">
+                    التالي <i class="fas fa-arrow-left"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div class="results-container" id="results">
+            <div class="results-icon">
+                <i class="fas fa-trophy"></i>
+            </div>
+            <div class="results-header">
+                <h2>تهانينا! لقد أكملت الاختبار</h2>
+                <p>هذه هي نتائجك النهائية</p>
+            </div>
+            
+            <div class="score-circle">
+                <div class="score-inner">
+                    <div class="score-value">86%</div>
+                    <div class="score-label">درجة النجاح</div>
+                </div>
+            </div>
+            
+            <div class="results-stats">
+                <div class="result-stat">
+                    <div class="number">7</div>
+                    <div class="label">إجابات صحيحة</div>
+                </div>
+                <div class="result-stat">
+                    <div class="number">1</div>
+                    <div class="label">إجابات خاطئة</div>
+                </div>
+                <div class="result-stat">
+                    <div class="number">8</div>
+                    <div class="label">إجمالي الأسئلة</div>
+                </div>
+            </div>
+            
+            <button class="restart-btn">
+                <i class="fas fa-redo"></i> إعادة الاختبار
+            </button>
+        </div>
+        
+        <footer>
+            <p>تم التصميم باستخدام HTML, CSS, JavaScript | نظام الاختبارات التفاعلي © 2023</p>
+        </footer>
+    </div>
+
+    <script>
+        // Simulated JSON data structure
+        const quizData = {
+            "title": "اختبار تقني في علوم الحاسوب",
+            "description": "اختبار شامل في مفاهيم البرمجة والشبكات وقواعد البيانات",
+            "duration": 30, // in minutes
+            "questions": [
+                {
+                    "id": 1,
+                    "type": "multiple_choice",
+                    "question": "أي من اللغات التالية تعتبر لغة برمجة كائنية التوجه (OOP) بحتة؟",
+                    "options": ["C", "Java", "Python", "JavaScript"],
+                    "correct_index": 1
+                },
+                {
+                    "id": 2,
+                    "type": "text_input",
+                    "question": "البروتوكول المستخدم بشكل أساسي لتبادل صفحات الويب هو ________.",
+                    "correct_answer": "HTTP"
+                },
+                {
+                    "id": 3,
+                    "type": "multiple_choice",
+                    "question": "أي من قواعد البيانات التالية تعتبر قاعدة بيانات NoSQL؟",
+                    "options": ["MySQL", "PostgreSQL", "MongoDB", "Oracle"],
+                    "correct_index": 2
+                },
+                {
+                    "id": 4,
+                    "type": "text_input",
+                    "question": "في بنية MVC، يمثل الحرف 'M' ________.",
+                    "correct_answer": "النموذج"
+                }
+            ]
+        };
+        
+        // Function to handle option selection
+        document.querySelectorAll('.option').forEach(option => {
+            option.addEventListener('click', function() {
+                // Remove selected class from siblings
+                this.parentElement.querySelectorAll('.option').forEach(opt => {
+                    opt.classList.remove('selected');
+                });
+                
+                // Add selected class to clicked option
+                this.classList.add('selected');
+            });
+        });
+        
+        // Show results when last question is answered
+        document.querySelectorAll('.btn-primary').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.getElementById('results').style.display = 'block';
+            });
+        });
+    </script>
+</body>
+</html>
