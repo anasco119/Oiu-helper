@@ -3734,7 +3734,7 @@ def process_message(msg, message_id=None, chat_id=None):
                 print(f"[ADVANCED_QUIZ] نتيجة التوليد: {'نجاح' if quiz_data else 'فشل'}")
         
                 if quiz_data:
-                    send_quiz_to_user(chat_id or uid, quiz_data, loading_msg.message_id)
+                    send_quiz_to_user(chat_id, quiz_data, loading_msg.message_id)
                     with state_lock:
                         user_states.pop(uid, None)
                 else:
