@@ -972,56 +972,64 @@ def can_generate(user_id: int) -> bool:
     if user_id == ADMIN_ID:
         return True
     
+    # استخدام 'with' يضمن فتح وإغلاق الاتصال بشكل آمن
     try:
-        # التحقق من عدد المحاولات أولاً
-        today = datetime.utcnow().date()
-        cursor.execute("SELECT quiz_count, last_reset FROM users WHERE user_id = ?", (user_id,))
-        row = cursor.fetchone()
-        
-        if not row:
-            # مستخدم جديد
-            cursor.execute("INSERT INTO users (user_id, quiz_count, last_reset) VALUES (?, ?, ?)", (user_id, 0, today.isoformat()))
-            conn.commit()
-            quiz_count = 0
-        else:
-            quiz_count, last_reset = row
-            last_reset_date = None
-            try:
-                if last_reset:
-                    last_reset_date = datetime.fromisoformat(last_reset).date()
-            except Exception as e:
-                logging.warning(f"⚠️ last_reset غير صالحة للمستخدم {user_id}: {e}")
-                last_reset_date = None
+        with sqlite3.connect("quiz_users.db", check_same_thread=False) as conn:
+            cursor = conn.cursor()
             
-            # تحقق من الدخول في شهر جديد
-            if not last_reset_date or last_reset_date.month != today.month or last_reset_date.year != today.year:
-                cursor.execute("UPDATE users SET quiz_count = 0, last_reset = ? WHERE user_id = ?", (today.isoformat(), user_id))
+            today = datetime.utcnow().date()
+            cursor.execute("SELECT quiz_count, last_reset FROM users WHERE user_id = ?", (user_id,))
+            row = cursor.fetchone()
+            
+            quiz_count = 0  # قيمة افتراضية
+
+            if not row:
+                # مستخدم جديد
+                cursor.execute("INSERT INTO users (user_id, quiz_count, last_reset) VALUES (?, ?, ?)", (user_id, 0, today.isoformat()))
                 conn.commit()
                 quiz_count = 0
-        
-        # التحقق من عدد المحاولات
-        if quiz_count >= MAX_FREE_ATTEMPTS:
-            # التحقق من القنوات المسموح بها إذا تجاوز الحد
-            try:
-                raw = os.getenv("ALLOWED_CHANNELS", "")
-                allowed_channels = set(int(cid) for cid in raw.split(",") if cid.strip())
-                for channel_id in allowed_channels:
-                    try:
-                        member = bot.get_chat_member(chat_id=channel_id, user_id=user_id)
-                        if member.status in ['member', 'administrator', 'creator']:
-                            return True  # مستخدم مميز
-                    except Exception as e:
-                        logging.warning(f"⚠️ فشل التحقق من القناة {channel_id} للمستخدم {user_id}: {e}")
-                return False  # ليس عضوًا في أي قناة مسموح بها
-            except Exception as e:
-                logging.error(f"🚫 خطأ في قراءة القنوات المسموح بها: {e}")
-                return False
-        else:
-            return True  # ضمن الحد المسموح به
+            else:
+                quiz_count, last_reset = row
+                last_reset_date = None
+                try:
+                    if last_reset:
+                        last_reset_date = datetime.fromisoformat(last_reset).date()
+                except Exception as e:
+                    logging.warning(f"⚠️ last_reset غير صالحة للمستخدم {user_id}: {e}")
+                    last_reset_date = None
+                
+                # تحقق من الدخول في شهر جديد
+                if not last_reset_date or last_reset_date.month != today.month or last_reset_date.year != today.year:
+                    cursor.execute("UPDATE users SET quiz_count = 0, last_reset = ? WHERE user_id = ?", (today.isoformat(), user_id))
+                    conn.commit()
+                    quiz_count = 0
+            
+            # التحقق من عدد المحاولات
+            if quiz_count >= MAX_FREE_ATTEMPTS:
+                # التحقق من القنوات المسموح بها إذا تجاوز الحد
+                try:
+                    raw = os.getenv("ALLOWED_CHANNELS", "")
+                    if not raw.strip(): return False # إذا لم تكن هناك قنوات، لا تسمح
+                    
+                    allowed_channels = set(int(cid) for cid in raw.split(",") if cid.strip())
+                    for channel_id in allowed_channels:
+                        try:
+                            member = bot.get_chat_member(chat_id=channel_id, user_id=user_id)
+                            if member.status in ['member', 'administrator', 'creator']:
+                                return True  # مستخدم مميز
+                        except Exception as e:
+                            logging.warning(f"⚠️ فشل التحقق من القناة {channel_id} للمستخدم {user_id}: {e}")
+                    return False  # ليس عضوًا في أي قناة مسموح بها
+                except Exception as e:
+                    logging.error(f"🚫 خطأ في قراءة القنوات المسموح بها: {e}")
+                    return False
+            else:
+                return True  # ضمن الحد المسموح به
     
     except Exception as e:
-        logging.error(f"🚫 خطأ في دالة can_generate: {e}")
+        logging.error(f"🚫 خطأ فادح في دالة can_generate: {e}")
         return False
+        
 
 
 
@@ -3700,7 +3708,7 @@ def process_message(msg, message_id=None, chat_id=None):
             import traceback
     
             # احتفظ بالـ ID الأصلي للرسالة والدردشة في متغيرات آمنة
-            original_chat_id = chat_id
+            original_chat_id = msg.chat.id
             original_message_id = message_id
 
             try:
