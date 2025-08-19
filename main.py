@@ -1592,34 +1592,25 @@ Correct index: {correct_index}
     response = generate_smart_response(prompt).strip().lower()
     return "yes" in response
 
-def send_quiz_to_user(chat_id, quiz_data, message_id=None):
-    # إنشاء زر الرابط
+# عدّل هذه الدالة
+def send_quiz_to_user(chat_id, quiz_data, message_id=None): # message_id يصبح اختيارياً
     markup = InlineKeyboardMarkup()
     quiz_url = f"{WEBHOOK_URL}/quiz/{quiz_data['db_id']}"
-    btn = InlineKeyboardButton("فتح الاختبار", url=quiz_url)
+    btn = InlineKeyboardButton("🚀 فتح الاختبار", url=quiz_url)
     markup.add(btn)
     
-    # إرسال الرسالة
     message = f"""
     🏆 تم إنشاء اختبارك الطبي بنجاح!
     العنوان: {quiz_data['title']}
     عدد الأسئلة: {len(quiz_data['questions'])}
     """
-    if message_id:
-        bot.edit_message_text(
-            chat_id,
-            message,
-            message_id=message_id,
-            reply_markup=markup
-        )
-    else:
-        bot.send_message(
-            chat_id,
-            message,
-            reply_markup=markup
-        )
-
-
+    # احذف الشرط وأرسل رسالة جديدة دائمًا
+    bot.send_message(
+        chat_id,
+        message,
+        reply_markup=markup
+    )
+    
 def process_pending_inference_questions():
     cursor.execute("SELECT id, question, options, correct_index FROM inference_questions WHERE approved = 0")
     pending = cursor.fetchall()
@@ -3750,7 +3741,7 @@ def process_message(msg, message_id=None, chat_id=None):
     
                 if quiz_data:
                     # 4. إرسال النتيجة النهائية
-                    send_quiz_to_user(original_chat_id, quiz_data, original_message_id)
+                    send_quiz_to_user(original_chat_id, quiz_data)
                 else:
                     bot.edit_message_text("❌ فشل في إنشاء الاختبار. قد يكون المحتوى غير مناسب. يرجى المحاولة لاحقاً.", chat_id=original_chat_id, message_id=original_message_id)
 
