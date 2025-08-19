@@ -3106,11 +3106,7 @@ def set_custom_major(msg):
         uid = msg.from_user.id
 
         # حفظ التخصص في DB
-        cursor.execute(
-            "INSERT OR REPLACE INTO users(user_id, major) VALUES(?, ?)",
-            (uid, major)
-        )
-        conn.commit()
+        save_user_major(uid, major)
     
         # إخطار الأدمن
         bot.send_message(
@@ -3119,7 +3115,7 @@ def set_custom_major(msg):
             f"👤 @{msg.from_user.username or msg.from_user.id}\n"
             f"📚 التخصص: {major}"
         )
-    
+        
         # تغيير الحالة للانتظار لاحقاً
         user_states[uid] = "awaiting_simple_test_file"
     
