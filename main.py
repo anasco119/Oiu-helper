@@ -2457,17 +2457,9 @@ def handle_main_menu(c):
 
     # ---------- التخصص المخصص ----------
         if data == "major_custom":
-            major = msg.text.strip()
-            uid   = msg.from_user.id
-            
+            user_states[uid] = "awaiting_major"
             bot.edit_message_text("📝 أرسل اسم تخصصك (مثال: هندسة طيران، علم البيانات):", chat_id=chat_id, message_id=message_id)
-            try:
-                cursor.execute("INSERT OR REPLACE INTO users(user_id, major) VALUES(?, ?)", (uid, major_key))
-                conn.commit()
-            except Exception as e:
-                print("خطأ في حفظ التخصص:", e)
-                user_states[uid] = "awaiting_simple_test_file"
-                
+            
             return
 
 
@@ -3109,27 +3101,37 @@ def handle_main_menu(c):
 
 @bot.message_handler(func=lambda m: user_states.get(m.from_user.id) == "awaiting_major", content_types=['text'])
 def set_custom_major(msg):
-    if msg.chat.type != "private":
-        return  # تجاهل الرسائل في المجموعات
-    major = msg.text.strip()
-    uid   = msg.from_user.id
+    try:
+        major = msg.text.strip()
+        uid = msg.from_user.id
 
-
-    cursor.execute(
-        "INSERT OR REPLACE INTO users(user_id, major) VALUES(?, ?)",
-        (uid, major)
-    )
-    conn.commit()
-    user_states.pop(uid, None)
-
-    # notify admin
-    bot.send_message(ADMIN_ID,
-        f"🆕 تخصص جديد أُرسل من المستخدم:\n"
-        f"👤 @{msg.from_user.username or msg.from_user.id}\n"
-        f"📚 التخصص: {major}"
+        # حفظ التخصص في DB
+        cursor.execute(
+            "INSERT OR REPLACE INTO users(user_id, major) VALUES(?, ?)",
+            (uid, major)
         )
-    user_states[uid] = "awaiting_simple_test_file"
- 
+        conn.commit()
+    
+        # إخطار الأدمن
+        bot.send_message(
+            ADMIN_ID,
+            f"🆕 تخصص جديد أُرسل من المستخدم:\n"
+            f"👤 @{msg.from_user.username or msg.from_user.id}\n"
+            f"📚 التخصص: {major}"
+        )
+    
+        # تغيير الحالة للانتظار لاحقاً
+        user_states[uid] = "awaiting_simple_test_file"
+    
+        # إرسال رسالة تأكيد
+        bot.send_message(
+            uid,
+            f"✅ تم تحديد تخصصك: {major}\n"
+            f"الآن أرسل ملف (PDF/DOCX/TXT) أو نصًا مباشرًا لتوليد اختبارك."
+        )
+    except Exception as e:
+        logging.error(f"Error in set_custom_major: {e}")
+        bot.send_message(uid, "❌ حدث خطأ أثناء معالجة طلبك، يرجى المحاولة لاحقاً")
 @bot.message_handler(func=lambda m: user_states.get(m.from_user.id) in [
     "awaiting_major_for_games",
     "awaiting_custom_major"
