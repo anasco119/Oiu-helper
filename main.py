@@ -1967,14 +1967,12 @@ class QuizManager:
             types.InlineKeyboardButton(
                 "📤 مشاركة الاختبار",
                 callback_data=f"share_quiz:{state['quiz_code']}"
+            ),
+            types.InlineKeyboardButton(
+                "➡️ العودة الى TestGenie ✨",
+                url="https://t.me/Oiuhelper_bot"
             )
         )
-        keyboard.row(
-        types.InlineKeyboardButton(
-            "➡️ العودة الى TestGenie ✨",
-            url="https://t.me/Oiuhelper_bot"
-        )
-    )
         
         end_msg = bot2.send_message(
             chat_id,
