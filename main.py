@@ -1943,20 +1943,20 @@ class QuizManager:
             bot2.send_message(chat_id, "⚠️ حدث خطأ في الاختبار. يرجى المحاولة لاحقًا")
             return
             
-            total = len(state['quizzes'])
-            score = state['score']
-            quiz_code = state['quiz_code']
+        total = len(state['quizzes'])
+        score = state['score']
+        quiz_code = state['quiz_code']
 
                 # حفظ النتيجة في DB
-            conn = sqlite3.connect("quiz_users.db")
-            cursor = conn.cursor()
-            cursor.execute("""
-                UPDATE user_quizzes
-                SET score = ?, total = ?, timestamp = ?
-                WHERE quiz_code = ?
-            """, (score, total, datetime.now().isoformat(), state['quiz_code']))
-            conn.commit()
-            conn.close()
+        conn = sqlite3.connect("quiz_users.db")
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE user_quizzes
+            SET score = ?, total = ?, timestamp = ?
+            WHERE quiz_code = ?
+        """, (score, total, datetime.now().isoformat(), state['quiz_code']))
+        conn.commit()
+        conn.close()
 
         keyboard = types.InlineKeyboardMarkup()
         keyboard.row(
