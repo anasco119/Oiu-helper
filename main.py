@@ -2088,30 +2088,36 @@ def handle_main_menu(c):
             
         
     elif data.startswith("share_quiz:"):
-        quiz_code = data.split(":", 1)[1]
+        quiz_code = data[6:]
         chat_id = c.message.chat.id  # ← تأكد من تعيين chat_id هنا
 
         try:
-            user_chat = bot2.get_chat(user_id)
-            shared_by_name = user_chat.first_name or user_chat.username or f"user_{user_id}"
+            user_chat = bot2.get_chat(uid)
+            shared_by_name = user_chat.first_name or user_chat.username or f"user_{uid}"
         except Exception:
             shared_by_name = "صديقك"
 
-        log_quiz_share(quiz_code, user_id, shared_by_name)
+        log_quiz_share(quiz_code, uid, shared_by_name)
 
         share_link = f"https://t.me/QuizzyAI_bot?start=quiz_{quiz_code}"
+        msg_text_share = f"""📢 {shared_by_name} أرسل لك هذا الاختبار!  
+
+            جربه واختبر معلوماتك 👇  
+            🔗 <a href="{share_link}">{share_link}</a>
+            """
 
         msg_text = f"""<b>🎉 شارك هذا الاختبار مع زملائك!</b>
 
     انسخ الرابط أدناه أو اضغط لفتحه مباشرة:
     🔗 <a href="{share_link}">{share_link}</a>
 
-    📝 عند فتح الرابط، سيبدأ الاختبار تلقائيًا بإذن الله.
+    📝 عند فتح الرابط، سيبدأ الاختبار تلقائيًا بإذن الله.  
+    📢 بمشاركتك هذا الاختبار قد يصير عامًا و يستطيع الآخرين مشاركته.
     """
 
         keyboard = types.InlineKeyboardMarkup()
         keyboard.add(
-            types.InlineKeyboardButton("🔗 نسخ الرابط", switch_inline_query=share_link),
+            types.InlineKeyboardButton("🔗 نسخ الرابط", switch_inline_query=msg_text_share),
             types.InlineKeyboardButton("🏠 القائمة الرئيسية", callback_data="go_back_home")
         )
 
