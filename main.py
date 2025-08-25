@@ -1127,25 +1127,28 @@ def extract_json_from_string(text: str) -> str:
     # كخيار أخير، أرجع النص كما هو
     return text
     
-def generate_quizzes_from_text(content: str, major: str, user_id: int, num_quizzes: int = 10):  # <-- أضف user_id
+def generate_quizzes_from_text(content: str, major: str, user_id: int, num_quizzes: int = 10):
     prompt = (
-    f"You are a strict AI quiz generator. Your only task is to generate a JSON array of {num_quizzes} quiz questions "
-    f"that are based **strictly and only** on the information explicitly stated in the following content.\n\n"
-    "❗️Important Rules:\n"
-    "- DO NOT invent, infer, or assume any information not clearly mentioned in the text.\n"
-    "- If a concept is not explained or mentioned clearly in the content, DO NOT create a question about it.\n"
-    "- Stay fully inside the boundaries of the content.\n"
-    "- Every question must test **recall** or **recognition** from the provided text only, not general knowledge.\n\n"
-    "Each question must be an object with:\n"
-    "- 'question': the question string\n"
-    "- 'options': a list of exactly 4 answer options\n"
-    "- 'correct_index': the index (0-3) of the correct answer in the options list\n"
-    "- 'explanation': short sentence to explain **why this is the correct answer**, max 2 lines\n\n"
-    "⚠️ Format Instructions:\n"
-    "- ONLY return a raw JSON array. No markdown, no explanation, no formatting.\n"
-    "- Do not include any introductory or closing text.\n"
-    "- Ensure the JSON is valid and parsable.\n\n"
-    f"Content:\n{content}"
+        f"You are a strict AI quiz generator. Your only task is to generate a JSON array of {num_quizzes} quiz questions "
+        f"that are based **strictly and only** on the information explicitly stated in the following content.\n\n"
+        "❗️Important Rules:\n"
+        "- DO NOT invent, infer, or assume any information not clearly mentioned in the text.\n"
+        "- If a concept is not explained or mentioned clearly in the content, DO NOT create a question about it.\n"
+        "- Stay fully inside the boundaries of the content.\n"
+        "- Every question must test **recall** or **recognition** from the provided text only, not general knowledge.\n"
+        "- Questions must be varied: some fill-in-the-blank, some multiple-choice.\n"
+        "- Include at most one True/False question.\n"
+        "- All questions and answers must be in the same language as the content.\n\n"
+        "Each question must be an object with:\n"
+        "- 'question': the question string\n"
+        "- 'options': a list of exactly 4 answer options\n"
+        "- 'correct_index': the index (0-3) of the correct answer in the options list\n"
+        "- 'explanation': short sentence to explain **why this is the correct answer**, max 2 lines\n\n"
+        "⚠️ Format Instructions:\n"
+        "- ONLY return a raw JSON array. No markdown, no explanation, no formatting.\n"
+        "- Do not include any introductory or closing text.\n"
+        "- Ensure the JSON is valid and parsable.\n\n"
+        f"Content:\n{content}"
     )
 
     # تحديد الدالة بناءً على صلاحية المستخدم
@@ -1959,20 +1962,9 @@ class QuizManager:
         conn.close()
 
         keyboard = types.InlineKeyboardMarkup()
-        keyboard.row(
-            types.InlineKeyboardButton(
-                "🔄 إعادة الاختبار",
-                callback_data=f"retry:{state['quiz_code']}"
-            ),
-            types.InlineKeyboardButton(
-                "📤 مشاركة الاختبار",
-                callback_data=f"share_quiz:{state['quiz_code']}"
-            ),
-            types.InlineKeyboardButton(
-                "➡️ العودة الى TestGenie ✨",
-                url="https://t.me/Oiuhelper_bot"
-            )
-        )
+        keyboard.add(types.InlineKeyboardButton("🔄 إعادة الاختبار", callback_data=f"retry:{quiz_code}"))
+        keyboard.add(types.InlineKeyboardButton("📤 مشاركة الاختبار", callback_data=f"share_quiz:{quiz_code}"))
+        keyboard.add(types.InlineKeyboardButton("➡️ العودة الى TestGenie ✨", url="https://t.me/Oiuhelper_bot"))
         
         end_msg = bot2.send_message(
             chat_id,
