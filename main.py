@@ -1138,7 +1138,8 @@ def generate_quizzes_from_text(content: str, major: str, user_id: int, num_quizz
         "- Every question must test **recall** or **recognition** from the provided text only, not general knowledge.\n"
         "- Questions must be varied: some fill-in-the-blank, some multiple-choice.\n"
         "- Include at most one True/False question.\n"
-        "- All questions and answers must be in the same language as the content.\n\n"
+        "- All questions and answers must be in the same language as the content.\n"
+        "- if the content language is arabic give the questions and answers in arabic.\n\n"
         "Each question must be an object with:\n"
         "- 'question': the question string\n"
         "- 'options': a list of exactly 4 answer options\n"
@@ -2095,7 +2096,7 @@ def handle_main_menu(c):
         msg_text_share = f"""📢 {shared_by_name} أرسل لك هذا الاختبار!  
 
             جربه واختبر معلوماتك 👇  
-            🔗 <a href="{share_link}">{share_link}</a>
+            🔗 {share_link}
             """
 
         msg_text = f"""<b>🎉 شارك هذا الاختبار مع زملائك!</b>
@@ -2104,7 +2105,7 @@ def handle_main_menu(c):
     🔗 <a href="{share_link}">{share_link}</a>
 
     📝 عند فتح الرابط، سيبدأ الاختبار تلقائيًا بإذن الله.  
-    📢 بمشاركتك هذا الاختبار قد يصير عامًا و يستطيع الآخرين مشاركته.
+    📢 بمشاركتك هذا الاختبار قد يصير عامًا.
     """
 
         keyboard = types.InlineKeyboardMarkup()
@@ -2113,7 +2114,7 @@ def handle_main_menu(c):
             types.InlineKeyboardButton("🏠 القائمة الرئيسية", callback_data="go_back_home")
         )
 
-        bot2.send_message(chat_id, msg_text, parse_mode="HTML", reply_markup=keyboard)
+        bot2.edit_message_text(msg_text, chat_id=chat_id, message_id=message_id, parse_mode="HTML", reply_markup=keyboard)
 
 
 @bot.message_handler(commands=['start'])
