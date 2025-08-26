@@ -3324,14 +3324,24 @@ def process_message(msg, message_id=None, chat_id=None):
             ext = path.rsplit(".", 1)[-1].lower()
             # بعد الاستخراج العادي
             if ext == "pdf":
-                content = extract_text_from_pdf(path)
+                content_full = extract_text_from_pdf(path)  # النص الكامل
+                full_length = len(content_full)
+
                 # إذا المستخدم غير مشترك، اقتطع فقط 3000 حرف
                 if not can_generate(uid):
-                    content = content[:3000]
-                    coverage = "
+                    content = content_full[:3000]
+                    coverage_ratio = (len(content) / full_length) * 100 if full_length > 0 else 0
+                    coverage = f"{coverage_ratio:.1f}% من الملف"
+                else:
+                    content = content_full
+                    coverage = "كاملة ✅"
+
                 if is_text_empty(content):
                     if not can_generate(uid):
-                        return bot.send_message(uid, "⚠️ لا يمكن قراءة هذا الملف تلقائيًا. تتطلب المعالجة المتقدمة اشتراكًا فعالًا.")
+                        return bot.send_message(
+                            uid,
+                            "⚠️ لا يمكن قراءة هذا الملف تلقائيًا. تتطلب المعالجة المتقدمة اشتراكًا فعالًا."
+                        )
                     bot.reply_to(msg, "⏳ يتم تجهيز الملف... الرجاء الانتظار لحظات.")
                     language = detect_language_from_filename(msg.document.file_name)
                     content, ocr_debug = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language=language)
@@ -3347,6 +3357,7 @@ def process_message(msg, message_id=None, chat_id=None):
                 # إذا المستخدم غير مشترك، اقتطع فقط 3000 حرف
                 if not can_generate(uid):
                     content = content[:3000]
+                    
                 if is_text_empty(content):
                     if not can_generate(uid):
                         return bot.send_message(uid, "⚠️ لا يمكن قراءة هذا الملف تلقائيًا. تتطلب المعالجة المتقدمة اشتراكًا فعالًا.")
