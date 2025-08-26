@@ -1241,19 +1241,18 @@ def search_image_on_wikimedia(query: str) -> str:
         return ""
 
 def generate_Medical_quizzes(content: str, major: str, user_id: int, num_quizzes: int = 10):
-    # وصف احترافي بدون روابط صور، مع استخدام image_prompt
+    # (البرومبت المحسن من الخطوة 2 يجب وضعه هنا)
     prompt = (
         f"You are a medical education expert. Your task is to create a JSON-formatted quiz for {major} "
         "medical students (Year 3-4) based ONLY on the provided reference text.\n\n"
-        
-        "## STRICT RULES:\n"
-        "1. 70% multiple-choice (basic sciences), 30% problem-solving (clinical cases).\n"
-        "2. Use only information from the reference text.\n"
-        "3. Clinical questions must have realistic short scenarios (2-3 sentences).\n"
-        "4. For any question that would benefit from an image (histology, anatomy, pathology, radiology, dermatology),\n"
-        "   add an 'image_prompt' field describing the ideal image (DO NOT provide a direct URL).\n"
-        "5. Language: English.\n\n"
-
+        "## EXTREMELY STRICT RULES:\n"
+        f"1. You MUST STRICTLY generate {num_quizzes} questions. No more, no less.\n"
+        "2. 70% multiple-choice (basic sciences), 30% problem-solving (clinical cases).\n"
+        "3. Use only information from the reference text.\n"
+        "4. Clinical questions must have realistic short scenarios (2-3 sentences).\n"
+        "5. For any question that would benefit from an image, add an 'image_prompt' field.\n"
+        "6. Language: English.\n"
+        "7. CRITICAL: The 'questions' array MUST NOT be empty. If you cannot generate questions from the text, return an empty JSON object {} and nothing else.\n\n"
         "## JSON OUTPUT STRUCTURE:\n"
         "{\n"
         "  \"title\": \"Medical Quiz in [major]\",\n"
@@ -1265,69 +1264,63 @@ def generate_Medical_quizzes(content: str, major: str, user_id: int, num_quizzes
         "      \"options\": [\"...\", \"...\", \"...\", \"...\"],\n"
         "      \"correct_index\": 0,\n"
         "      \"image_prompt\": \"Description of the image (optional)\"\n"
-        "    },\n"
-        "    {\n"
-        "      \"id\": 2,\n"
-        "      \"type\": \"problem_solving\",\n"
-        "      \"question\": \"...\",\n"
-        "      \"correct_answer\": \"...\",\n"
-        "      \"image_prompt\": \"Description of the image (optional)\"\n"
         "    }\n"
         "  ]\n"
         "}\n\n"
-        
         f"## Reference text:\n{content}"
     )
 
-    # اختيار النموذج
-    if user_id == ADMIN_ID or can_generate(user_id):
-        raw_response = generate_smart_response(prompt)
-    else:
-        raw_response = generate_gemini_response(prompt)
-    
-    # استخراج JSON من النص
-    clean_json_str = extract_json_from_string(raw_response)
-    if not clean_json_str:
-        logging.error(f"❌ JSON extraction failed:\n{raw_response}")
-        return None
+    # --- آلية إعادة المحاولة (الخطوة 3) ---
+    for attempt in range(3):  # سيحاول حتى 3 مرات
+        logging.info(f"Attempt {attempt + 1} to generate medical quiz...")
+        
+        # اختيار النموذج
+        if user_id == ADMIN_ID or can_generate(user_id):
+            raw_response = generate_smart_response(prompt)
+        else:
+            raw_response = generate_gemini_response(prompt)
+        
+        clean_json_str = extract_json_from_string(raw_response)
+        if not clean_json_str or clean_json_str == "{}":
+            logging.warning(f"Attempt {attempt + 1} failed: AI returned empty response.")
+            continue # انتقل للمحاولة التالية
 
-    try:
-        quiz_data = json.loads(clean_json_str)
+        try:
+            quiz_data = json.loads(clean_json_str)
 
-        # تحقق من البنية
-        if "title" not in quiz_data or "questions" not in quiz_data:
-            raise ValueError("Invalid JSON structure")
+            # --- التحقق المشدد (الخطوة 1) ---
+            if "title" not in quiz_data or not quiz_data.get("questions"):
+                raise ValueError("Invalid JSON: missing title or questions array is empty.")
 
-        # إضافة الصور من Wikimedia إذا كان هناك image_prompt
-        for i, q in enumerate(quiz_data["questions"]):
-            if "image_prompt" in q and q["image_prompt"].strip():
-                image_url = search_image_on_wikimedia(q["image_prompt"])
-                if image_url:
-                    q["image_url"] = image_url
+            # --- المعالجة الناجحة ---
+            for i, q in enumerate(quiz_data["questions"]):
+                if "image_prompt" in q and q["image_prompt"].strip():
+                    image_url = search_image_on_wikimedia(q["image_prompt"])
+                    q["image_url"] = image_url if image_url else ""
                 else:
-                    q["image_url"] = ""  # لا توجد صورة
-            else:
-                q["image_url"] = ""  # سؤال بدون صورة
-            
-            # إضافة ID إذا مفقود
-            if "id" not in q:
-                q["id"] = i + 1
+                    q["image_url"] = ""
+                if "id" not in q:
+                    q["id"] = i + 1
 
-        # تعديل العنوان ليحتوي على التخصص
-        if major not in quiz_data["title"]:
-            quiz_data["title"] = f"Medical Quiz in {major}"
+            if major not in quiz_data["title"]:
+                quiz_data["title"] = f"Medical Quiz in {major}"
 
-        quiz_id = save_quiz_to_db(quiz_data, user_id)
-        quiz_data["db_id"] = quiz_id
+            quiz_id = save_quiz_to_db(quiz_data, user_id)
+            quiz_data["db_id"] = quiz_id
 
-        return quiz_data
+            logging.info(f"Successfully generated quiz on attempt {attempt + 1}.")
+            return quiz_data # إرجاع البيانات الناجحة وإنهاء الدالة
 
-    except (json.JSONDecodeError, ValueError) as e:
-        logging.error(f"❌ JSON processing failed: {e}\nClean string:\n{clean_json_str}")
-        return None
-    except (json.JSONDecodeError, ValueError) as e:
-        logging.error(f"❌ فشل معالجة JSON: {e}\nالسلسلة النظيفة:\n{clean_json_str}")
-        return None
+        except (json.JSONDecodeError, ValueError) as e:
+            # --- تسجيل الخطأ للتشخيص (الخطوة 4) ---
+            logging.error(f"Attempt {attempt + 1} failed during JSON processing: {e}")
+            logging.error(f"RAW AI RESPONSE WAS:\n{raw_response}\n")
+            continue # انتقل للمحاولة التالية
+
+    # إذا فشلت كل المحاولات
+    logging.error("All 3 attempts to generate medical quiz failed.")
+    return None
+    
 
 
 def generate_anki_cards_from_text(content: str, major: str = "General", user_id: int = 0, num_cards: int = 15) -> tuple:
