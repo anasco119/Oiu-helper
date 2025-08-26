@@ -3201,6 +3201,7 @@ def unified_handler(msg):
 # -------------------------------------------------------------------
 # الدالة التي تنفذ فعليًا المعالجة (تعمل داخل العامل)
 # -------------------------------------------------------------------
+user_files = {}
 def process_message(msg, message_id=None, chat_id=None):
     logging.info("process_message enter: uid=%s type=%s", msg.from_user.id, msg.content_type)
 
@@ -3295,6 +3296,7 @@ def process_message(msg, message_id=None, chat_id=None):
             path = os.path.join("downloads", f"{uid}_photo.jpg")
             with open(path, "wb") as f:
                 f.write(file_data)
+            
 
             bot.edit_message_text("🖼️ جاري استخراج النص من الصورة...", chat_id=chat_id, message_id=message_id)
 
@@ -3316,6 +3318,8 @@ def process_message(msg, message_id=None, chat_id=None):
 
             with open(path, "wb") as f:
                 f.write(file_data)
+                
+            user_files[uid] = "file_data"
 
             ext = path.rsplit(".", 1)[-1].lower()
             # بعد الاستخراج العادي
@@ -3324,6 +3328,7 @@ def process_message(msg, message_id=None, chat_id=None):
                 # إذا المستخدم غير مشترك، اقتطع فقط 3000 حرف
                 if not can_generate(uid):
                     content = content[:3000]
+                    coverage = "
                 if is_text_empty(content):
                     if not can_generate(uid):
                         return bot.send_message(uid, "⚠️ لا يمكن قراءة هذا الملف تلقائيًا. تتطلب المعالجة المتقدمة اشتراكًا فعالًا.")
@@ -3793,17 +3798,26 @@ def process_message(msg, message_id=None, chat_id=None):
                     if not quiz_code:
                         raise Exception("Failed to store quiz")
                     waiting_quiz = loading_msg.message_id
+                    coverage =
+                    level = "متوسط"
+                    
 
                     # إرسال رسالة "إختبارك جاهز" مع رابط الاختبار
                     quiz_link = f"https://t.me/QuizzyAI_bot?start=quiz_{quiz_code}"
                     estimated_time = len(quizzes) * 30
                     quiz_msg = (
-                    "✨📝 <b>إختبارك جاهز!</b>\n"
-                    "──────────────────\n"
-                    "✅ <b>تم توليد الاختبار بنجاح.</b>\n\n"
-                    f"📋 <b>عدد الأسئلة:</b> {len(quizzes)}\n"
-                    f"⏱️ <b>الزمن المقدر:</b> {estimated_time // 60} دقيقة و {estimated_time % 60} ثانية\n\n"
-                    f"👇 <a href=\"{quiz_link}\">اضغط هنا لبدء الاختبار</a>"
+             "✨✔️ <b>إختبارك جاهز!</b>\n"
+             "──────────────────\n"
+            f"📂 <b>العنوان:</b> {msg.document.file_name}\n\n"
+            f"📋 <b>عدد الأسئلة:</b> {len(quizzes)}\n"
+            f"⏱️ <b>الزمن الكلي:</b> {estimated_time // 60} دقيقة و {estimated_time % 60} ثانية\n"
+            "🎓 <b>التخصص:</b> {major} \n"
+            "📦 <b>نوع الاختبار:</b> خاص\n\n"
+            f"📉 <b>التغطية:</b> {coverage}\n"
+            "💡 <b>ميزة الشرح:</b> غير متوفرة\n"
+            f"📊 <b>المستوى:</b> {level}\n\n"
+            "❓هل أنت جاهز للإختبار\n"
+            f"👈 <a href=\"{quiz_link}\">اضغط هنا للبدء</a>"
                     )
                     try:
                         bot.delete_message(chat_id=chat_id, message_id=loading_msg.message_id)
