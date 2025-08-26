@@ -573,28 +573,27 @@
         </footer>
     </div>
 
+
+    
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // بيانات الاختبار من Flask
-            const quizData = {
-                title: "{{ quiz.title }}",
-                questions: [
-                    {% for question in quiz.questions %}
-                    {
-                        id: {{ question.id }},
-                        type: "{{ question.type }}",
-                        question: "{{ question.question }}",
-                        {% if question.type == "multiple_choice" %}
-                        options: {{ question.options | tojson }},
-                        correct_index: {{ question.correct_index }}
-                        {% else %}
-                        correct_answer: "{{ question.correct_answer }}"
-                        {% endif %}
-                        {% if question.image_url %},image_url: "{{ question.image_url }}"{% endif %}
-                    }{% if not loop.last %},{% endif %}
-                    {% endfor %}
-                ]
-            };
+        // البيانات الخام التي تم تمريرها من Flask
+        // tojson يقوم بتحويل الكائن إلى سلسلة JSON آمنة
+        // safe يمنع Jinja من تحويل علامات الاقتباس إلى &quot;
+        const rawQuizData = '{{ quiz | tojson | safe }}';
+        let quizData;
+
+        try {
+            // الخطوة الحاسمة: قم بتحليل سلسلة JSON إلى كائن JavaScript حقيقي
+            quizData = JSON.parse(rawQuizData);
+        } catch (e) {
+            console.error("فشل في تحليل بيانات الاختبار:", e);
+            console.error("البيانات الخام التي تم استلامها:", rawQuizData);
+            // يمكنك هنا عرض رسالة خطأ للمستخدم
+            alert("حدث خطأ أثناء تحميل الاختبار. يرجى المحاولة مرة أخرى.");
+            return; // أوقف التنفيذ إذا فشل التحليل
+        }
+        
             
             // العناصر الرئيسية
             const totalQuestionsEl = document.getElementById('total-questions');
@@ -604,7 +603,7 @@
             const progressText = document.getElementById('progress-percent');
             const questionCounter = document.getElementById('question-counter');
             const timerEl = document.getElementById('timer');
-            const resultsContainer = document.getElementById('results');
+            cnst resultsContainer = document.getElementById('results');
             const scoreCircle = document.getElementById('score-circle');
             const scoreValue = document.getElementById('score-value');
             const correctAnswersEl = document.getElementById('correct-answers');
@@ -620,20 +619,22 @@
             
             // تهيئة الاختبار
             function initQuiz() {
-                // عرض إجمالي الأسئلة
-                totalQuestionsEl.textContent = quizData.questions.length;
-                updateStats();
-                
-                // بدء المؤقت
-                startTimer();
-                
-                // إظهار السؤال الأول
-                showQuestion(currentQuestionIndex);
+            if (!quizData || !quizData.questions) {
+                console.error("بيانات الاختبار غير صالحة.");
+                return;
             }
-                
-                // إظهار السؤال الأول
-                showQuestion(currentQuestionIndex);
-            }
+            // عرض إجمالي الأسئلة
+            totalQuestionsEl.textContent = quizData.questions.length;
+            updateStats();
+            
+            // بدء المؤقت
+            startTimer();
+            
+            // إظهار السؤال الأول
+            showQuestion(currentQuestionIndex);
+        }
+        
+
             
             // بدء المؤقت
             function startTimer() {
