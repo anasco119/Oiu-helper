@@ -943,14 +943,22 @@ def get_recent_questions(user_id, game_type):
 
 def reset_if_needed(user_id: int):
     this_month = datetime.now().strftime("%Y-%m")
-    cursor.execute("SELECT last_reset FROM users WHERE user_id = ?", (user_id,))
-    row = cursor.fetchone()
-    if not row or row[0] != this_month:
-        cursor.execute("""
-            INSERT OR REPLACE INTO users(user_id, major, quiz_count, last_reset)
-            VALUES (?, COALESCE((SELECT major FROM users WHERE user_id=?), ''), 0, ?)
-        """, (user_id, user_id, this_month))
-        conn.commit()
+    try:
+        with sqlite3.connect("quiz_users.db", check_same_thread=False) as conn:
+            cursor = conn.cursor()
+            
+            cursor.execute("SELECT last_reset FROM users WHERE user_id = ?", (user_id,))
+            row = cursor.fetchone()
+            
+            if not row or row[0] != this_month:
+                cursor.execute("""
+                    INSERT OR REPLACE INTO users(user_id, major, quiz_count, last_reset)
+                    VALUES (?, COALESCE((SELECT major FROM users WHERE user_id=?), ''), 0, ?)
+                """, (user_id, user_id, this_month))
+                conn.commit()
+    except Exception as e:
+        logging.error(f"🚫 خطأ في reset_if_needed للمستخدم {user_id}: {e}")
+        
 
 
 
@@ -1031,6 +1039,7 @@ def increment_count(user_id: int):
         return
     
     try:
+        # التحقق من القنوات المميزة
         raw = os.getenv("ALLOWED_CHANNELS", "")
         allowed_channels = set(int(cid) for cid in raw.split(",") if cid.strip())
         for channel_id in allowed_channels:
@@ -1041,13 +1050,15 @@ def increment_count(user_id: int):
             except Exception as e:
                 logging.warning(f"⚠️ فشل التحقق من القناة {channel_id} للمستخدم {user_id}: {e}")
         
-        # زيادة العداد للمستخدمين العاديين
-        cursor.execute("UPDATE users SET quiz_count = quiz_count + 1 WHERE user_id = ?", (user_id,))
-        conn.commit()
+        # إذا لم يكن مميز → زيادة العداد
+        with sqlite3.connect("quiz_users.db", check_same_thread=False) as conn:
+            cursor = conn.cursor()
+            cursor.execute("UPDATE users SET quiz_count = quiz_count + 1 WHERE user_id = ?", (user_id,))
+            conn.commit()
     
     except Exception as e:
-        logging.error(f"🚫 خطأ في دالة increment_count: {e}")
-
+        logging.error(f"🚫 خطأ في increment_count للمستخدم {user_id}: {e}")
+        
 
 
 
