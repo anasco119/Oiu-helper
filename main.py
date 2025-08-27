@@ -2833,9 +2833,8 @@ def handle_main_menu(c):
 
         elif data == "game_private":
             try:
-                cursor.execute("SELECT major FROM users WHERE user_id = ?", (uid,))
-                row = cursor.fetchone()
-                major = row[0] if row else "عام"
+                row = fetch_user_major(uid)
+                major = row if row else "عام"
 
                 keyboard = InlineKeyboardMarkup(row_width=1)
                 keyboard.add(
@@ -2883,9 +2882,9 @@ def handle_main_menu(c):
                 record_game_attempt(uid, game_type)
 
                 # التخصص
-                cursor.execute("SELECT major FROM users WHERE user_id=?", (uid,))
-                row = cursor.fetchone()
-                major = row[0] if row else "عام"
+                
+                row = fetch_user_major(uid)
+                major = row if row else "عام"
 
                 # توليد السؤال حسب نوع اللعبة
                 if game_type == "vocab":
@@ -2959,9 +2958,9 @@ def handle_main_menu(c):
 
             try:
                 # توليد السؤال الجديد
-                cursor.execute("SELECT major FROM users WHERE user_id=?", (uid,))
-                row = cursor.fetchone()
-                major = row[0] if row else "عام"
+                
+                row = fetch_user_major(uid)
+                major = row if row else "عام"
 
                 game_generators = {
                     "vocab": generate_vocabulary_game,
@@ -3824,31 +3823,41 @@ def process_message(msg, message_id=None, chat_id=None):
                     
 
                     # إرسال رسالة "إختبارك جاهز" مع رابط الاختبار
+                    from telebot import types
+
                     quiz_link = f"https://t.me/QuizzyAI_bot?start=quiz_{quiz_code}"
                     estimated_time = len(quizzes) * 30
+
                     keyboard = types.InlineKeyboardMarkup()
-                    keyboard.add(types.InlineKeyboardButton("🚀 بدء الاختبار", url=f"{quiz_link}"))
+                    keyboard.add(types.InlineKeyboardButton("🚀 بدء الاختبار", url=quiz_link))
+
                     quiz_msg = (
-             "✨✔️ <b>إختبارك جاهز!</b>\n"
-             "──────────────────\n"
-            f"📂 <b>العنوان:</b> {msg.document.file_name}\n\n"
-            f"📋 <b>عدد الأسئلة:</b> {len(quizzes)}\n"
-            f"⏱️ <b>الزمن الكلي:</b> {estimated_time // 60} دقيقة و {estimated_time % 60} ثانية\n"
-            "🎓 <b>التخصص:</b> {major} \n"
-            "📦 <b>نوع الاختبار:</b> خاص\n\n"
-            f"📉 <b>التغطية:</b> {coverage}\n"
-            "💡 <b>ميزة الشرح:</b> غير متوفرة\n"
-            f"📊 <b>المستوى:</b> {level}\n\n"
-            "❓هل أنت جاهز للإختبار\n"
-            f"👈 <a href=\"{quiz_link}\">اضغط هنا للبدء</a>"
+                        f"✨✔️ <b>إختبارك جاهز!</b>\n"
+                        "──────────────────\n"
+                        f"📂 <b>العنوان:</b> {msg.document.file_name}\n\n"
+                        f"📋 <b>عدد الأسئلة:</b> {len(quizzes)}\n"
+                        f"⏱️ <b>الزمن الكلي:</b> {estimated_time // 60} دقيقة و {estimated_time % 60} ثانية\n"
+                        f"🎓 <b>التخصص:</b> {major}\n"
+                        "📦 <b>نوع الاختبار:</b> خاص\n\n"
+                        f"📉 <b>التغطية:</b> {coverage}\n"
+                        "💡 <b>ميزة الشرح:</b> غير متوفرة\n"
+                        f"📊 <b>المستوى:</b> {level}\n\n"
+                        "❓هل أنت جاهز للإختبار\n"
+                        f"👈 <a href=\"{quiz_link}\">اضغط هنا للبدء</a>"
                     )
+
                     try:
                         bot.delete_message(chat_id=chat_id, message_id=loading_msg.message_id)
                     except Exception as del_err:
                         print(f"لم يتمكن من حذف رسالة التحميل: {del_err}")
-                
-                    bot.send_message(chat_id, quiz_msg, reply_markup=keyboard, parse_mode="HTML", disable_web_page_preview=True)
-                    
+
+                    bot.send_message(
+                        chat_id,
+                        quiz_msg,
+                        reply_markup=keyboard,
+                        parse_mode="HTML",
+                        disable_web_page_preview=True
+                    )
 
                     with state_lock:
                         user_states.pop(uid, None)
