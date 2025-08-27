@@ -3809,7 +3809,7 @@ def process_message(msg, message_id=None, chat_id=None):
                     if not quiz_code:
                         raise Exception("Failed to store quiz")
                     waiting_quiz = loading_msg.message_id
-                    coverage =
+                    
                     level = "متوسط"
                     
 
