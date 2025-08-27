@@ -2577,10 +2577,9 @@ def handle_main_menu(c):
             )
         
         elif data == "go_games":
-            cursor.execute("SELECT major FROM users WHERE user_id = ?", (uid,))
-            row = cursor.fetchone()
+            row = fetch_user_major(uid)
 
-            if not row or not row[0]:
+            if not row:
                 user_states[uid] = "awaiting_major_for_games"
                 bot.send_message(uid, "🧠 قبل أن نبدأ اللعب، أخبرنا بتخصصك:")
                 return
