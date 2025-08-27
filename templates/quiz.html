@@ -574,273 +574,222 @@
     </div>
 
 
-    
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-        // البيانات الخام التي تم تمريرها من Flask
-        // tojson يقوم بتحويل الكائن إلى سلسلة JSON آمنة
-        // safe يمنع Jinja من تحويل علامات الاقتباس إلى &quot;
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
         const rawQuizData = '{{ quiz | tojson | safe }}';
         let quizData;
 
         try {
-            // الخطوة الحاسمة: قم بتحليل سلسلة JSON إلى كائن JavaScript حقيقي
             quizData = JSON.parse(rawQuizData);
         } catch (e) {
             console.error("فشل في تحليل بيانات الاختبار:", e);
             console.error("البيانات الخام التي تم استلامها:", rawQuizData);
-            // يمكنك هنا عرض رسالة خطأ للمستخدم
             alert("حدث خطأ أثناء تحميل الاختبار. يرجى المحاولة مرة أخرى.");
-            return; // أوقف التنفيذ إذا فشل التحليل
+            return;
         }
         
-            
-            // العناصر الرئيسية
-            const totalQuestionsEl = document.getElementById('total-questions');
-            const answeredEl = document.getElementById('answered-questions');
-            const remainingEl = document.getElementById('remaining-questions');
-            const progressFill = document.getElementById('progress-fill');
-            const progressText = document.getElementById('progress-percent');
-            const questionCounter = document.getElementById('question-counter');
-            const timerEl = document.getElementById('timer');
-            cnst resultsContainer = document.getElementById('results');
-            const scoreCircle = document.getElementById('score-circle');
-            const scoreValue = document.getElementById('score-value');
-            const correctAnswersEl = document.getElementById('correct-answers');
-            const wrongAnswersEl = document.getElementById('wrong-answers');
-            const totalAnswersEl = document.getElementById('total-answers');
-            const restartBtn = document.getElementById('restart-btn');
-            
-            // تهيئة المتغيرات
-            let currentQuestionIndex = 0;
-            let userAnswers = new Array(quizData.questions.length).fill(null);
-            let timerInterval;
-            let timeRemaining = 25 * 60; // 25 دقيقة بالثواني
-            
-            // تهيئة الاختبار
-            function initQuiz() {
+        // العناصر الرئيسية
+        const totalQuestionsEl = document.getElementById('total-questions');
+        const answeredEl = document.getElementById('answered-questions');
+        const remainingEl = document.getElementById('remaining-questions');
+        const progressFill = document.getElementById('progress-fill');
+        const progressText = document.getElementById('progress-percent');
+        const questionCounter = document.getElementById('question-counter');
+        const timerEl = document.getElementById('timer');
+        // --- التصحيح هنا ---
+        const resultsContainer = document.getElementById('results');
+        // --- نهاية التصحيح ---
+        const scoreCircle = document.getElementById('score-circle');
+        const scoreValue = document.getElementById('score-value');
+        const correctAnswersEl = document.getElementById('correct-answers');
+        const wrongAnswersEl = document.getElementById('wrong-answers');
+        const totalAnswersEl = document.getElementById('total-answers');
+        const restartBtn = document.getElementById('restart-btn');
+        
+        // تهيئة المتغيرات
+        let currentQuestionIndex = 0;
+        let userAnswers = new Array(quizData.questions.length).fill(null);
+        let timerInterval;
+        let timeRemaining = 25 * 60;
+
+        // تهيئة الاختبار
+        function initQuiz() {
             if (!quizData || !quizData.questions) {
                 console.error("بيانات الاختبار غير صالحة.");
                 return;
             }
-            // عرض إجمالي الأسئلة
             totalQuestionsEl.textContent = quizData.questions.length;
             updateStats();
-            
-            // بدء المؤقت
             startTimer();
-            
-            // إظهار السؤال الأول
             showQuestion(currentQuestionIndex);
         }
         
-
-            
-            // بدء المؤقت
-            function startTimer() {
+        // بدء المؤقت
+        function startTimer() {
+            updateTimerDisplay();
+            timerInterval = setInterval(() => {
+                timeRemaining--;
                 updateTimerDisplay();
-                
-                timerInterval = setInterval(() => {
-                    timeRemaining--;
-                    updateTimerDisplay();
-                    
-                    if (timeRemaining <= 0) {
-                        clearInterval(timerInterval);
-                        finishQuiz();
-                    }
-                }, 1000);
-            }
-            
-            // تحديث عرض المؤقت
-            function updateTimerDisplay() {
-                const minutes = Math.floor(timeRemaining / 60);
-                const seconds = timeRemaining % 60;
-                timerEl.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-            }
-            
-            // تحديث الإحصائيات
-            function updateStats() {
-                const answered = userAnswers.filter(answer => answer !== null).length;
-                const remaining = quizData.questions.length - answered;
-                
-                answeredEl.textContent = answered;
-                remainingEl.textContent = remaining;
-                
-                // تحديث شريط التقدم
-                const progress = (answered / quizData.questions.length) * 100;
-                progressFill.style.width = `${progress}%`;
-                progressText.textContent = `${Math.round(progress)}%`;
-                
-                // تحديث عداد الأسئلة
-                questionCounter.textContent = `السؤال ${currentQuestionIndex + 1} من ${quizData.questions.length}`;
-            }
-            
-            // عرض السؤال
-            function showQuestion(index) {
-                // إخفاء جميع الأسئلة
-                document.querySelectorAll('.quiz-container').forEach(q => {
-                    q.classList.remove('active');
-                });
-                
-                // إظهار السؤال المطلوب
-                const questionEl = document.querySelectorAll('.quiz-container')[index];
-                questionEl.classList.add('active');
-                
-                // تحديث حالة الأزرار
-                document.querySelectorAll('.prev-btn')[index].disabled = (index === 0);
-                
-                // إذا كان السؤال قد تم الإجابة عليه، عرض الإجابة
-                if (userAnswers[index] !== null) {
-                    if (quizData.questions[index].type === "multiple_choice") {
-                        const selectedOption = questionEl.querySelector(`.option[data-index="${userAnswers[index]}"]`);
-                        if (selectedOption) {
-                            selectedOption.classList.add('selected');
-                        }
-                    } else {
-                        const textInput = questionEl.querySelector('.text-input');
-                        if (textInput) {
-                            textInput.value = userAnswers[index];
-                        }
-                    }
+                if (timeRemaining <= 0) {
+                    clearInterval(timerInterval);
+                    finishQuiz();
                 }
-                
-                // تحديث الإحصائيات
-                updateStats();
+            }, 1000);
+        }
+
+        // تحديث عرض المؤقت
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timeRemaining / 60);
+            const seconds = timeRemaining % 60;
+            timerEl.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+        
+        // تحديث الإحصائيات
+        function updateStats() {
+            const answered = userAnswers.filter(answer => answer !== null).length;
+            const remaining = quizData.questions.length - answered;
+            
+            answeredEl.textContent = answered;
+            remainingEl.textContent = remaining;
+            
+            const progress = (answered / quizData.questions.length) * 100;
+            progressFill.style.width = `${progress}%`;
+            progressText.textContent = `${Math.round(progress)}%`;
+            
+            questionCounter.textContent = `السؤال ${currentQuestionIndex + 1} من ${quizData.questions.length}`;
+        }
+        
+        // عرض السؤال
+        function showQuestion(index) {
+            document.querySelectorAll('.quiz-container').forEach(q => {
+                q.classList.remove('active');
+            });
+            
+            const questionEl = document.querySelectorAll('.quiz-container')[index];
+            if (questionEl) {
+                questionEl.classList.add('active');
             }
             
-            // معالجة التنقل بين الأسئلة
-            document.querySelectorAll('.next-btn').forEach((btn, index) => {
-                btn.addEventListener('click', function() {
-                    // حفظ الإجابة
-                    saveAnswer(currentQuestionIndex);
-                    
-                    // الانتقال للسؤال التالي أو النتائج
-                    if (currentQuestionIndex < quizData.questions.length - 1) {
-                        currentQuestionIndex++;
-                        showQuestion(currentQuestionIndex);
-                    } else {
-                        finishQuiz();
-                    }
-                });
-            });
+            const prevBtn = document.querySelectorAll('.prev-btn')[index];
+            if(prevBtn) {
+                 prevBtn.disabled = (index === 0);
+            }
             
-            document.querySelectorAll('.prev-btn').forEach((btn, index) => {
-                btn.addEventListener('click', function() {
-                    // حفظ الإجابة
-                    saveAnswer(currentQuestionIndex);
-                    
-                    // الانتقال للسؤال السابق
-                    if (currentQuestionIndex > 0) {
-                        currentQuestionIndex--;
-                        showQuestion(currentQuestionIndex);
-                    }
-                });
-            });
-            
-            // حفظ الإجابة
-            function saveAnswer(index) {
-                const question = quizData.questions[index];
-                const questionEl = document.querySelectorAll('.quiz-container')[index];
-                
-                if (question.type === "multiple_choice") {
-                    const selectedOption = questionEl.querySelector('.option.selected');
+            if (userAnswers[index] !== null) {
+                if (quizData.questions[index].type === "multiple_choice") {
+                    const selectedOption = questionEl.querySelector(`.option[data-index="${userAnswers[index]}"]`);
                     if (selectedOption) {
-                        userAnswers[index] = parseInt(selectedOption.getAttribute('data-index'));
+                        selectedOption.classList.add('selected');
                     }
                 } else {
                     const textInput = questionEl.querySelector('.text-input');
-                    if (textInput && textInput.value.trim() !== '') {
-                        userAnswers[index] = textInput.value;
+                    if (textInput) {
+                        textInput.value = userAnswers[index];
                     }
                 }
-                
-                updateStats();
             }
-            
-            // معالجة اختيار الإجابات
-            document.querySelectorAll('.option').forEach(option => {
-                option.addEventListener('click', function() {
-                    // إزالة التحديد من الخيارات الأخرى
-                    this.parentElement.querySelectorAll('.option').forEach(opt => {
-                        opt.classList.remove('selected');
-                    });
-                    
-                    // تحديد الخيار الحالي
-                    this.classList.add('selected');
-                    
-                    // حفظ الإجابة
-                    const questionIndex = Array.from(document.querySelectorAll('.quiz-container')).indexOf(this.closest('.quiz-container'));
-                    if (questionIndex !== -1) {
-                        userAnswers[questionIndex] = parseInt(this.getAttribute('data-index'));
-                        updateStats();
-                    }
-                });
+            updateStats();
+        }
+        
+        // معالجة التنقل بين الأسئلة
+        document.querySelectorAll('.next-btn').forEach((btn, index) => {
+            btn.addEventListener('click', function() {
+                saveAnswer(currentQuestionIndex);
+                if (currentQuestionIndex < quizData.questions.length - 1) {
+                    currentQuestionIndex++;
+                    showQuestion(currentQuestionIndex);
+                } else {
+                    finishQuiz();
+                }
             });
+        });
+        
+        document.querySelectorAll('.prev-btn').forEach((btn, index) => {
+            btn.addEventListener('click', function() {
+                saveAnswer(currentQuestionIndex);
+                if (currentQuestionIndex > 0) {
+                    currentQuestionIndex--;
+                    showQuestion(currentQuestionIndex);
+                }
+            });
+        });
+        
+        // حفظ الإجابة
+        function saveAnswer(index) {
+            const questionEl = document.querySelectorAll('.quiz-container')[index];
+            if (!questionEl) return;
+            const question = quizData.questions[index];
             
-            // إنهاء الاختبار وعرض النتائج
-            function finishQuiz() {
-                clearInterval(timerInterval);
-                
-                // حساب النتائج
-                let correctAnswers = 0;
-                quizData.questions.forEach((question, index) => {
-                    const userAnswer = userAnswers[index];
-                    
-                    if (question.type === "multiple_choice") {
-                        if (userAnswer === question.correct_index) {
-                            correctAnswers++;
-                        }
-                    } else {
-                        if (userAnswer && userAnswer.trim().toLowerCase() === question.correct_answer.toLowerCase()) {
-                            correctAnswers++;
-                        }
-                    }
-                });
-                
-                const score = Math.round((correctAnswers / quizData.questions.length) * 100);
-                
-                // عرض النتائج
-                scoreValue.textContent = `${score}%`;
-                correctAnswersEl.textContent = correctAnswers;
-                wrongAnswersEl.textContent = quizData.questions.length - correctAnswers;
-                totalAnswersEl.textContent = quizData.questions.length;
-                
-                // تحديث دائرة النتيجة
-                scoreCircle.style.background = `conic-gradient(var(--success) ${score}%, var(--light) 0%)`;
-                
-                // إخفاء الأسئلة وإظهار النتائج
-                document.querySelectorAll('.quiz-container').forEach(q => {
-                    q.style.display = 'none';
-                });
-                resultsContainer.style.display = 'block';
+            if (question.type === "multiple_choice") {
+                const selectedOption = questionEl.querySelector('.option.selected');
+                if (selectedOption) {
+                    userAnswers[index] = parseInt(selectedOption.getAttribute('data-index'));
+                }
+            } else {
+                const textInput = questionEl.querySelector('.text-input');
+                if (textInput && textInput.value.trim() !== '') {
+                    userAnswers[index] = textInput.value;
+                }
             }
-            
-            // إعادة الاختبار
-            restartBtn.addEventListener('click', function() {
-                // إعادة تعيين المتغيرات
-                currentQuestionIndex = 0;
-                userAnswers = new Array(quizData.questions.length).fill(null);
-                timeRemaining = 25 * 60;
-                
-                // إخفاء النتائج
-                resultsContainer.style.display = 'none';
-                
-                // إعادة تعيين الإجابات المختارة
-                document.querySelectorAll('.option').forEach(opt => {
+            updateStats();
+        }
+        
+        // معالجة اختيار الإجابات
+        document.querySelectorAll('.option').forEach(option => {
+            option.addEventListener('click', function() {
+                this.parentElement.querySelectorAll('.option').forEach(opt => {
                     opt.classList.remove('selected');
                 });
+                this.classList.add('selected');
                 
-                document.querySelectorAll('.text-input').forEach(input => {
-                    input.value = '';
-                });
-                
-                // إعادة بدء الاختبار
-                initQuiz();
+                const questionIndex = Array.from(document.querySelectorAll('.quiz-container')).indexOf(this.closest('.quiz-container'));
+                if (questionIndex !== -1) {
+                    saveAnswer(questionIndex);
+                }
+            });
+        });
+        
+        // إنهاء الاختبار وعرض النتائج
+        function finishQuiz() {
+            clearInterval(timerInterval);
+            let correctAnswers = 0;
+            quizData.questions.forEach((question, index) => {
+                const userAnswer = userAnswers[index];
+                if (question.type === "multiple_choice") {
+                    if (userAnswer === question.correct_index) correctAnswers++;
+                } else {
+                    if (userAnswer && userAnswer.trim().toLowerCase() === question.correct_answer.toLowerCase()) correctAnswers++;
+                }
             });
             
-            // بدء الاختبار
+            const score = Math.round((correctAnswers / quizData.questions.length) * 100);
+            
+            scoreValue.textContent = `${score}%`;
+            correctAnswersEl.textContent = correctAnswers;
+            wrongAnswersEl.textContent = quizData.questions.length - correctAnswers;
+            totalAnswersEl.textContent = quizData.questions.length;
+            
+            scoreCircle.style.background = `conic-gradient(var(--success) ${score}%, var(--light) 0%)`;
+            
+            document.querySelectorAll('.quiz-container').forEach(q => q.style.display = 'none');
+            resultsContainer.style.display = 'block';
+        }
+        
+        // إعادة الاختبار
+        restartBtn.addEventListener('click', function() {
+            currentQuestionIndex = 0;
+            userAnswers.fill(null);
+            timeRemaining = 25 * 60;
+            resultsContainer.style.display = 'none';
+            document.querySelectorAll('.option.selected').forEach(opt => opt.classList.remove('selected'));
+            document.querySelectorAll('.text-input').forEach(input => input.value = '');
             initQuiz();
         });
-    </script>
+        
+        // بدء الاختبار
+        initQuiz();
+    });
+</script>
+    
 </body>
 </html>
