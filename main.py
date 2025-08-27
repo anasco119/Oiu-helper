@@ -2074,7 +2074,7 @@ def handle_main_menu(c):
             
         
     elif data.startswith("share_quiz:"):
-        quiz_code = data[6:]
+        quiz_code = data.split(":", 1)[1]
         chat_id = c.message.chat.id  # ← تأكد من تعيين chat_id هنا
 
         try:
@@ -3809,13 +3809,15 @@ def process_message(msg, message_id=None, chat_id=None):
                     if not quiz_code:
                         raise Exception("Failed to store quiz")
                     waiting_quiz = loading_msg.message_id
-                    
+                    major = fetch_user_major(uid)
                     level = "متوسط"
                     
 
                     # إرسال رسالة "إختبارك جاهز" مع رابط الاختبار
                     quiz_link = f"https://t.me/QuizzyAI_bot?start=quiz_{quiz_code}"
                     estimated_time = len(quizzes) * 30
+                    keyboard = types.InlineKeyboardMarkup()
+                    keyboard.add(types.InlineKeyboardButton("🚀 بدء الاختبار", url=f"{quiz_link}"))
                     quiz_msg = (
              "✨✔️ <b>إختبارك جاهز!</b>\n"
              "──────────────────\n"
@@ -3835,7 +3837,7 @@ def process_message(msg, message_id=None, chat_id=None):
                     except Exception as del_err:
                         print(f"لم يتمكن من حذف رسالة التحميل: {del_err}")
                 
-                    bot.send_message(chat_id, quiz_msg, parse_mode="HTML", disable_web_page_preview=True)
+                    bot.send_message(chat_id, quiz_msg, reply_markup=keyboard, parse_mode="HTML", disable_web_page_preview=True)
                     
 
                     with state_lock:
