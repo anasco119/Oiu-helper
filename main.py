@@ -1236,8 +1236,29 @@ def generate_game(prompt, user_id=0, translate_all=False, translate_question=Fal
     return game_data
 
 import genanki
-import time
+import genanki
 import uuid
+import requests
+import hashlib
+import os
+import logging
+
+def download_image(url: str) -> tuple[str, str]:
+    """
+    تنزيل الصورة وإرجاع (اسم الملف, المسار المحلي)
+    """
+    try:
+        r = requests.get(url, timeout=10)
+        r.raise_for_status()
+        ext = url.split(".")[-1].split("?")[0][:4]  # jpg/png/gif...
+        fname = hashlib.md5(url.encode()).hexdigest() + "." + ext
+        with open(fname, "wb") as f:
+            f.write(r.content)
+        return fname, os.path.abspath(fname)
+    except Exception as e:
+        logging.warning(f"⚠️ Failed to download {url}: {e}")
+        return None, None
+
 
 def save_cards_to_apkg(cards: list, filename='anki_flashcards.apkg', deck_name="My Flashcards"):
     model = genanki.Model(
@@ -1263,18 +1284,32 @@ def save_cards_to_apkg(cards: list, filename='anki_flashcards.apkg', deck_name="
     )
 
     seen = set()
+    media_files = []
+
     for card in cards:
         front = card.get('front', '').strip()
         back = card.get('back', '').strip()
         tag = card.get('tag', '').strip()
+        image_url = card.get('image_url') or ""  # <-- نتوقع المفتاح يجي من دالتك
+
         if front and back and front not in seen:
+            # لو فيه صورة ننزلها ونضيفها للـ back
+            if image_url:
+                fname, path = download_image(image_url)
+                if fname and path:
+                    media_files.append(path)
+                    back += f"<br><img src='{fname}'>"
+
             note = genanki.Note(model=model, fields=[front, back, tag])
             deck.add_note(note)
             seen.add(front)
 
-    genanki.Package(deck).write_to_file(filename)
-    return filename
+    package = genanki.Package(deck)
+    if media_files:
+        package.media_files = media_files
 
+    package.write_to_file(filename)
+    return filename
 
 
 
