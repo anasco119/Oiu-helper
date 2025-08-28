@@ -4466,11 +4466,11 @@ def process_message(msg, message_id=None, chat_id=None):
                         "🎩 تتم معالجة البيانات بصورة دقيقة..."
                     ]
         
-                # إرسال رسالة الانتظار مع مؤثرات بصرية
+                    # إرسال رسالة الانتظار مع مؤثرات بصرية
                     waiting_msg = bot.send_message(chat_id, "⏳ **جارٍ المعالجة**\n`0% اكتمال`", 
                                       parse_mode="Markdown")
         
-                # خطوات التقدم مع رموز إبداعية
+                    # خطوات التقدم مع رموز إبداعية
                     processing_steps = [
                         {"icon": "🔍", "text": "تحليل النصوص المدخلة", "delay": 0.8},
                         {"icon": "🧩", "text": "بناء البنية التعليمية", "delay": 1.2},
@@ -4522,20 +4522,20 @@ def process_message(msg, message_id=None, chat_id=None):
                     save_cards_to_apkg(cards, filename=safe_filename, deck_name=safe_deck_name)
             
                     # إرسال الملف مع رسالة رسمية
-                        with open(output_file, 'rb') as file:
-                            bot.send_document(
-                                chat_id=uid,
-                                document=file,
-                                caption=(
-                                    f"🌿 *تم إنشاء ملفك التعليمي بنجاح.*\n"
-                                    f"عدد البطاقات: {len(cards)} بطاقة\n"
-                                    f"مدة التنفيذ: {random.randint(3,7)} ثوانٍ\n\n"
-                                    f"📚 ملف المراجعة جاهز للاستخدام."
-                                ),
-                                reply_to_message_id=message_id,
-                                parse_mode="Markdown"
+                    with open(output_file, 'rb') as file:
+                        bot.send_document(
+                            chat_id=uid,
+                            document=file,
+                            caption=(
+                                f"🌿 *تم إنشاء ملفك التعليمي بنجاح.*\n"
+                                f"عدد البطاقات: {len(cards)} بطاقة\n"
+                                f"مدة التنفيذ: {random.randint(3,7)} ثوانٍ\n\n"
+                                f"📚 ملف المراجعة جاهز للاستخدام."
+                            ),
+                            reply_to_message_id=message_id,
+                            parse_mode="Markdown"
                             )
-                            notify_admin("توليد أنكي يدوي", username, uid)
+                        notify_admin("توليد أنكي يدوي", username, uid)
 
             
                         # حذف رسالة التقدم بعد الإرسال
