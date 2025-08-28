@@ -3948,7 +3948,7 @@ def process_message(msg, message_id=None, chat_id=None):
                     bot.send_message(uid, f"📄 تم استخراج النص بنجاح (جزء منه):\n\n{preview}")
             elif ext == "docx":
                 content_full = extract_text_from_pdf(path)  # النص الكامل
-                full_length = len(content_full)rom_docx(path)
+                full_length = len(content_full)
                 # إذا المستخدم غير مشترك، اقتطع فقط 3000 حرف
                 if not can_generate(uid):
                     content = content[:3000]
