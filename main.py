@@ -4455,122 +4455,113 @@ def process_message(msg, message_id=None, chat_id=None):
         # Awaiting manual anki
         # ============================
         elif state == "awaiting_anki_file_manual":
-            try:
-                if msg.content_type == "text":
-                # قائمة رسائل انتظار متحركة
-                    waiting_messages = [
-                        "🌱 جارٍ تجهيز مدخلاتك التعليمية...",
-                        "🧠 النظام المعرفي يعمل بكامل طاقته...",
-                        "🔮 يتم تنظيم المحتوى التعليمي...",
-                        "🚀 يجري الإعداد لمرحلة الإطلاق...",
-                        "🎩 تتم معالجة البيانات بصورة دقيقة..."
-                    ]
+            if msg.content_type == "text":
+            # قائمة رسائل انتظار متحركة
+                waiting_messages = [
+                    "🌱 جارٍ تجهيز مدخلاتك التعليمية...",
+                    "🧠 النظام المعرفي يعمل بكامل طاقته...",
+                    "🔮 يتم تنظيم المحتوى التعليمي...",
+                    "🚀 يجري الإعداد لمرحلة الإطلاق...",
+                    "🎩 تتم معالجة البيانات بصورة دقيقة..."
+                ]
         
-                    # إرسال رسالة الانتظار مع مؤثرات بصرية
-                    waiting_msg = bot.send_message(chat_id, "⏳ **جارٍ المعالجة**\n`0% اكتمال`", 
+                # إرسال رسالة الانتظار مع مؤثرات بصرية
+                waiting_msg = bot.send_message(chat_id, "⏳ **جارٍ المعالجة**\n`0% اكتمال`", 
                                       parse_mode="Markdown")
         
-                    # خطوات التقدم مع رموز إبداعية
-                    processing_steps = [
-                        {"icon": "🔍", "text": "تحليل النصوص المدخلة", "delay": 0.8},
-                        {"icon": "🧩", "text": "بناء البنية التعليمية", "delay": 1.2},
-                        {"icon": "🎨", "text": "إعداد بطاقات المراجعة", "delay": 1.0},
-                        {"icon": "⚡", "text": "تجهيز الحزمة النهائية", "delay": 0.7},
-                        {"icon": "🚀", "text": "إطلاق الملف التعليمي", "delay": 1.5}
-                    ]
+                # خطوات التقدم مع رموز إبداعية
+                processing_steps = [
+                    {"icon": "🔍", "text": "تحليل النصوص المدخلة", "delay": 0.8},
+                    {"icon": "🧩", "text": "بناء البنية التعليمية", "delay": 1.2},
+                    {"icon": "🎨", "text": "إعداد بطاقات المراجعة", "delay": 1.0},
+                    {"icon": "⚡", "text": "تجهيز الحزمة النهائية", "delay": 0.7},
+                    {"icon": "🚀", "text": "إطلاق الملف التعليمي", "delay": 1.5}
+                ]
         
                 # محاكاة التقدم التدريجي
-                    progress = 0
-                    step_size = 100 // len(processing_steps)
+                progress = 0
+                step_size = 100 // len(processing_steps)
         
-                    for idx, step in enumerate(processing_steps):
+                for idx, step in enumerate(processing_steps):
                     # حساب النسبة المئوية
-                        progress = min(100, (idx + 1) * step_size)
-                        progress_bar = "🟩" * (progress // 10) + "⬜" * (10 - progress // 10)
+                    progress = min(100, (idx + 1) * step_size)
+                    progress_bar = "🟩" * (progress // 10) + "⬜" * (10 - progress // 10)
             
                     # بناء الرسالة مع تأثير التراكم
-                        message_text = (
-                            f"⏳ **جارٍ المعالجة**\n"
-                            f"`{progress}% اكتمال`\n"
-                            f"{progress_bar}\n\n"
-                            f"{step['icon']} **المرحلة {idx+1}:** {step['text']}"
-                        )
+                    message_text = (
+                        f"⏳ **جارٍ المعالجة**\n"
+                        f"`{progress}% اكتمال`\n"
+                        f"{progress_bar}\n\n"
+                        f"{step['icon']} **المرحلة {idx+1}:** {step['text']}"
+                    )
             
-                        # تحديث الرسالة مع تأثير التدرج
-                        try:
-                            bot.edit_message_text(
-                                message_text,
-                                chat_id=waiting_msg.chat.id,
-                                message_id=waiting_msg.message_id,
-                                parse_mode="Markdown"
-                        )
-                        except:
-                            pass
+                    # تحديث الرسالة مع تأثير التدرج
+                    try:
+                        bot.edit_message_text(
+                            message_text,
+                            chat_id=waiting_msg.chat.id,
+                            message_id=waiting_msg.message_id,
+                            parse_mode="Markdown"
+                )
+                    except:
+                        pass
             
-                        # تأخير ديناميكي بين الخطوات
-                        time.sleep(step['delay'])
+                    # تأخير ديناميكي بين الخطوات
+                    time.sleep(step['delay'])
         
-                    # معالجة الملف الفعلية
-                    cards = parse_manual_anki_input(msg.text)
-                    if cards:
-                        # إنشاء الملف
-                        output_file = f"{uid}_manual_anki.apkg"
-                        timestamp = int(time.time())
-                        safe_filename = f"manual_anki_{uid}_{timestamp}.apkg"
-                        safe_deck_name = f"Manual_Deck_{timestamp}" # اسم مجموعة آمن بالإنجليزية
-                        
-                        save_cards_to_apkg(cards, filename=safe_filename, deck_name=safe_deck_name)
+                # معالجة الملف الفعلية
+                cards = parse_manual_anki_input(msg.text)
+                if cards:
+                    # إنشاء الملف
+                    output_file = f"{uid}_manual_anki.apkg"
+                    save_cards_to_apkg(cards, filename=output_file, deck_name="مكتبتك التعليمية")
             
-                        # إرسال الملف مع رسالة رسمية
-                        with open(output_file, 'rb') as file:
-                            bot.send_document(
-                                chat_id=uid,
-                                document=file,
-                                caption=(
-                                    f"🌿 *تم إنشاء ملفك التعليمي بنجاح.*\n"
-                                    f"عدد البطاقات: {len(cards)} بطاقة\n"
-                                    f"مدة التنفيذ: {random.randint(3,7)} ثوانٍ\n\n"
-                                    f"📚 ملف المراجعة جاهز للاستخدام."
-                                ),
-                                reply_to_message_id=message_id,
-                                parse_mode="Markdown"
-                                )
+                    # إرسال الملف مع رسالة رسمية
+                    with open(output_file, 'rb') as file:
+                        bot.send_document(
+                            chat_id=uid,
+                            document=file,
+                            caption=(
+                                f"🌿 *تم إنشاء ملفك التعليمي بنجاح.*\n"
+                                f"عدد البطاقات: {len(cards)} بطاقة\n"
+                                f"مدة التنفيذ: {random.randint(3,7)} ثوانٍ\n\n"
+                                f"📚 ملف المراجعة جاهز للاستخدام."
+                            ),
+                            reply_to_message_id=message_id,
+                            parse_mode="Markdown"
+                        )
                         notify_admin("توليد أنكي يدوي", username, uid)
 
             
-                        # حذف رسالة التقدم بعد الإرسال
-                        try:
-                            bot.delete_message(chat_id, waiting_msg.message_id)
-                        except:
-                            pass
+                    # حذف رسالة التقدم بعد الإرسال
+                    try:
+                        bot.delete_message(chat_id, waiting_msg.message_id)
+                    except:
+                        pass
             
-                        # رسالة ختامية رسمية
-                        if random.random() < 0.1:  # 30% احتمال
-                            bot.send_message(
-                                chat_id,
-                                "✨ *أحسنت! تم إنشاء بطاقاتك بنجاح.*\n"
-                                "🚀 واصل المراجعة بانتظام، وستتفاجأ بسرعة تقدمك.\n"
-                                "─── ⋆⋅☆⋅⋆ ──\n"
-                                "💡 *تذكير:* راجع بطاقاتك غدًا، فالتكرار هو سر تثبيت المعرفة!",
-                                reply_to_message_id=message_id,
-                                parse_mode="Markdown"
-                        )
-                        with state_lock:
-                            user_states.pop(uid, None)
+                    # رسالة ختامية رسمية
+                    if random.random() < 0.1:  # 30% احتمال
+                        bot.send_message(
+                            chat_id,
+                            "✨ *أحسنت! تم إنشاء بطاقاتك بنجاح.*\n"
+                            "🚀 واصل المراجعة بانتظام، وستتفاجأ بسرعة تقدمك.\n"
+                            "─── ⋆⋅☆⋅⋆ ──\n"
+                            "💡 *تذكير:* راجع بطاقاتك غدًا، فالتكرار هو سر تثبيت المعرفة!",
+                            reply_to_message_id=message_id,
+                            parse_mode="Markdown"
+                    )
+                    with state_lock:
+                        user_states.pop(uid, None)
 
-                    else:
-                        # حذف رسائل الانتظار والخطوات وإرسال رسالة الخطأ
-                        bot.delete_message(uid, waiting_msg.message_id)
-                        for step_msg in step_messages:
-                            bot.delete_message(uid, step_msg.message_id)
-                        bot.send_message(uid, "❌ لم يتم العثور على أي بطاقات صالحة")
                 else:
-                    bot.send_message(uid, "❌ يرجى إرسال النص فقط لإنشاء بطاقات Anki يدويًا.")
-            except Exception as e:
-                print(f"!!!!!!!!!!!!!!!!!! خطأ فادح في معالجة الاختبار المتقدم !!!!!!!!!!!!!!!!!! {e}")
-                traceback.print_exc()
-                print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-        
+                    # حذف رسائل الانتظار والخطوات وإرسال رسالة الخطأ
+                    bot.delete_message(uid, waiting_msg.message_id)
+                    for step_msg in step_messages:
+                        bot.delete_message(uid, step_msg.message_id)
+                    bot.send_message(uid, "❌ لم يتم العثور على أي بطاقات صالحة")
+            else:
+                bot.send_message(uid, "❌ يرجى إرسال النص فقط لإنشاء بطاقات Anki يدويًا.")
+                    
 
         # ============================
         # Awaiting advanced test file
