@@ -1236,19 +1236,21 @@ def generate_game(prompt, user_id=0, translate_all=False, translate_question=Fal
     return game_data
 
 import genanki
-import genanki
 import uuid
 import requests
 import hashlib
 import os
 import logging
 import tempfile
+import re
 from typing import List, Dict, Tuple
 from PIL import Image
 
+# -----------------------
+# استخراج رابط أول صورة من HTML
+# -----------------------
+IMG_TAG_RE = re.compile(r'<img [^>]*src=[\'"]([^\'"]+)[\'"][^>]*>', re.IGNORECASE)
 
-    # اكمل هذا التعريف
-IMG_TAG_RE =   ']+)[\"'][^>]*>", re.IGNORECASE)
 def _extract_first_img_url_from_html(html: str) -> Tuple[str, str]:
     """
     Returns (image_url, cleaned_html_without_img)
@@ -1257,13 +1259,17 @@ def _extract_first_img_url_from_html(html: str) -> Tuple[str, str]:
     if not match:
         return "", html
     url = match.group(1)
-    # remove all <img ...> tags (or only the matched one) to avoid duplicates
+    # إزالة جميع وسوم <img> لتجنب التكرار
     cleaned = IMG_TAG_RE.sub("", html)
     return url, cleaned.strip()
 
+
+# -----------------------
+# تنزيل الصورة باستخدام Pillow
+# -----------------------
 def _download_image_to_dir(url: str, dest_dir: str) -> Tuple[str, str]:
     """
-    Download image from url into dest_dir.
+    Download image from URL into dest_dir.
     Returns (basename, full_path) or (None, None) on failure.
     Ensures filename is ASCII (md5 hash + extension).
     """
@@ -1272,42 +1278,36 @@ def _download_image_to_dir(url: str, dest_dir: str) -> Tuple[str, str]:
         r.raise_for_status()
         content = r.content
 
-        # try to detect extension from content (imghdr)
-        try:
-            with Image.open(path) as img:
-                return img.format.lower()  # تحويل النوع إلى lowercase
-        except Exception as e:
-            logging.warning(f"⚠️ Could not identify image type for {path}: {e}")
-            
-    
-
-
-        fname = hashlib.md5(url.encode()).hexdigest() + "." + ext
-        path = os.path.join(dest_dir, fname)
-
-        # write file
-        with open(path, "wb") as f:
+        # حفظ مؤقت للتحقق من النوع
+        temp_path = os.path.join(dest_dir, "temp_image")
+        with open(temp_path, "wb") as f:
             f.write(content)
 
-        return fname, path
+        # استخدام Pillow لاكتشاف نوع الصورة
+        try:
+            with Image.open(temp_path) as img:
+                ext = img.format.lower()  # jpeg, png, gif, ...
+        except Exception as e:
+            logging.warning(f"⚠️ Could not identify image type for {url}: {e}")
+            os.remove(temp_path)
+            return None, None
+
+        # إنشاء اسم فريد للملف بالـ md5 + الامتداد الصحيح
+        fname = hashlib.md5(url.encode()).hexdigest() + f".{ext}"
+        final_path = os.path.join(dest_dir, fname)
+        os.rename(temp_path, final_path)
+
+        return fname, final_path
+
     except Exception as e:
         logging.warning(f"⚠️ Failed to download image {url}: {e}")
         return None, None
 
+
+# -----------------------
+# حفظ البطاقات في ملف Anki مع دعم الصور
+# -----------------------
 def save_cards_to_apkg(cards: List[Dict], filename: str = 'anki_flashcards.apkg', deck_name: str = "My Flashcards"):
-    """
-    cards: list of dicts. Each dict must contain at least:
-      - 'front' (str)
-      - 'back' (str)
-    optionally:
-      - 'tag' (str)
-      - 'image_url' (str)  OR <img ...> can already be embedded inside 'back'
-    This function will:
-      - extract any image URL from back or use image_url
-      - download images to a temp dir
-      - replace back image tags with local <img src='filename.ext'>
-      - package media files into the apkg
-    """
     model = genanki.Model(
         1607392319,
         'Simple Model with Tags',
@@ -1333,52 +1333,33 @@ def save_cards_to_apkg(cards: List[Dict], filename: str = 'anki_flashcards.apkg'
     seen = set()
     media_files = []
 
-    # create temp dir for media files (will be cleaned automatically)
-    with tempfile.TemporaryDirectory(prefix="anki_media_") as tmpdir:
-        for card in cards:
-            front = (card.get('front') or "").strip()
-            back = (card.get('back') or "").strip()
-            tag = (card.get('tag') or "").strip()
-            # prefer explicit image_url key, else try extract from back
-            image_url = (card.get('image_url') or "").strip()
+    # مجلد مؤقت لتخزين الصور
+    temp_dir = tempfile.gettempdir()
 
-            # if no explicit image_url, check any <img src="..."> in back
-            if not image_url:
-                extracted_url, cleaned_back = _extract_first_img_url_from_html(back)
-                if extracted_url:
-                    image_url = extracted_url
-                    back = cleaned_back  # remove remote <img> tag from back
+    for card in cards:
+        front = card.get('front', '').strip()
+        back = card.get('back', '').strip()
+        tag = card.get('tag', '').strip()
+        image_url = card.get('image_url', '')  # المفتاح الذي يأتي من دالتك
 
-            if not front or not back or front in seen:
-                continue
-
-            # if there's an image URL, download it into tmpdir and add as media
+        if front and back and front not in seen:
+            # لو فيه صورة، ننزلها ونضيفها للـ back
             if image_url:
-                fname, fullpath = _download_image_to_dir(image_url, tmpdir)
-                if fname and fullpath and os.path.isfile(fullpath):
-                    # append the local img tag referencing the basename
+                fname, path = _download_image_to_dir(image_url, temp_dir)
+                if fname and path:
+                    media_files.append(path)
                     back += f"<br><img src='{fname}' style='max-height:220px; display:block; margin:12px auto;'>"
-                    media_files.append(fullpath)
-                else:
-                    logging.warning(f"⚠️ Could not include image for card: {image_url}")
 
-            # create note and add
             note = genanki.Note(model=model, fields=[front, back, tag])
             deck.add_note(note)
             seen.add(front)
 
-        # prepare package
-        package = genanki.Package(deck)
-        if media_files:
-            # genanki will zip these files inside the apkg
-            package.media_files = media_files
+    package = genanki.Package(deck)
+    if media_files:
+        package.media_files = media_files
 
-        # write apkg (this must happen while tempdir exists)
-        package.write_to_file(filename)
-
-    # temporary dir and downloaded files removed here
+    package.write_to_file(filename)
     return filename
-
 
 def parse_manual_anki_input(text):
     cards = []
