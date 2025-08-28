@@ -4301,7 +4301,6 @@ def process_message(msg, message_id=None, chat_id=None):
 
 
 
-
          # ============================
         # Awaiting AI Anki
         # ============================
@@ -4384,6 +4383,9 @@ def process_message(msg, message_id=None, chat_id=None):
                         message_id=loading_msg.message_id,
                         text="❌ لم أتمكن من إنشاء أي بطاقات.\n\nقد يكون المحتوى غير مناسب أو حدث خطأ أثناء المعالجة."
                     )
+                timestamp = int(time.time())
+                safe_filename = f"anki_deck_{uid}_{timestamp}.apkg"
+                safe_deck_name = f"Deck_{timestamp}" # اسم مجموعة آمن بالإنجليزية
                     
 
                # قد تحتوي البطاقات على image_hint فقط؛ حولها لصيغ URL قبل الحفظ إن أردت:
@@ -4398,7 +4400,7 @@ def process_message(msg, message_id=None, chat_id=None):
                 filename = f"{safe_title}_{uid}.apkg"
         
                 # حفظ الملف وإرساله مع تحديث الرسالة السابقة
-                filepath = save_cards_to_apkg(cards, filename=filename, deck_name=title)
+                filepath = save_cards_to_apkg(cards, filename=filename, deck_name=safe_deck_name)
         
                  # تحرير الرسالة الأخيرة لإظهار نجاح العملية
                 bot.edit_message_text(
@@ -4494,7 +4496,10 @@ def process_message(msg, message_id=None, chat_id=None):
                 if cards:
                     # إنشاء الملف
                     output_file = f"{uid}_manual_anki.apkg"
-                    save_cards_to_apkg(cards, filename=output_file, deck_name="مكتبتك التعليمية")
+                    timestamp = int(time.time())
+                    safe_filename = f"manual_anki_{uid}_{timestamp}.apkg"
+                    safe_deck_name = f"Manual_Deck_{timestamp}" # اسم مجموعة آمن بالإنجليزية
+                    save_cards_to_apkg(cards, filename=safe_filename, deck_name=safe_deck_name)
             
                     # إرسال الملف مع رسالة رسمية
                     with open(output_file, 'rb') as file:
