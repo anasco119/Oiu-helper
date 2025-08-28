@@ -3823,13 +3823,13 @@ def process_message(msg, message_id=None, chat_id=None):
                     
 
                     # إرسال رسالة "إختبارك جاهز" مع رابط الاختبار
-                    from telebot import types
-
+                    
                     quiz_link = f"https://t.me/QuizzyAI_bot?start=quiz_{quiz_code}"
                     estimated_time = len(quizzes) * 30
 
                     keyboard = types.InlineKeyboardMarkup()
                     keyboard.add(types.InlineKeyboardButton("🚀 بدء الاختبار", url=quiz_link))
+
 
                     quiz_msg = (
                         f"✨✔️ <b>إختبارك جاهز!</b>\n"
@@ -3857,7 +3857,7 @@ def process_message(msg, message_id=None, chat_id=None):
                         reply_markup=keyboard,
                         parse_mode="HTML",
                         disable_web_page_preview=True
-                    )
+                                        
 
                     with state_lock:
                         user_states.pop(uid, None)
