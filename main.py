@@ -4293,7 +4293,7 @@ def process_message(msg, message_id=None, chat_id=None):
                     cards, title = generate_anki_cards_from_text(content, major=major, user_id=uid)
                     
                 else:
-                    cards, title = generate_special_anki_cards_from_text(content, major=major, user_id=uid)
+                    cards, title = generate_anki_cards_from_text(content, major=major, user_id=uid)
 
                 if not cards:
                     return bot.edit_message_text(
