@@ -3966,7 +3966,7 @@ def process_message(msg, message_id=None, chat_id=None):
                     content = extract_text_from_pdf_with_ocr(path, api_key=OCR_API_KEY, language=language)
             elif ext == "txt":
                 content_full = extract_text_from_pdf(path)  # النص الكامل
-                full_length = len(content_full)rom_docx(path)
+                full_length = len(content_full)
                 # إذا المستخدم غير مشترك، اقتطع فقط 3000 حرف
                 if not can_generate(uid):
                     content = content[:3000]
@@ -3984,7 +3984,7 @@ def process_message(msg, message_id=None, chat_id=None):
                 
             elif ext == "pptx":
                 content_full = extract_text_from_pdf(path)  # النص الكامل
-                full_length = len(content_full)rom_docx(path)
+                full_length = len(content_full)
                 
                 # إذا المستخدم غير مشترك، اقتطع فقط 3000 حرف
                 if not can_generate(uid):
