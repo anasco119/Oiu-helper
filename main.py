@@ -4512,13 +4512,14 @@ def process_message(msg, message_id=None, chat_id=None):
         
                     # معالجة الملف الفعلية
                     cards = parse_manual_anki_input(msg.text)
-                        if cards:
-                        # إنشاء الملف
+                    if cards:
+                    # إنشاء الملف
                         output_file = f"{uid}_manual_anki.apkg"
                         timestamp = int(time.time())
                         safe_filename = f"manual_anki_{uid}_{timestamp}.apkg"
                         safe_deck_name = f"Manual_Deck_{timestamp}" # اسم مجموعة آمن بالإنجليزية
-                        save_cards_to_apkg(cards, filename=safe_filename, deck_name=safe_deck_name)
+                        
+                    save_cards_to_apkg(cards, filename=safe_filename, deck_name=safe_deck_name)
             
                     # إرسال الملف مع رسالة رسمية
                         with open(output_file, 'rb') as file:
