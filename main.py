@@ -3180,7 +3180,7 @@ def handle_main_menu(c):
         elif data == "go_games":
             raw = fetch_user_major(uid)
 
-            if not row or not row[0]:
+            if not row:
                 user_states[uid] = "awaiting_major_for_games"
                 bot.send_message(uid, "🧠 قبل أن نبدأ اللعب، أخبرنا بتخصصك:")
                 return
@@ -3434,9 +3434,8 @@ def handle_main_menu(c):
 
         elif data == "game_private":
             try:
-                cursor.execute("SELECT major FROM users WHERE user_id = ?", (uid,))
-                row = cursor.fetchone()
-                major = row[0] if row else "عام"
+                row = fetch_user_major(uid)
+                major = row if row else "عام"
 
                 keyboard = InlineKeyboardMarkup(row_width=1)
                 keyboard.add(
@@ -3484,9 +3483,9 @@ def handle_main_menu(c):
                 record_game_attempt(uid, game_type)
 
                 # التخصص
-                cursor.execute("SELECT major FROM users WHERE user_id=?", (uid,))
-                row = cursor.fetchone()
-                major = row[0] if row else "عام"
+                
+                row = fetch_user_major(uid)
+                major = row if row else "عام"
 
                 # توليد السؤال حسب نوع اللعبة
                 if game_type == "vocab":
@@ -3560,9 +3559,9 @@ def handle_main_menu(c):
 
             try:
                 # توليد السؤال الجديد
-                cursor.execute("SELECT major FROM users WHERE user_id=?", (uid,))
-                row = cursor.fetchone()
-                major = row[0] if row else "عام"
+                
+                row = fetch_user_major(uid)
+                major = row if row else "عام"
 
                 game_generators = {
                     "vocab": generate_vocabulary_game,
@@ -3948,7 +3947,7 @@ def process_message(msg, message_id=None, chat_id=None):
                     bot.send_message(uid, f"📄 تم استخراج النص بنجاح (جزء منه):\n\n{preview}")
             elif ext == "docx":
                 content_full = extract_text_from_pdf(path)  # النص الكامل
-                full_length = len(content_full)rom_docx(path)
+                full_length = len(content_full)
                 # إذا المستخدم غير مشترك، اقتطع فقط 3000 حرف
                 if not can_generate(uid):
                     content = content[:3000]
@@ -3966,7 +3965,7 @@ def process_message(msg, message_id=None, chat_id=None):
                     content = extract_text_from_pdf_with_ocr(path, api_key=OCR_API_KEY, language=language)
             elif ext == "txt":
                 content_full = extract_text_from_pdf(path)  # النص الكامل
-                full_length = len(content_full)rom_docx(path)
+                full_length = len(content_full)
                 # إذا المستخدم غير مشترك، اقتطع فقط 3000 حرف
                 if not can_generate(uid):
                     content = content[:3000]
@@ -3984,7 +3983,7 @@ def process_message(msg, message_id=None, chat_id=None):
                 
             elif ext == "pptx":
                 content_full = extract_text_from_pdf(path)  # النص الكامل
-                full_length = len(content_full)rom_docx(path)
+                full_length = len(content_full)
                 
                 # إذا المستخدم غير مشترك، اقتطع فقط 3000 حرف
                 if not can_generate(uid):
