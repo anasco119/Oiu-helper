@@ -1311,11 +1311,156 @@ import tempfile # <--- تأكد من استيراد هذه المكتبة في �
 # حفظ البطاقات في ملف Anki مع دعم الصور (النسخة المصححة)
 # -----------------------
 
-def save_cards_to_apkg(cards: List[Dict], filename: str):
+def generate_anki_cards_from_text(content: str, major: str = "General", user_id: int = 0, num_cards: int = 15) -> tuple:
+    for attempt in range(3):  # تجربة حتى 3 مرات
+        prompt = f"""
+You are an AI assistant specialized in creating study flashcards.
+
+🎯 Task:
+Extract the most important {num_cards} points from the following content, and convert each into an **Anki-style flashcard**.
+
+🔹 Rules:
+- Each flashcard must include:
+  - "front": a short question or hint.
+  - "back": the detailed answer or explanation.
+  - "tag": (optional) topic label like Grammar, Biology, Logic, etc.
+- The front must be phrased to encourage recall (e.g. "What is...", "Define...", "How does...").
+- Don't use Markdown, just clean plain text.
+- Keep the cards diverse and helpful.
+- Output must be a valid JSON **object** with two keys: "title" and "cards".
+
+🚫 Important:
+- Do NOT generate multiple choice or true/false questions.
+- Only generate flashcards suitable for Anki with a front and a back.
+- The flashcards must be written in the same language as the input content. If the content is in Arabic, answer in Arabic. If English, answer in English.
+
+📘 Content to process (field: {major}):
+{content}
+
+✅ Example output format:
+{{
+  "title": "Basics of Organic Chemistry",
+  "cards": [
+    {{
+      "front": "What is the function of mitochondria?",
+      "back": "It is the powerhouse of the cell.",
+      "tag": "Biology"
+    }},
+    {{
+      "front": "ما هي الاستعارة؟",
+      "back": "الاستعارة هي استخدام الكلمة في غير معناها الحقيقي لعلاقة مع قرينة مانعة.",
+      "tag": "Literature"
+    }}
+  ]
+}}
+"""
+        if user_id == ADMIN_ID or can_generate(user_id):  # <-- التحقق هنا
+            raw_output = generate_smart_response(prompt)
+        else:
+            raw_output = generate_gemini_response(prompt)
+            
+        clean_json = extract_json_from_string(raw_output)
+
+        try:
+            data = json.loads(clean_json)
+            title = data.get("title", "بطاقات تعليمية")
+            card_list = data.get("cards", [])
+
+            cards = []
+            for item in card_list:
+                front = item.get("front") or item.get("question")
+                back = item.get("back") or item.get("answer")
+
+                if isinstance(front, str) and isinstance(back, str) and front.strip() and back.strip():
+                    cards.append({"front": front.strip(), "back": back.strip()})
+                else:
+                    logging.warning(f"❌ Skipping invalid card: {item}")
+
+            if len(cards) >= 5:
+                return cards, title
+
+        except json.JSONDecodeError as e:
+            logging.error(f"❌ Failed to parse Anki cards: {e}\nClean JSON:\n{clean_json}\nRaw:\n{raw_output}")
+
+    return [], "بطاقات تعليمية"   
+
+
+
+import json
+import logging
+import requests
+from pptx import Presentation
+
+WIKIMEDIA_API = "https://commons.wikimedia.org/w/api.php"
+UNSPLASH_API = "https://api.unsplash.com/search/photos"
+PEXELS_API = "https://api.pexels.com/v1/search"
+
+# --- بحث الصور من أكثر من مصدر ---
+def search_image(query: str) -> str:
     """
-    حفظ بطاقات Anki مع دعم الصور، بدون الحاجة لتمرير deck_name.
+    يبحث عن صورة مناسبة من Wikimedia ثم Unsplash ثم Pexels.
+    يعيد أول رابط صورة صالحة.
     """
-    # إنشاء model_id عشوائي لتجنب أي تضارب
+    # 1. Wikimedia
+    params = {
+        "action": "query",
+        "format": "json",
+        "prop": "imageinfo",
+        "generator": "search",
+        "gsrsearch": query + " filetype:bitmap OR filetype:jpeg OR filetype:png",
+        "gsrlimit": 1,
+        "iiprop": "url",
+    }
+    try:
+        r = requests.get(WIKIMEDIA_API, params=params, timeout=10)
+        r.raise_for_status()
+        data = r.json()
+        if "query" in data and "pages" in data["query"]:
+            page = next(iter(data["query"]["pages"].values()))
+            if "imageinfo" in page:
+                return page["imageinfo"][0]["url"]
+    except Exception as e:
+        logging.warning(f"⚠️ فشل Wikimedia: {e}")
+
+    # 2. Unsplash (يتطلب API key في متغير البيئة UNSPLASH_KEY)
+    unsplash_key = os.getenv("UNSPLASH_KEY")
+    if unsplash_key:
+        try:
+            r = requests.get(
+                UNSPLASH_API,
+                params={"query": query, "per_page": 1},
+                headers={"Authorization": f"Client-ID {unsplash_key}"},
+                timeout=10,
+            )
+            r.raise_for_status()
+            data = r.json()
+            if data.get("results"):
+                return data["results"][0]["urls"]["regular"]
+        except Exception as e:
+            logging.warning(f"⚠️ فشل Unsplash: {e}")
+
+    # 3. Pexels (يتطلب API key في متغير البيئة PEXELS_KEY)
+    pexels_key = os.getenv("PEXELS_KEY")
+    if pexels_key:
+        try:
+            r = requests.get(
+                PEXELS_API,
+                params={"query": query, "per_page": 1},
+                headers={"Authorization": pexels_key},
+                timeout=10,
+            )
+            r.raise_for_status()
+            data = r.json()
+            if data.get("photos"):
+                return data["photos"][0]["src"]["medium"]
+        except Exception as e:
+            logging.warning(f"⚠️ فشل Pexels: {e}")
+
+    return ""
+
+# لا تغييرات هنا، الكود السابق كان جيدًا، لكن نضعه للتأكيد
+def save_cards_to_apkg(cards: List[Dict], filename: str, deck_name: str):
+    # استخدم model_id عشوائي لتجنب أي تضارب محتمل في Anki
     model_id = random.randrange(1 << 30, 1 << 31)
 
     model = genanki.Model(
@@ -1329,12 +1474,12 @@ def save_cards_to_apkg(cards: List[Dict], filename: str):
         }]
     )
 
-    # Deck ID عشوائي واسم ثابت داخليًا
     deck = genanki.Deck(
         random.randrange(1 << 30, 1 << 31),
-        "My Flashcards"  # اسم ثابت
+        deck_name  # اسم المجموعة الذي يتم تمريره الآن
     )
 
+    # ... باقي الكود يبقى كما هو تمامًا ...
     seen = set()
     media_files = []
 
@@ -1359,11 +1504,11 @@ def save_cards_to_apkg(cards: List[Dict], filename: str):
         package = genanki.Package(deck)
         if media_files:
             package.media_files = media_files
-
+        
         package.write_to_file(filename)
 
     return filename
-
+    
 
 def parse_manual_anki_input(text):
     cards = []
