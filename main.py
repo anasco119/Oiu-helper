@@ -1243,9 +1243,19 @@ import hashlib
 import os
 import logging
 import tempfile
-import imghdr
 from typing import List, Dict, Tuple
+from PIL import Image
 
+def get_image_type(path: str) -> str:
+    """
+    يعيد نوع الصورة كـ 'jpeg', 'png', 'gif', إلخ
+    """
+    try:
+        with Image.open(path) as img:
+            return img.format.lower()  # تحويل النوع إلى lowercase
+    except Exception as e:
+        logging.warning(f"⚠️ Could not identify image type for {path}: {e}")
+        return None
 IMG_TAG_RE = re.compile(r"<img[^>]+src=[\"']([^\"']+)[\"'][^>]*>", re.IGNORECASE)
 
 def _extract_first_img_url_from_html(html: str) -> Tuple[str, str]:
