@@ -3291,6 +3291,7 @@ def process_message(msg, message_id=None, chat_id=None):
     try:
         if content_type == "text":
             content = msg.text or ""
+            coverage = "كاملة ✅"
         
         # معالجة الصور (photo)
         elif msg.content_type == "photo":
@@ -3313,6 +3314,7 @@ def process_message(msg, message_id=None, chat_id=None):
             content, ocr_debug = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language="eng")
             if not content.strip():
                 return bot.send_message(uid, f"❌ فشل في استخراج النص من الصورة. {ocr_debug}")
+            coverage = "كاملة ✅"
 
 
         elif msg.content_type == "document":
@@ -3362,10 +3364,16 @@ def process_message(msg, message_id=None, chat_id=None):
                     preview = content[:1500]
                     bot.send_message(uid, f"📄 تم استخراج النص بنجاح (جزء منه):\n\n{preview}")
             elif ext == "docx":
-                content = extract_text_from_docx(path)
+                content_full = extract_text_from_pdf(path)  # النص الكامل
+                full_length = len(content_full)
                 # إذا المستخدم غير مشترك، اقتطع فقط 3000 حرف
                 if not can_generate(uid):
-                    content = content[:3000]
+                    content = content_full[:3000]
+                    coverage_ratio = (len(content) / full_length) * 100 if full_length > 0 else 0
+                    coverage = f"{coverage_ratio:.1f}% من الملف"
+                else:
+                    content = content_full
+                    coverage = "كاملة ✅"
                     
                 if is_text_empty(content):
                     if not can_generate(uid):
@@ -3374,10 +3382,16 @@ def process_message(msg, message_id=None, chat_id=None):
                     language = detect_language_from_filename(msg.document.file_name)
                     content = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language=language)
             elif ext == "txt":
-                content = extract_text_from_txt(path)
+                content_full = extract_text_from_pdf(path)  # النص الكامل
+                full_length = len(content_full)
                 # إذا المستخدم غير مشترك، اقتطع فقط 3000 حرف
                 if not can_generate(uid):
-                    content = content[:3000]
+                    content = content_full[:3000]
+                    coverage_ratio = (len(content) / full_length) * 100 if full_length > 0 else 0
+                    coverage = f"{coverage_ratio:.1f}% من الملف"
+                else:
+                    content = content_full
+                    coverage = "كاملة ✅"
                 if is_text_empty(content):
                     if not can_generate(uid):
                         return bot.send_message(uid, "⚠️ لا يمكن قراءة هذا الملف تلقائيًا. تتطلب المعالجة المتقدمة اشتراكًا فعالًا.")
@@ -3385,11 +3399,17 @@ def process_message(msg, message_id=None, chat_id=None):
                     content = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language="eng+ara")
                 
             elif ext == "pptx":
-                content = extract_text_from_pptx(path)
+                content_full = extract_text_from_pdf(path)  # النص الكامل
+                full_length = len(content_full)
             
                 # إذا المستخدم غير مشترك، اقتطع فقط 3000 حرف
                 if not can_generate(uid):
-                    content = content[:3000]
+                    content = content_full[:3000]
+                    coverage_ratio = (len(content) / full_length) * 100 if full_length > 0 else 0
+                    coverage = f"{coverage_ratio:.1f}% من الملف"
+                else:
+                    content = content_full
+                    coverage = "كاملة ✅"
                 
                 if is_text_empty(content):
                     if not can_generate(uid):
