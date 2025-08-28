@@ -14,4 +14,3 @@ genanki
 python-pptx
 langdetect
 schedule
-imghdr
