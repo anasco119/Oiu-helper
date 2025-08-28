@@ -1307,7 +1307,44 @@ def _download_image_to_dir(url: str, dest_dir: str) -> Tuple[str, str]:
 
 import tempfile # <--- تأكد من استيراد هذه المكتبة في أعلى الملف
 
+def save_cards_to_apkg(cards: list, filename='anki_flashcards.apkg', deck_name="My Flashcards"):
+    model = genanki.Model(
+        1607392319,
+        'Simple Model with Tags',
+        fields=[
+            {'name': 'Front'},
+            {'name': 'Back'},
+            {'name': 'Tag'}
+        ],
+        templates=[
+            {
+                'name': 'Card 1',
+                'qfmt': '{{Front}}<br><small style="color:gray">{{Tag}}</small>',
+                'afmt': '{{FrontSide}}<hr id="answer">{{Back}}',
+            },
+        ]
+    )
 
+    deck = genanki.Deck(
+        deck_id=int(str(uuid.uuid4().int)[:9]),
+        name=deck_name
+    )
+
+    seen = set()
+    for card in cards:
+        front = card.get('front', '').strip()
+        back = card.get('back', '').strip()
+        tag = card.get('tag', '').strip()
+        if front and back and front not in seen:
+            note = genanki.Note(model=model, fields=[front, back, tag])
+            deck.add_note(note)
+            seen.add(front)
+
+    genanki.Package(deck).write_to_file(filename)
+    return filename
+
+
+        
 
 
 
