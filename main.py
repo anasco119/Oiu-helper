@@ -66,7 +66,7 @@ def notify_admin(action: str, username: str, user_id: int):
     )
 
 
-def notify_process_info(uid, file_id, username)
+def notify_process_info(uid, file_id, username):
     try:
 
         # إرسال إشعار إلى الأدمن فقط
