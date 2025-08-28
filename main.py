@@ -3827,9 +3827,10 @@ def process_message(msg, message_id=None, chat_id=None):
                     quiz_link = f"https://t.me/QuizzyAI_bot?start=quiz_{quiz_code}"
                     estimated_time = len(quizzes) * 30
 
-                    keyboard = types.InlineKeyboardMarkup()
-                    keyboard.add(types.InlineKeyboardButton("🚀 بدء الاختبار", url=quiz_link))
-
+                    keyboard = InlineKeyboardMarkup()
+                    
+                    btn = InlineKeyboardButton("🚀 فتح الاختبار", url=quiz_link)
+                    keyboard.add(btn)
 
                     quiz_msg = (
                         f"✨✔️ <b>إختبارك جاهز!</b>\n"
@@ -3864,7 +3865,11 @@ def process_message(msg, message_id=None, chat_id=None):
                         user_states.pop(uid, None)
 
                 except Exception as e:
-                    print(f"Error in quiz generation: {e}")
+                    import traceback
+                    logging.exception("process_message error: %s", e)
+                    print("!!!!!!!!!!!!!!!!! حدث خطأ !!!!!!!!!!!!!!!!!!")
+                    traceback.print_exc() # هذا السطر سيطبع الخطأ الكامل ومكانه بالضبط
+                    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
                     bot.send_message(uid, "حدث خطأ غير متوقع   .")
                     
             else:
