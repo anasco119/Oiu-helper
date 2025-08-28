@@ -3857,6 +3857,7 @@ def process_message(msg, message_id=None, chat_id=None):
                         reply_markup=keyboard,
                         parse_mode="HTML",
                         disable_web_page_preview=True
+                    )
                                         
 
                     with state_lock:
