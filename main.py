@@ -3842,7 +3842,7 @@ def process_message(msg, message_id=None, chat_id=None):
         except Exception:
             logging.exception("requests status update failed")
 
-        notify_process_info(uid, file_id, username)
+    notify_process_info(uid, file_id, username)
 
 
 
