@@ -386,6 +386,14 @@ def detect_language_from_filename(filename: str) -> str:
             return "ara"
     return "eng"
 
+import os
+import fitz  # PyMuPDF
+import logging
+import requests
+from pptx import Presentation
+from tempfile import NamedTemporaryFile
+
+# ---- OCR Space Integration ----
 def extract_text_with_ocr_space(file_path: str, api_key="helloworld", language="eng") -> tuple:
     """
     Uses OCR.Space API to extract text from an image or scanned PDF.
@@ -420,6 +428,79 @@ def extract_text_with_ocr_space(file_path: str, api_key="helloworld", language="
     except Exception as e:
         return "", f"[OCR EXCEPTION] {e}"
 
+
+# ---- PDF Split + OCR ----
+def extract_text_from_pdf_with_ocr(path: str, api_key="helloworld", language="eng") -> str:
+    """
+    Splits a PDF into chunks of 3 pages (OCR.Space free limit),
+    sends each chunk separately, and concatenates the extracted text.
+    """
+    try:
+        doc = fitz.open(path)
+        all_text = []
+        # تقسيم كل 3 صفحات في ملف مؤقت
+        for i in range(0, len(doc), 3):
+            subdoc = fitz.open()  # ملف جديد مؤقت
+            for j in range(i, min(i+3, len(doc))):
+                subdoc.insert_pdf(doc, from_page=j, to_page=j)
+            
+            with NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+                temp_path = tmp.name
+                subdoc.save(temp_path)
+                subdoc.close()
+            
+            text, debug = extract_text_with_ocr_space(temp_path, api_key=api_key, language=language)
+            logging.info(f"OCR chunk [{i}-{i+2}]: {debug}")
+            all_text.append(text)
+            
+            os.remove(temp_path)
+        
+        return "\n".join(all_text).strip()
+    
+    except Exception as e:
+        logging.error(f"Error extracting PDF with OCR: {e}")
+        return ""
+
+
+# ---- PPTX Split + OCR ----
+def extract_text_from_pptx_with_ocr(path: str, api_key="helloworld", language="eng") -> str:
+    """
+    Converts PPTX slides into smaller chunks (3 slides per file),
+    sends each chunk separately to OCR.Space, and concatenates the text.
+    """
+    try:
+        prs = Presentation(path)
+        all_text = []
+
+        # تقسيم العرض كل 3 شرائح
+        for i in range(0, len(prs.slides), 3):
+            new_ppt = Presentation()
+            # إضافة تخطيط فارغ (مطلوب لعمل نسخ الشرائح)
+            blank_layout = new_ppt.slide_layouts[6]
+
+            for j in range(i, min(i+3, len(prs.slides))):
+                slide = prs.slides[j]
+                new_slide = new_ppt.slides.add_slide(blank_layout)
+                for shape in slide.shapes:
+                    if hasattr(shape, "text"):
+                        textbox = new_slide.shapes.add_textbox(left=0, top=0, width=new_ppt.slide_width, height=100)
+                        textbox.text = shape.text
+            
+            with NamedTemporaryFile(suffix=".pptx", delete=False) as tmp:
+                temp_path = tmp.name
+                new_ppt.save(temp_path)
+            
+            text, debug = extract_text_with_ocr_space(temp_path, api_key=api_key, language=language)
+            logging.info(f"OCR PPTX chunk [{i}-{i+2}]: {debug}")
+            all_text.append(text)
+
+            os.remove(temp_path)
+        
+        return "\n".join(all_text).strip()
+    
+    except Exception as e:
+        logging.error(f"Error extracting PPTX with OCR: {e}")
+        return ""
 # -------------------------------------------------------------------
 #                  Logging & Database Setup
 # -------------------------------------------------------------------
@@ -3355,7 +3436,7 @@ def process_message(msg, message_id=None, chat_id=None):
                         )
                     bot.reply_to(msg, "⏳ يتم تجهيز الملف... الرجاء الانتظار لحظات.")
                     language = detect_language_from_filename(msg.document.file_name)
-                    content, ocr_debug = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language=language)
+                    content, ocr_debug = extract_text_from_pdf_with_ocr(path, api_key=OCR_API_KEY, language=language)
                     if not content.strip():
                         bot.send_message(uid, f"❌ فشل في استخراج النص من الملف. {ocr_debug}")
                         return
@@ -3416,7 +3497,7 @@ def process_message(msg, message_id=None, chat_id=None):
                         return bot.send_message(uid, "⚠️ لا يمكن قراءة هذا الملف تلقائيًا. تتطلب المعالجة المتقدمة اشتراكًا فعالًا.")
                     bot.edit_message_text("⏳ يتم تجهيز الملف... الرجاء الانتظار لحظات.", chat_id=chat_id, message_id=message_id)
                     language = detect_language_from_filename(msg.document.file_name)
-                    content = extract_text_with_ocr_space(path, api_key=OCR_API_KEY, language=language)
+                    content, ocr_debug = extract_text_from_pptx_with_ocr(path, api_key=OCR_API_KEY, language=language)
 
             elif ext in ("jpg", "png"):
                 if not can_generate(uid):
