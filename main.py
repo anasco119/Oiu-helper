@@ -4263,7 +4263,7 @@ def process_message(msg, message_id=None, chat_id=None):
                 for c in cards:
                     hint = c.get("image_hint", "").strip()
                     if hint and not c.get("image_url"):
-                    c["image_url"] = search_image(hint)  # يمكن رجوع "" إن لم توجد صورة
+                        c["image_url"] = search_image(hint)  # يمكن رجوع "" إن لم توجد صورة
 
         
                 # تنظيف العنوان ليكون اسم ملف صالح
