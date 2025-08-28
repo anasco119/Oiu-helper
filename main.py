@@ -1242,25 +1242,75 @@ import requests
 import hashlib
 import os
 import logging
+import tempfile
+import imghdr
+from typing import List, Dict, Tuple
 
-def download_image(url: str) -> tuple[str, str]:
+IMG_TAG_RE = re.compile(r"<img[^>]+src=[\"']([^\"']+)[\"'][^>]*>", re.IGNORECASE)
+
+def _extract_first_img_url_from_html(html: str) -> Tuple[str, str]:
     """
-    تنزيل الصورة وإرجاع (اسم الملف, المسار المحلي)
+    Returns (image_url, cleaned_html_without_img)
+    """
+    match = IMG_TAG_RE.search(html)
+    if not match:
+        return "", html
+    url = match.group(1)
+    # remove all <img ...> tags (or only the matched one) to avoid duplicates
+    cleaned = IMG_TAG_RE.sub("", html)
+    return url, cleaned.strip()
+
+def _download_image_to_dir(url: str, dest_dir: str) -> Tuple[str, str]:
+    """
+    Download image from url into dest_dir.
+    Returns (basename, full_path) or (None, None) on failure.
+    Ensures filename is ASCII (md5 hash + extension).
     """
     try:
-        r = requests.get(url, timeout=10)
+        r = requests.get(url, timeout=15)
         r.raise_for_status()
-        ext = url.split(".")[-1].split("?")[0][:4]  # jpg/png/gif...
+        content = r.content
+
+        # try to detect extension from content (imghdr)
+        ext = imghdr.what(None, h=content)
+        if not ext:
+            # fallback to content-type header
+            ctype = r.headers.get("content-type", "")
+            if "jpeg" in ctype:
+                ext = "jpg"
+            elif "png" in ctype:
+                ext = "png"
+            elif "gif" in ctype:
+                ext = "gif"
+            else:
+                ext = "bin"
+
         fname = hashlib.md5(url.encode()).hexdigest() + "." + ext
-        with open(fname, "wb") as f:
-            f.write(r.content)
-        return fname, os.path.abspath(fname)
+        path = os.path.join(dest_dir, fname)
+
+        # write file
+        with open(path, "wb") as f:
+            f.write(content)
+
+        return fname, path
     except Exception as e:
-        logging.warning(f"⚠️ Failed to download {url}: {e}")
+        logging.warning(f"⚠️ Failed to download image {url}: {e}")
         return None, None
 
-
-def save_cards_to_apkg(cards: list, filename='anki_flashcards.apkg', deck_name="My Flashcards"):
+def save_cards_to_apkg(cards: List[Dict], filename: str = 'anki_flashcards.apkg', deck_name: str = "My Flashcards"):
+    """
+    cards: list of dicts. Each dict must contain at least:
+      - 'front' (str)
+      - 'back' (str)
+    optionally:
+      - 'tag' (str)
+      - 'image_url' (str)  OR <img ...> can already be embedded inside 'back'
+    This function will:
+      - extract any image URL from back or use image_url
+      - download images to a temp dir
+      - replace back image tags with local <img src='filename.ext'>
+      - package media files into the apkg
+    """
     model = genanki.Model(
         1607392319,
         'Simple Model with Tags',
@@ -1286,31 +1336,51 @@ def save_cards_to_apkg(cards: list, filename='anki_flashcards.apkg', deck_name="
     seen = set()
     media_files = []
 
-    for card in cards:
-        front = card.get('front', '').strip()
-        back = card.get('back', '').strip()
-        tag = card.get('tag', '').strip()
-        image_url = card.get('image_url') or ""  # <-- نتوقع المفتاح يجي من دالتك
+    # create temp dir for media files (will be cleaned automatically)
+    with tempfile.TemporaryDirectory(prefix="anki_media_") as tmpdir:
+        for card in cards:
+            front = (card.get('front') or "").strip()
+            back = (card.get('back') or "").strip()
+            tag = (card.get('tag') or "").strip()
+            # prefer explicit image_url key, else try extract from back
+            image_url = (card.get('image_url') or "").strip()
 
-        if front and back and front not in seen:
-            # لو فيه صورة ننزلها ونضيفها للـ back
+            # if no explicit image_url, check any <img src="..."> in back
+            if not image_url:
+                extracted_url, cleaned_back = _extract_first_img_url_from_html(back)
+                if extracted_url:
+                    image_url = extracted_url
+                    back = cleaned_back  # remove remote <img> tag from back
+
+            if not front or not back or front in seen:
+                continue
+
+            # if there's an image URL, download it into tmpdir and add as media
             if image_url:
-                fname, path = download_image(image_url)
-                if fname and path:
-                    media_files.append(path)
-                    back += f"<br><img src='{fname}'>"
+                fname, fullpath = _download_image_to_dir(image_url, tmpdir)
+                if fname and fullpath and os.path.isfile(fullpath):
+                    # append the local img tag referencing the basename
+                    back += f"<br><img src='{fname}' style='max-height:220px; display:block; margin:12px auto;'>"
+                    media_files.append(fullpath)
+                else:
+                    logging.warning(f"⚠️ Could not include image for card: {image_url}")
 
+            # create note and add
             note = genanki.Note(model=model, fields=[front, back, tag])
             deck.add_note(note)
             seen.add(front)
 
-    package = genanki.Package(deck)
-    if media_files:
-        package.media_files = media_files
+        # prepare package
+        package = genanki.Package(deck)
+        if media_files:
+            # genanki will zip these files inside the apkg
+            package.media_files = media_files
 
-    package.write_to_file(filename)
+        # write apkg (this must happen while tempdir exists)
+        package.write_to_file(filename)
+
+    # temporary dir and downloaded files removed here
     return filename
-
 
 
 def parse_manual_anki_input(text):
@@ -1930,48 +2000,61 @@ You are an AI assistant specialized in creating study flashcards.
 Extract the most important {num_cards} points from the following content, and convert each into an **Anki-style flashcard**.
 
 🔹 Rules:
-- Each flashcard must include:
-  - "front": a short question or hint.
-  - "back": the detailed answer or explanation.
-  - "tag": (optional) topic label like Grammar, Biology, Logic, etc.
-  - "image_hint": (optional) a short description of an image that would help illustrate the card (only if relevant).
-- The front must be phrased to encourage recall (e.g. "What is...", "Define...", "How does...").
-- Don't use Markdown, just clean plain text.
-- Keep the cards diverse and helpful.
-- Output must be a valid JSON **object** with two keys: "title" and "cards".
+
+Each flashcard must include:
+
+"front": a short question or hint.
+
+"back": the detailed answer or explanation.
+
+"tag": (optional) topic label like Grammar, Biology, Logic, etc.
+
+"image_hint": (optional) a short description of an image that would help illustrate the card (only if relevant).
+
+The front must be phrased to encourage recall (e.g. "What is...", "Define...", "How does...").
+
+Don't use Markdown, just clean plain text.
+
+Keep the cards diverse and helpful.
+
+Output must be a valid JSON object with two keys: "title" and "cards".
 
 🚫 Important:
-- Do NOT generate multiple choice or true/false questions.
-- Only generate flashcards suitable for Anki with a front and a back.
-- The flashcards must be written in the same language as the input content. If the content is in Arabic, answer in Arabic. If English, answer in English.
+
+Do NOT generate multiple choice or true/false questions.
+
+Only generate flashcards suitable for Anki with a front and a back.
+
+The flashcards must be written in the same language as the input content. If the content is in Arabic, answer in Arabic. If English, answer in English.
 
 📘 Content to process (field: {major}):
 {content}
 
 ✅ Example output format:
 {{
-  "title": "Basics of Organic Chemistry",
-  "cards": [
-    {{
-      "front": "What is the function of mitochondria?",
-      "back": "It is the powerhouse of the cell.",
-      "tag": "Biology",
-      "image_hint": "microscopic image of mitochondria"
-    }},
-    {{
-      "front": "ما هي الاستعارة؟",
-      "back": "الاستعارة هي استخدام الكلمة في غير معناها الحقيقي لعلاقة مع قرينة مانعة.",
-      "tag": "Literature",
-      "image_hint": ""
-    }}
-  ]
+"title": "Basics of Organic Chemistry",
+"cards": [
+{{
+"front": "What is the function of mitochondria?",
+"back": "It is the powerhouse of the cell.",
+"tag": "Biology",
+"image_hint": "microscopic image of mitochondria"
+}},
+{{
+"front": "ما هي الاستعارة؟",
+"back": "الاستعارة هي استخدام الكلمة في غير معناها الحقيقي لعلاقة مع قرينة مانعة.",
+"tag": "Literature",
+"image_hint": ""
+}}
+]
 }}
 """
+        # توليد المخرجات
         if user_id == ADMIN_ID or can_generate(user_id):
             raw_output = generate_smart_response(prompt)
         else:
             raw_output = generate_gemini_response(prompt)
-            
+
         clean_json = extract_json_from_string(raw_output)
 
         try:
@@ -1985,19 +2068,18 @@ Extract the most important {num_cards} points from the following content, and co
                 back = item.get("back") or item.get("answer")
                 tag = item.get("tag", "")
                 image_hint = item.get("image_hint", "").strip()
+                image_url = ""
 
                 if isinstance(front, str) and isinstance(back, str) and front.strip() and back.strip():
                     # البحث عن صورة إذا كان فيه image_hint
                     if image_hint:
                         image_url = search_image(image_hint)
-                        if image_url:
-                            # نضيف أسطر قبل الصورة لزيادة وضوح الفصل
-                            back += f"<br><br><img src='{image_url}' style='max-height:220px; display:block; margin:12px auto;'>"
 
                     cards.append({
                         "front": front.strip(),
                         "back": back.strip(),
-                        "tag": tag.strip()
+                        "tag": tag.strip(),
+                        "image_url": image_url  # <-- رابط الصورة فقط
                     })
                 else:
                     logging.warning(f"❌ Skipping invalid card: {item}")
@@ -2009,7 +2091,6 @@ Extract the most important {num_cards} points from the following content, and co
             logging.error(f"❌ Failed to parse Anki cards: {e}\nClean JSON:\n{clean_json}\nRaw:\n{raw_output}")
 
     return [], "بطاقات تعليمية"
-    
 
 
 # -------------------------------------------------------------------
@@ -4177,6 +4258,13 @@ def process_message(msg, message_id=None, chat_id=None):
                         text="❌ لم أتمكن من إنشاء أي بطاقات.\n\nقد يكون المحتوى غير مناسب أو حدث خطأ أثناء المعالجة."
                     )
                     
+
+               # قد تحتوي البطاقات على image_hint فقط؛ حولها لصيغ URL قبل الحفظ إن أردت:
+                for c in cards:
+                    hint = c.get("image_hint", "").strip()
+                    if hint and not c.get("image_url"):
+                    c["image_url"] = search_image(hint)  # يمكن رجوع "" إن لم توجد صورة
+
         
                 # تنظيف العنوان ليكون اسم ملف صالح
                 safe_title = re.sub(r'[^a-zA-Z0-9_\u0600-\u06FF]', '_', title)[:40]
