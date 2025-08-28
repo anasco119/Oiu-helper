@@ -1388,66 +1388,7 @@ import tempfile # <--- تأكد من استيراد هذه المكتبة في �
 # -----------------------
 # حفظ البطاقات في ملف Anki مع دعم الصور (النسخة المصححة)
 # -----------------------
-def save_cards_to_apkg(cards: List[Dict], filename: str = 'anki_flashcards.apkg', deck_name: str = "My Flashcards"):
-    model = genanki.Model(
-        1607392319,
-        'Simple Model with Tags',
-        fields=[
-            {'name': 'Front'},
-            {'name': 'Back'},
-            {'name': 'Tag'}
-        ],
-        templates=[
-            {
-                'name': 'Card 1',
-                'qfmt': '{{Front}}<br><small style="color:gray">{{Tag}}</small>',
-                'afmt': '{{FrontSide}}<hr id="answer">{{Back}}',
-            },
-        ]
-    )
 
-    deck = genanki.Deck(
-        deck_id=int(str(uuid.uuid4().int)[:9]),
-        name=deck_name
-    )
-
-    seen = set()
-    media_files = []
-
-    # ✨ التغيير الرئيسي: استخدام مجلد مؤقت خاص ومنعزل لكل عملية
-    # سيتم حذف هذا المجلد ومحتوياته تلقائيًا بعد الخروج من هذا البلوك
-    with tempfile.TemporaryDirectory() as temp_dir:
-        logging.info(f"Created temporary directory for media: {temp_dir}")
-
-        for card in cards:
-            front = card.get('front', '').strip()
-            back = card.get('back', '').strip()
-            tag = card.get('tag', '').strip()
-            image_url = card.get('image_url', '')
-
-            if front and back and front not in seen:
-                # إذا كانت هناك صورة، قم بتنزيلها إلى المجلد المؤقت الخاص بنا
-                if image_url:
-                    # نمرر المجلد المؤقت temp_dir للدالة
-                    fname, path = _download_image_to_dir(image_url, temp_dir)
-                    if fname and path:
-                        media_files.append(path)
-                        back += f"<br><img src='{fname}' style='max-height:220px; display:block; margin:12px auto;'>"
-
-                note = genanki.Note(model=model, fields=[front, back, tag])
-                deck.add_note(note)
-                seen.add(front)
-
-        package = genanki.Package(deck)
-        if media_files:
-            package.media_files = media_files
-
-        package.write_to_file(filename)
-
-    # لا حاجة لحذف الملفات يدويًا، سيتم حذف temp_dir تلقائيًا
-    logging.info(f"Successfully created Anki package: {filename}")
-    return filename
-    
 
 def parse_manual_anki_input(text):
     cards = []
