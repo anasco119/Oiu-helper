@@ -1246,18 +1246,9 @@ import tempfile
 from typing import List, Dict, Tuple
 from PIL import Image
 
-def get_image_type(path: str) -> str:
-    """
-    يعيد نوع الصورة كـ 'jpeg', 'png', 'gif', إلخ
-    """
-    try:
-        with Image.open(path) as img:
-            return img.format.lower()  # تحويل النوع إلى lowercase
-    except Exception as e:
-        logging.warning(f"⚠️ Could not identify image type for {path}: {e}")
-        return None
-IMG_TAG_RE = re.compile(r"<img[^>]+src=[\"']([^\"']+)[\"'][^>]*>", re.IGNORECASE)
 
+    # اكمل هذا التعريف
+IMG_TAG_RE =   ']+)[\"'][^>]*>", re.IGNORECASE)
 def _extract_first_img_url_from_html(html: str) -> Tuple[str, str]:
     """
     Returns (image_url, cleaned_html_without_img)
@@ -1282,18 +1273,14 @@ def _download_image_to_dir(url: str, dest_dir: str) -> Tuple[str, str]:
         content = r.content
 
         # try to detect extension from content (imghdr)
-        ext = imghdr.what(None, h=content)
-        if not ext:
-            # fallback to content-type header
-            ctype = r.headers.get("content-type", "")
-            if "jpeg" in ctype:
-                ext = "jpg"
-            elif "png" in ctype:
-                ext = "png"
-            elif "gif" in ctype:
-                ext = "gif"
-            else:
-                ext = "bin"
+        try:
+            with Image.open(path) as img:
+                return img.format.lower()  # تحويل النوع إلى lowercase
+        except Exception as e:
+            logging.warning(f"⚠️ Could not identify image type for {path}: {e}")
+            
+    
+
 
         fname = hashlib.md5(url.encode()).hexdigest() + "." + ext
         path = os.path.join(dest_dir, fname)
