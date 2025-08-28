@@ -10,8 +10,8 @@ google-api-core
 googleapis-common-protos
 groq
 cohere
-genanki
 python-pptx
 langdetect
 schedule
 pillow
+genanki==0.12.0
