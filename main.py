@@ -4885,7 +4885,7 @@ def process_message(msg, message_id=None, chat_id=None):
                     quiz_msg = (
                     "✨✔️ <b>إختبارك جاهز!</b>\n"
                     "──────────────────\n"
-                    f"📂 <b>العنوان:</b> {msg.document.file_name}\n\n"
+                    f"📂 <b>العنوان:</b> {msg.document.file_name or "إختبار من نص"}\n\n"
                     f"📋 <b>عدد الأسئلة:</b> {len(quizzes)}\n"
                     f"⏱️ <b>الزمن الكلي:</b> {estimated_time // 60} دقيقة و {estimated_time % 60} ثانية\n"
                     f"🎓 <b>التخصص:</b> {major} \n"
