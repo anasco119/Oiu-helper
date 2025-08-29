@@ -4902,6 +4902,13 @@ def process_message(msg, message_id=None, chat_id=None):
                     if path:
                         
                         file_path = user_files[uid]
+                    # --- FIX STARTS HERE ---
+                    # Determine the title based on the message type
+                    if msg.content_type == 'document':
+                        quiz_title = msg.document.file_name
+                    else:
+                        quiz_title = 'إختبار من نص'
+                        # --- FIX ENDS HERE ---
                     level = "متوسط"
 
                     # إرسال رسالة "إختبارك جاهز" مع رابط الاختبار
@@ -4912,11 +4919,12 @@ def process_message(msg, message_id=None, chat_id=None):
                     markup = InlineKeyboardMarkup()
                     btn = InlineKeyboardButton("فتح الاختبار", url=quiz_link)
                     markup.add(btn)
+                    
 
                     quiz_msg = (
                     "✨✔️ <b>إختبارك جاهز!</b>\n"
                     "──────────────────\n"
-                    f"📂 <b>العنوان:</b> {msg.document.file_name or 'إختبار من نص'}\n\n"
+                    f"📂 <b>العنوان:</b> {quiz_title}\n\n"
                     f"📋 <b>عدد الأسئلة:</b> {len(quizzes)}\n"
                     f"⏱️ <b>الزمن الكلي:</b> {estimated_time // 60} دقيقة و {estimated_time % 60} ثانية\n"
                     f"🎓 <b>التخصص:</b> {major} \n"
