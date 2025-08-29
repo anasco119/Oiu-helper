@@ -927,23 +927,6 @@ def safe_edit_or_send(text, chat_id, message_id, parse_mode="HTML"):
 
 
 
-def is_request_already_queued(file_id=None, user_id=None, message_id=None, db_path='requests.db'):
-    try:
-        conn = sqlite3.connect(db_path, check_same_thread=False)
-        cur = conn.cursor()
-        if file_id:
-            cur.execute("SELECT status FROM requests WHERE file_id=? ORDER BY id DESC LIMIT 1", (file_id,))
-        else:
-            cur.execute("SELECT status FROM requests WHERE user_id=? AND message_id=? ORDER BY id DESC LIMIT 1", (user_id, message_id))
-        row = cur.fetchone()
-        conn.close()
-        if row and row[0] in ('pending','processing'):
-            return True
-        return False
-    except Exception:
-        logging.exception("is_request_already_queued failed")
-        return False
-
 
 # ------------------------------------
 # ------------------------------------------------- Stat Management----
@@ -1310,7 +1293,10 @@ def _download_image_to_dir(url: str, dest_dir: str) -> Tuple[str, str]:
 
 import tempfile # <--- تأكد من استيراد هذه المكتبة في أعلى الملف
 
-def save_cards_to_apkg(cards: list, filename='anki_flashcards.apkg', deck_name="My Flashcards"):
+import genanki
+
+
+def save_cards_to_apkg(cards: List[Dict], filename: str = 'anki_flashcards.apkg', deck_name: str = "My Flashcards"):
     model = genanki.Model(
         1607392319,
         'Simple Model with Tags',
@@ -1334,18 +1320,62 @@ def save_cards_to_apkg(cards: list, filename='anki_flashcards.apkg', deck_name="
     )
 
     seen = set()
-    for card in cards:
-        front = card.get('front', '').strip()
-        back = card.get('back', '').strip()
-        tag = card.get('tag', '').strip()
-        if front and back and front not in seen:
+    media_files = []
+    temp_dir = tempfile.gettempdir()
+
+    for idx, card in enumerate(cards, start=1):
+        try:
+            front = (card.get('front') or '').strip()
+            back = (card.get('back') or '').strip()
+            tag = (card.get('tag') or '').strip()
+            image_url = (card.get('image_url') or '').strip()
+
+            # تحقق من صلاحية البطاقة
+            if not front or not back:
+                logging.warning(f"⚠️ تجاهل البطاقة #{idx}: front/back ناقص.")
+                continue
+
+            if front in seen:
+                logging.warning(f"⚠️ تجاهل البطاقة #{idx}: front مكرر.")
+                continue
+
+            # محاولة تنزيل الصورة (بشكل متسامح)
+            if image_url:
+                try:
+                    fname, path = _download_image_to_dir(image_url, temp_dir)
+                    if fname and path:
+                        media_files.append(path)
+                        back += f"<br><img src='{fname}' style='max-height:220px; display:block; margin:12px auto;'>"
+                    else:
+                        logging.warning(f"⚠️ البطاقة #{idx}: تعذر تنزيل الصورة من {image_url}، تم تجاهلها.")
+                except Exception as e:
+                    logging.error(f"❌ خطأ أثناء تنزيل صورة البطاقة #{idx}: {e}")
+                    # نترك البطاقة بدون صورة
+
+            # إنشاء البطاقة
             note = genanki.Note(model=model, fields=[front, back, tag])
             deck.add_note(note)
             seen.add(front)
 
-    genanki.Package(deck).write_to_file(filename)
-    return filename
+        except Exception as e:
+            logging.error(f"❌ خطأ غير متوقع في البطاقة #{idx}: {e}")
+            continue
 
+    # تحقق أن فيه بطاقات صالحة
+    if not deck.notes:
+        logging.error("❌ لا توجد بطاقات صالحة، لم يتم إنشاء ملف Anki.")
+        return None
+
+    try:
+        package = genanki.Package(deck)
+        if media_files:
+            package.media_files = media_files
+        package.write_to_file(filename)
+        logging.info(f"✅ تم إنشاء ملف Anki بنجاح: {filename}")
+        return filename
+    except Exception as e:
+        logging.error(f"❌ خطأ أثناء كتابة ملف Anki: {e}")
+        return None
 
         
 #
