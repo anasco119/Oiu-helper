@@ -1348,6 +1348,66 @@ def save_cards_to_apkg(cards: list, filename='anki_flashcards.apkg', deck_name="
 
 
         
+#
+# ----- أضف هذا الكود في ملف main.py -----
+#
+import zipfile
+import json
+import traceback
+
+def inspect_apkg_and_get_report(path: str) -> str:
+    """
+    يفحص ملف .apkg ويعيد تقريرًا نصيًا بالحالة.
+    """
+    report = []
+    report.append(f"🕵️‍♂️ **فحص الملف:** `{path}`")
+    
+    try:
+        with zipfile.ZipFile(path, 'r') as z:
+            namelist = z.namelist()
+            report.append(f"**المحتويات:** `{namelist}`")
+
+            # فحص ملف media
+            media_found = False
+            for candidate in ('media.json', 'media'):
+                if candidate in namelist:
+                    media_found = True
+                    report.append(f"\n📄 **فحص `{candidate}`:**")
+                    data = z.read(candidate)
+                    report.append(f"  - الحجم: {len(data)} بايت")
+                    try:
+                        text = data.decode('utf-8')
+                        report.append("  - ✅ الترميز: صالح (UTF-8)")
+                        try:
+                            json.loads(text)
+                            report.append("  - ✅ الصيغة: ملف JSON صالح")
+                        except json.JSONDecodeError as e:
+                            report.append(f"  - ❌ الصيغة: خطأ في تحليل JSON: {e}")
+                    except UnicodeDecodeError as e:
+                        report.append(f"  - ❌ الترميز: غير صالح (ليس UTF-8): {e}")
+                    break
+            
+            if not media_found and any(c.get('image_url') for c in cards): # افترض أن cards متاحة
+                 report.append("\n- ❌ **تحذير:** لا يوجد ملف `media` على الرغم من وجود صور!")
+            elif not media_found:
+                 report.append("\n- ✅ لا يوجد ملف `media` (متوقع لعدم وجود صور).")
+
+
+            # فحص ملف collection.anki2
+            report.append("\n🗃️ **فحص `collection.anki2`:**")
+            if 'collection.anki2' in namelist:
+                size = z.getinfo('collection.anki2').file_size
+                report.append(f"  - ✅ موجود، الحجم: {size} بايت")
+            else:
+                report.append("  - ❌ **خطير:** الملف مفقود!")
+
+    except zipfile.BadZipFile:
+        report.append("\n❌ **خطأ فادح: الملف ليس ملف ZIP صالحًا. هذا هو سبب المشكلة على الأغلب.**")
+    except Exception as e:
+        report.append(f"\n❌ **حدث خطأ غير متوقع أثناء الفحص:**\n`{e}`\n`{traceback.format_exc()}`")
+
+    return "\n".join(report)
+
 
 
 
@@ -2853,6 +2913,95 @@ def handle_main_menu(c):
         )
 
         bot2.edit_message_text(msg_text, chat_id=chat_id, message_id=message_id, parse_mode="HTML", reply_markup=keyboard)
+
+#
+# ----- أضف هذا الأمر الجديد للبوت -----
+#
+
+@bot.message_handler(commands=['inspect'])
+def inspect_generated_anki(message):
+    # للأمان، فقط الأدمن يمكنه استدعاء هذا الأمر
+    if message.from_user.id != ADMIN_ID:
+        return
+
+    bot.send_message(message.chat.id, "⏳ حسنًا، سأقوم بإنشاء ملف Anki يدوي وفحصه الآن...")
+    
+    try:
+        # 1. إنشاء بيانات بسيطة لملف Anki يدوي
+        manual_text = "السؤال الأول\nالجواب الأول\n#tag1\n\nالسؤال الثاني\nالجواب الثاني"
+        cards = parse_manual_anki_input(manual_text)
+        
+        if not cards:
+            bot.send_message(message.chat.id, "فشل في تحليل النص اليدوي.")
+            return
+
+        # 2. حفظ الملف باسم مؤقت
+        filename = f"inspection_{message.from_user.id}.apkg"
+        deck_name = "Inspection Deck"
+        save_cards_to_apkg(cards, filename=filename, deck_name=deck_name)
+
+        # 3. تشغيل الفحص على الملف الناتج
+        report = inspect_apkg_and_get_report(filename)
+
+        # 4. إرسال التقرير إليك
+        bot.send_message(message.chat.id, report, parse_mode="Markdown")
+
+        # 5. (اختياري) إرسال الملف نفسه لتجربته
+        with open(filename, 'rb') as file:
+            bot.send_document(message.chat.id, file, caption="📄 هذا هو الملف الذي تم فحصه.")
+
+    except Exception as e:
+        bot.send_message(message.chat.id, f"❌ حدث خطأ في عملية الإنشاء والفحص:\n{e}")
+        # طباعة الخطأ الكامل في سجلات الخادم لتشخيصه
+        print(traceback.format_exc())
+    finally:
+        # 6. تنظيف وحذف الملف المؤقت
+        if os.path.exists(filename):
+            os.remove(filename)
+
+import sys
+import genanki # تأكد من وجود هذا الاستيراد في أعلى الملف
+
+@bot.message_handler(commands=['debuganki'])
+def debug_environment(message):
+    if message.from_user.id == ADMIN_ID: # للأمان، فقط الأدمن يمكنه استدعاء هذا الأمر
+        try:
+            python_version = sys.version
+            genanki_version = genanki.__version__
+            reply = (
+                f"🕵️‍♂️ **تقرير بيئة العمل:**\n\n"
+                f"🐍 **إصدار بايثون:**\n`{python_version}`\n\n"
+                f"📦 **إصدار مكتبة genanki:**\n`{genanki_version}`"
+            )
+            bot.send_message(message.chat.id, reply, parse_mode="Markdown")
+        except Exception as e:
+            bot.send_message(message.chat.id, f"حدث خطأ أثناء فحص البيئة: {e}")
+
+@bot.message_handler(commands=['testanki'])
+def test_anki_generation(message):
+    if message.from_user.id == ADMIN_ID:
+        bot.send_message(message.chat.id, "⏳ جاري إنشاء ملف Anki اختباري بسيط...")
+        try:
+            # بيانات نظيفة وبسيطة جدًا
+            test_cards = [{'front': 'Test Question', 'back': 'Test Answer', 'tag': 'debug'}]
+            
+            # اسم ملف واسم مجموعة آمنين تمامًا
+            filename = f"test_anki_{int(time.time())}.apkg"
+            deck_name = "Test Deck"
+
+            # استدعاء دالة الحفظ الموجودة لديك
+            # تأكد من أن هذه الدالة تستخدم الإصدار القديم من الكود بدون صور
+            save_cards_to_apkg(test_cards, filename=filename, deck_name=deck_name)
+
+            # إرسال الملف
+            with open(filename, 'rb') as file:
+                bot.send_document(message.chat.id, file, caption="📄 ملف اختبار بسيط. جرب فتحه.")
+            
+            # حذف الملف من الخادم بعد إرساله
+            os.remove(filename)
+
+        except Exception as e:
+            bot.send_message(message.chat.id, f"❌ فشل إنشاء ملف الاختبار: {e}\n\n{traceback.format_exc()}")
 
 
 @bot.message_handler(commands=['start'])
