@@ -4272,7 +4272,7 @@ def process_message(msg, message_id=None, chat_id=None):
 
 
     try:
-        if content_type == "text":
+        if msg.content_type == "text":
             content = msg.text or ""
             coverage = "كاملة ✅"
 
