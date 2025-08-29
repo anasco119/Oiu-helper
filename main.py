@@ -4417,40 +4417,7 @@ def process_message(msg, message_id=None, chat_id=None):
             "🎉 اللمسات الأخيرة... 90% من الطريق"
         ]
 
-import os
 
-try:
-    # حفظ الملف وإرساله
-    filepath = save_cards_to_apkg(cards, filename=filename, deck_name=safe_deck_name)
-
-    # تحرير الرسالة الأخيرة لإظهار نجاح العملية
-    bot.edit_message_text(
-        chat_id=uid,
-        message_id=loading_msg.message_id,
-        text=f"✅ تم إنشاء {len(cards)} بطاقة بنجاح!\n\n📚 العنوان: {title}\n\n⚡ جاري إرسال الملف..."
-    )
-
-    # إرسال الملف نفسه
-    with open(filepath, 'rb') as f:
-        bot.send_document(uid, f, caption=f"📄 الملف: {title}.apkg")
-
-except Exception as e:
-    # التعامل مع أي خطأ أثناء الحفظ أو الإرسال
-    bot.edit_message_text(
-        chat_id=uid,
-        message_id=loading_msg.message_id,
-        text=f"❌ حدث خطأ أثناء إنشاء الملف:\n{e}"
-    )
-    print(traceback.format_exc())
-
-finally:
-    # حذف الملف المؤقت من السيرفر إذا كان موجود
-    if os.path.exists(filepath):
-        try:
-            os.remove(filepath)
-            print(f"🗑️ تم حذف الملف المؤقت: {filepath}")
-        except Exception as e:
-            print(f"⚠️ فشل حذف الملف {filepath}: {e}")
 
          # ============================
         # Awaiting AI Anki
