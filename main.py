@@ -4601,6 +4601,7 @@ def process_message(msg, message_id=None, chat_id=None):
                             user_states.pop(uid, None)
                         logging.info("Finished ai_anki for uid=%s", uid)
                 except Exception as e:
+                    import traceback
                     bot.edit_message_text(
                         chat_id=uid,
                         message_id=loading_msg.message_id,
@@ -4691,11 +4692,12 @@ def process_message(msg, message_id=None, chat_id=None):
                         time.sleep(step['delay'])
         
                     # معالجة الملف الفعلية
-                    cards = create_csv_from_plain_text(msg.text)
+                    output_file = f"{uid}_manual_anki.csv"
+                    cards = create_csv_from_plain_text(msg.text, output_file)
                     if cards:
                         # إنشاء الملف
                         output_file = f"{uid}_manual_anki.csv"
-                        save_cards_to_apkg(cards, filename=output_file, deck_name="مكتبتك التعليمية")
+                        # save_cards_to_apkg(cards, filename=output_file, deck_name="مكتبتك التعليمية")
             
                         # إرسال الملف مع رسالة رسمية
                         with open(output_file, 'rb') as file:
