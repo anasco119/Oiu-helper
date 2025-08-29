@@ -717,7 +717,9 @@ def init_user_quiz_db(db_path='quiz_users.db'):
     conn.commit()
     conn.close()
 
-
+    ALTER TABLE daily_stats ADD COLUMN channel_users INTEGER DEFAULT 0;
+    ALTER TABLE daily_stats ADD COLUMN external_users INTEGER DEFAULT 0;
+    
 def init_request_db(db_path='requests.db'):
     conn = sqlite3.connect(db_path, check_same_thread=False)
     cur = conn.cursor()
@@ -734,7 +736,7 @@ def init_request_db(db_path='requests.db'):
     conn.commit()
     conn.close()
 
-
+  
 import sqlite3, logging
 
 def fetch_user_major(uid, db_path="quiz_users.db"):
