@@ -4541,7 +4541,14 @@ def process_message(msg, message_id=None, chat_id=None):
                         with state_lock:
                             user_states.pop(uid, None)
                         logging.info("Finished ai_anki for uid=%s", uid)
-                        
+                except Exception as e:
+                    bot.edit_message_text(
+                        chat_id=uid,
+                        message_id=loading_msg.message_id,
+                        text=f"❌ حدث خطأ أثناء غير متوقع:\n{e}"
+                        )
+                    print(traceback.format_exc())
+                    
             except Exception as e:
                 with state_lock:
                     user_states.pop(uid, None)
