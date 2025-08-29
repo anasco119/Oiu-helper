@@ -916,7 +916,7 @@ def start_workers():
 
 
 
-def safe_edit_or_send(text, chat_id, message_id, parse_mode="HTML"):
+def safe_edit_or_send(text, chat_id, message_id, parse_mode=None):
     try:
         if chat_id and message_id:
             return bot.edit_message_text(
@@ -4466,7 +4466,7 @@ def process_message(msg, message_id=None, chat_id=None):
 
     
                 # إعداد رسالة التحميل الأولية
-                loading_msg = safe_edit_or_send("🔄 جاري معالجة الملف...", chat_id, message_id)
+                loading_msg = safe_edit_or_send("🔄 جاري معالجة الملف...", chat_id, message_id, "HTML")
     
                 try:
                     # إذا كان المحتوى كبيراً
@@ -4624,8 +4624,8 @@ def process_message(msg, message_id=None, chat_id=None):
                     ]
         
                     # إرسال رسالة الانتظار مع مؤثرات بصرية
-                    waiting_msg = bot.send_message(chat_id, "⏳ **جارٍ المعالجة**\n`0% اكتمال`", 
-                                      parse_mode="Markdown")
+                    waiting_msg = safe_edit_or_send("⏳ **جارٍ المعالجة**\n`0% اكتمال`", chat_id, message_id,
+                                      "Markdown")
         
                     # خطوات التقدم مع رموز إبداعية
                     processing_steps = [
