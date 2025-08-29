@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ادعم TestGenie✨</title>
+    <!-- استيراد خط Inter من Google Fonts -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap">
+    <!-- استيراد مكتبة Tailwind CSS من CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            direction: rtl; /* لجعل النص يبدأ من اليمين لليسار */
+            text-align: right;
+        }
+        /* تأثير بسيط لزر الرجوع */
+        .back-button:hover svg {
+            transform: translateX(5px); /* عكس اتجاه الحركة ليتناسب مع اللغة العربية */
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgb(0,0,0);
+            background-color: rgba(0,0,0,0.4);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 24px;
+            border-radius: 1rem;
+            max-width: 90%;
+            width: 400px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+        .close-button {
+            color: #aaa;
+            float: left;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center min-h-screen p-4">
+
+    <!-- الحاوية الرئيسية للصفحة -->
+    <div class="bg-white rounded-3xl shadow-2xl p-8 md:p-12 max-w-4xl w-full mx-auto text-center relative overflow-hidden">
+        
+        <!-- زر الرجوع إلى الصفحة الرئيسية -->
+        <a href="/" class="back-button absolute top-4 right-4 text-gray-500 hover:text-indigo-600 transition-transform duration-200">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M14 10l7-7m0 0l-7-7m7 7H3" />
+            </svg>
+            <span class="sr-only">العودة</span>
+        </a>
+
+        <!-- قسم الترويسة -->
+        <header class="mb-8 md:mb-12">
+            <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 leading-tight">ادعم TestGenie✨</h1>
+            <p class="mt-4 text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
+                ساعدنا في بناء مستقبل التعليم الرقمي ودعم بوت <span class="font-semibold text-indigo-600">TestGenie✨</span> ليصبح أداة لا غنى عنها للطلاب والمعلمين.
+            </p>
+        </header>
+        
+        <!-- قسم الإحصائيات (تستخدم متغيرات من بايثون) -->
+        <!-- هذه الخانات تستلم قيمًا من ملف بايثون عبر Flask وتظهر في الصفحة -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-12">
+            
+            <!-- خانة عدد الاختبارات المولدة -->
+            <div class="bg-indigo-50 rounded-2xl p-6 shadow-md border border-indigo-100 transform transition-transform hover:scale-105 duration-300">
+                <h3 class="text-3xl font-bold text-indigo-700">{{ tests_generated }}</h3>
+                <p class="mt-2 text-gray-500 font-medium">اختبار تم إنشاؤه</p>
+            </div>
+
+            <!-- خانة عدد الملفات المعالجة -->
+            <div class="bg-purple-50 rounded-2xl p-6 shadow-md border border-purple-100 transform transition-transform hover:scale-105 duration-300">
+                <h3 class="text-3xl font-bold text-purple-700">{{ files_processed }}</h3>
+                <p class="mt-2 text-gray-500 font-medium">ملف تم معالجته</p>
+            </div>
+            
+            <!-- خانة عدد المستخدمين (مثال إضافي) -->
+            <div class="bg-gray-50 rounded-2xl p-6 shadow-md border border-gray-100 transform transition-transform hover:scale-105 duration-300">
+                <h3 class="text-3xl font-bold text-gray-700">{{ total_users }}</h3>
+                <p class="mt-2 text-gray-500 font-medium">مستخدم حالي</p>
+            </div>
+        </div>
+
+        <!-- قسم رسالة الدعم -->
+        <div class="prose text-right text-gray-700 max-w-full">
+            <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-4">لماذا تدعمنا؟</h2>
+            <p class="text-lg">
+                <span class="font-bold text-indigo-600">TestGenie✨</span> هو مشروع ناشئ يتم تطويره بشغف وحب للمساعدة في تبسيط العملية التعليمية. كل ميزة حصرية نقوم بتطويرها تهدف إلى تمكين الطلاب والمعلمين من استغلال وقتهم وجهدهم بشكل أفضل.
+            </p>
+            <p class="text-lg mt-4">
+                دعمك يمنحنا القدرة على تغطية التكاليف التشغيلية للخوادم، وتطوير ميزات جديدة، وتحسين أدوات الذكاء الاصطناعي لتكون أكثر دقة وفعالية.
+            </p>
+        </div>
+
+        <!-- قسم خيارات الدعم -->
+        <div class="mt-10">
+            <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-6">كيف يمكنك المساعدة؟</h2>
+            <div class="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-4 sm:space-x-reverse">
+                <button id="donate-button" class="bg-indigo-600 text-white font-semibold py-3 px-8 rounded-full shadow-lg hover:bg-indigo-700 transition-colors duration-300 transform hover:scale-105">
+                    دعم مادي 💰
+                </button>
+                <button id="marketing-button" class="bg-white text-indigo-600 font-semibold py-3 px-8 rounded-full shadow-lg border border-indigo-600 hover:bg-indigo-50 transition-colors duration-300 transform hover:scale-105">
+                    تعاون تسويقي 📢
+                </button>
+                <button id="partnership-button" class="bg-white text-gray-800 font-semibold py-3 px-8 rounded-full shadow-lg border border-gray-300 hover:bg-gray-100 transition-colors duration-300 transform hover:scale-105">
+                    شراكة تقنية 🤝
+                </button>
+            </div>
+        </div>
+        
+        <!-- نافذة منبثقة تفاصيل الدعم -->
+        <div id="donation-modal" class="modal">
+            <div class="modal-content text-right">
+                <span class="close-button">&times;</span>
+                <h3 class="text-xl font-bold text-gray-900 mb-4">تفاصيل الدعم</h3>
+
+                <!-- خيار الدعم من داخل السودان -->
+                <div class="p-6 mb-6 rounded-2xl bg-green-50 border border-green-100 shadow-md">
+                    <h4 class="text-lg font-bold text-gray-800 flex items-center mb-2">
+                        داخل السودان 🇸🇩
+                    </h4>
+                    <p class="text-gray-700">يمكنك دعمنا عبر خدمة بنكك (بنك الخرطوم).</p>
+                    <div class="bg-white rounded-lg p-4 mt-4 border border-gray-200">
+                        <p class="text-sm font-semibold text-gray-500">رقم الحساب:</p>
+                        <p id="banque-account" class="text-lg font-bold text-gray-800 break-words mt-1">2057276707</p>
+                        <button onclick="copyToClipboard('banque-account')" class="mt-3 text-sm text-indigo-600 font-medium hover:underline">
+                            انسخ الرقم
+                        </button>
+                    </div>
+                    <p class="text-gray-500 text-sm mt-3">يمكنك أيضاً الدفع عبر رمز QR إذا كان متاحاً في التطبيق.</p>
+                </div>
+
+                <!-- خيار الدعم من خارج السودان -->
+                <div class="p-6 rounded-2xl bg-blue-50 border border-blue-100 shadow-md">
+                    <h4 class="text-lg font-bold text-gray-800 flex items-center mb-2">
+                        خارج السودان 🌎
+                    </h4>
+                    <p class="text-gray-700">للتبرع من خارج السودان، يرجى التواصل معنا عبر البريد الإلكتروني للحصول على تفاصيل الوسيط المالي الموثوق.</p>
+                    <a href="mailto:your_email@example.com" class="text-indigo-600 hover:underline transition-colors duration-300 font-semibold text-sm mt-2 block">your_email@example.com</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- نافذة منبثقة لخيارات التسويق -->
+        <div id="marketing-modal" class="modal">
+            <div class="modal-content text-center">
+                <span class="close-button">&times;</span>
+                <h3 class="text-xl font-bold text-gray-900 mb-4">تعاون تسويقي 📢</h3>
+                <p class="text-gray-700 mb-4">أفضل دعم تسويقي يمكنك تقديمه هو مشاركة TestGenie مع زملائك في القنوات والمجموعات التعليمية.</p>
+                <a href="https://t.me/your_bot_link" target="_blank" class="bg-blue-500 text-white font-semibold py-2 px-6 rounded-full hover:bg-blue-600 transition-colors duration-300">
+                    شارك رابط البوت
+                </a>
+            </div>
+        </div>
+
+        <!-- قسم التواصل -->
+        <div class="mt-12 text-center text-gray-500">
+            <p class="text-lg font-medium">للتواصل المباشر والاستفسار عن الشراكات:</p>
+            <a href="mailto:your_email@example.com" class="text-indigo-600 hover:underline transition-colors duration-300 font-semibold text-lg">your_email@example.com</a>
+        </div>
+        
+    </div>
+
+    <!-- JavaScript للتحكم في النوافذ المنبثقة والأزرار -->
+    <script>
+        // احصل على العناصر
+        var donationModal = document.getElementById("donation-modal");
+        var marketingModal = document.getElementById("marketing-modal");
+        var donateBtn = document.getElementById("donate-button");
+        var marketingBtn = document.getElementById("marketing-button");
+        var partnershipBtn = document.getElementById("partnership-button");
+        var closeButtons = document.getElementsByClassName("close-button");
+
+        // عند النقر على زر "دعم مادي"، افتح النافذة
+        donateBtn.onclick = function() {
+            donationModal.style.display = "flex";
+        }
+
+        // عند النقر على زر "تعاون تسويقي"، افتح النافذة
+        marketingBtn.onclick = function() {
+            marketingModal.style.display = "flex";
+        }
+
+        // عند النقر على زر "شراكة تقنية"، افتح رابط جوجل فورم
+        partnershipBtn.onclick = function() {
+            // استبدل هذا الرابط برابط جوجل فورم الخاص بك
+            var formLink = "https://docs.google.com/forms/d/e/1FAIpQLSc38-w7d6yF9fK_Xw-Zz-l_E5E-W0D9kCjV_tG9W_t8gP5w/viewform?usp=sf_link";
+            window.open(formLink, '_blank');
+        }
+
+        // إغلاق أي نافذة عند النقر على زر الإغلاق (X)
+        for (var i = 0; i < closeButtons.length; i++) {
+            closeButtons[i].onclick = function() {
+                this.closest('.modal').style.display = "none";
+            }
+        }
+
+        // إغلاق أي نافذة عند النقر خارجها
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = "none";
+            }
+        }
+
+        // وظيفة نسخ الرقم إلى الحافظة
+        function copyToClipboard(elementId) {
+            var copyText = document.getElementById(elementId).innerText;
+            var textarea = document.createElement("textarea");
+            textarea.value = copyText;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand("copy");
+            document.body.removeChild(textarea);
+            alert("تم نسخ الرقم إلى الحافظة!");
+        }
+    </script>
+</body>
+</html>
