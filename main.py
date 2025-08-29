@@ -715,8 +715,8 @@ def init_user_quiz_db(db_path='quiz_users.db'):
         files_processed INTEGER DEFAULT 0
     )
     """)
-    ALTER TABLE daily_stats ADD COLUMN channel_users INTEGER DEFAULT 0;
-    ALTER TABLE daily_stats ADD COLUMN external_users INTEGER DEFAULT 0;
+    cursor.execute("ALTER TABLE daily_stats ADD COLUMN channel_users INTEGER DEFAULT 0;")
+    cursor.execute("ALTER TABLE daily_stats ADD COLUMN external_users INTEGER DEFAULT 0;")
     conn.commit()
     conn.close()
 
