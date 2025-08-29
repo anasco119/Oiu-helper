@@ -694,9 +694,9 @@ def init_user_quiz_db(db_path='quiz_users.db'):
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS stat (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        tests_generated INTEGER DEFAULT 0,
-        files_processed INTEGER DEFAULT 0,
-        total_users INTEGER DEFAULT 0
+        tests_generated INTEGER DEFAULT 30,
+        files_processed INTEGER DEFAULT 82,
+        total_users INTEGER DEFAULT 504
     )
     """)
     cursor.execute("""
@@ -1000,6 +1000,7 @@ def update_files_and_users(uid: int = None, files_count: int = 1):
                     total_users = ?
                 WHERE id = 1
             """, (files_count, total_users))
+            
 
             conn.commit()
     except Exception as e:
