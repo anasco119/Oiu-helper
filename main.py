@@ -979,7 +979,7 @@ def update_files_and_users(uid: int = None, files_count: int = 1):
                 for channel_id in allowed_channels:
                     try:
                         chat = bot.get_chat(channel_id)
-                        channel_users_count += chat.get_members_count()
+                        channel_users_count += bot.get_chat_members_count(channel_id)
                     except Exception as e:
                         logging.warning(f"⚠️ Failed to fetch channel members for {channel_id}: {e}")
 
