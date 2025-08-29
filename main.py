@@ -4736,7 +4736,7 @@ def process_message(msg, message_id=None, chat_id=None):
                 # حذف الملف المؤقت من السيرفر إذا كان موجود
                 if os.path.exists(output_file):
                     try:
-                        os.remove(filepath)
+                        os.remove(cards)
                         print(f"🗑️ تم حذف الملف المؤقت: {filepath}")
                     except Exception as e:
                         print(f"⚠️ فشل حذف الملف {filepath}: {e}")
