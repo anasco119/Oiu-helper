@@ -734,6 +734,7 @@ def init_request_db(db_path='requests.db'):
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+    cur.execute("ALTER TABLE requests ADD COLUMN message_id TEXT")
     conn.commit()
     conn.close()
 
@@ -925,6 +926,23 @@ def safe_edit_or_send(text, chat_id, message_id, parse_mode="HTML"):
         logging.warning("edit_message_text failed (%s), fallback to send_message", e)
     return bot.send_message(chat_id, text, parse_mode=parse_mode)
 
+
+def is_request_already_queued(file_id=None, user_id=None, message_id=None, db_path='requests.db'):
+    try:
+        conn = sqlite3.connect(db_path, check_same_thread=False)
+        cur = conn.cursor()
+        if file_id:
+            cur.execute("SELECT status FROM requests WHERE file_id=? ORDER BY id DESC LIMIT 1", (file_id,))
+        else:
+            cur.execute("SELECT status FROM requests WHERE user_id=? AND message_id=? ORDER BY id DESC LIMIT 1", (user_id, message_id))
+        row = cur.fetchone()
+        conn.close()
+        if row and row[0] in ('pending','processing'):
+            return True
+        return False
+    except Exception:
+        logging.exception("is_request_already_queued failed")
+        return False
 
 
 
