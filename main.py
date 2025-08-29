@@ -699,6 +699,10 @@ def init_user_quiz_db(db_path='quiz_users.db'):
         total_users INTEGER DEFAULT 504
     )
     """)
+    # تأكد من وجود سجل واحد للتحديث
+    cursor.execute("INSERT OR IGNORE INTO stat (id, tests_generated, files_processed, total_users) VALUES (?, ?, ?, ?)", (1, 30, 82, 504))
+
+
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS daily_stats (
         date TEXT PRIMARY KEY,
@@ -771,7 +775,7 @@ DB_NAME = "quiz_users.db"
 def get_tests_generated():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
-    cursor.execute("SELECT tests_generated FROM stat LIMIT 1")
+    cursor.execute("SELECT tests_generated FROM stat WHERE id = 1 LIMIT 1")
     result = cursor.fetchone()
     conn.close()
     return result[0] if result else 0
@@ -959,9 +963,10 @@ def add_external_user(uid: int):
             conn.commit()
 
 
-def update_files_and_users(uid: int = None, files_count: int = 1):
+def update_files_and_users(uid: int = None, files_count: int = 0, tests_count: int = 0):
     """
     - files_count: عدد الملفات الجديدة
+    - tests_count: عدد الاختبارات الجديدة
     - uid: user_id للمستخدم الجديد الخارجي (اختياري)
     """
     try:
@@ -972,7 +977,6 @@ def update_files_and_users(uid: int = None, files_count: int = 1):
             if uid:
                 cursor.execute("SELECT COUNT(*) FROM bot_users WHERE user_id=?", (uid,))
                 if cursor.fetchone()[0] == 0:
-                    # إضافة المستخدم الخارجي الجديد
                     cursor.execute("INSERT INTO bot_users (user_id, is_external_user) VALUES (?, ?)", (uid, 1))
 
             # 2) حساب عدد مستخدمي القنوات
@@ -996,16 +1000,17 @@ def update_files_and_users(uid: int = None, files_count: int = 1):
             # 4) تحديث الإحصائيات العامة في جدول stat
             cursor.execute("""
                 UPDATE stat
-                SET files_processed = files_processed + ?,
+                SET tests_generated = tests_generated + ?,
+                    files_processed = files_processed + ?,
                     total_users = ?
                 WHERE id = 1
-            """, (files_count, total_users))
-            
+            """, (tests_count, files_count, total_users))
 
             conn.commit()
     except Exception as e:
         logging.error(f"❌ Error updating files and users: {e}")
-        
+
+
 
 def update_daily_stats(date_str: str = None, tests: int = 0, files: int = 0):
     """
