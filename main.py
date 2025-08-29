@@ -1571,38 +1571,27 @@ import csv
 
 def save_json_cards_to_csv(cards: list, filename: str) -> str:
     """
-    Saves a list of Anki cards (JSON format) to a CSV file.
-
-    Returns:
-        str: The path to the created CSV file.
+    Saves cards to a CSV file (front, back, tags) with tab-separated fields for AnkiDroid.
     """
-    fieldnames = ['front', 'back', 'tags']
-
     with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
+        writer = csv.writer(csvfile, delimiter='\t', quoting=csv.QUOTE_MINIMAL)
         for card in cards:
-            if 'image_hint' not in card or not card['image_hint'].strip():
-                front = card.get('front', '')
-                back = card.get('back', '')
-                tag = card.get('tag', '')
-                writer.writerow({'front': front, 'back': back, 'tags': tag})
+            if not card.get('image_hint', '').strip():  # نتجاهل اللي فيها image_hint فقط
+                front = card.get('front', '').strip()
+                back = card.get('back', '').strip()
+                tag = card.get('tag', '').strip()
+                writer.writerow([front, back, tag])
     return filename
 
-import csv
 
 def create_csv_from_plain_text(text_content: str, filename: str) -> str:
     """
-    Creates a CSV file from plain text following a specific format.
-
-    Returns:
-        str: The path to the created CSV file.
+    Creates a CSV file (front, back, tags) from plain text, tab-separated, for AnkiDroid.
     """
     card_blocks = [block.strip() for block in text_content.split('\n\n') if block.strip()]
     
     with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
-        writer = csv.writer(csvfile)
-        writer.writerow(['front', 'back', 'tags'])
+        writer = csv.writer(csvfile, delimiter='\t', quoting=csv.QUOTE_MINIMAL)
 
         for block in card_blocks:
             lines = [line.strip() for line in block.split('\n') if line.strip()]
