@@ -13,3 +13,5 @@ cohere
 genanki
 python-pptx
 langdetect
+schedule
+pillow
