@@ -1569,52 +1569,39 @@ def parse_manual_anki_input(text):
 
 import csv
 
-def save_json_cards_to_csv(cards: list, filename: str):
+def save_json_cards_to_csv(cards: list, filename: str) -> str:
     """
-    Saves a list of Anki cards (JSON format) to a CSV file, skipping cards with image_hint.
+    Saves a list of Anki cards (JSON format) to a CSV file.
 
-    Args:
-        cards (list): A list of dictionaries, where each dictionary represents an Anki card.
-        filename (str): The desired name for the output CSV file.
+    Returns:
+        str: The path to the created CSV file.
     """
-    # Define the fields for the CSV
     fieldnames = ['front', 'back', 'tags']
 
     with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-
-        # Write the header row
         writer.writeheader()
-
-        # Write each card as a row, skipping those with image_hint
         for card in cards:
             if 'image_hint' not in card or not card['image_hint'].strip():
-                # Extract front, back, and tags, defaulting to empty string if not found
                 front = card.get('front', '')
                 back = card.get('back', '')
                 tag = card.get('tag', '')
-
-                # Write the row to the CSV
                 writer.writerow({'front': front, 'back': back, 'tags': tag})
-
+    return filename
 
 import csv
 
-def create_csv_from_plain_text(text_content: str, filename: str):
+def create_csv_from_plain_text(text_content: str, filename: str) -> str:
     """
     Creates a CSV file from plain text following a specific format.
 
-    Args:
-        text_content (str): The input text string with flashcard data.
-        filename (str): The desired name for the output CSV file.
+    Returns:
+        str: The path to the created CSV file.
     """
-    # Split the content by empty lines to get card blocks
     card_blocks = [block.strip() for block in text_content.split('\n\n') if block.strip()]
-
+    
     with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
         writer = csv.writer(csvfile)
-
-        # Write the header row for the CSV
         writer.writerow(['front', 'back', 'tags'])
 
         for block in card_blocks:
@@ -1624,7 +1611,7 @@ def create_csv_from_plain_text(text_content: str, filename: str):
                 back = lines[1]
                 tag = lines[2] if len(lines) > 2 else ''
                 writer.writerow([front, back, tag])
-
+    return filename
 
 # -------------------------------------------------------------------
 #                     Quota Management
@@ -4700,7 +4687,7 @@ def process_message(msg, message_id=None, chat_id=None):
                         # save_cards_to_apkg(cards, filename=output_file, deck_name="مكتبتك التعليمية")
             
                         # إرسال الملف مع رسالة رسمية
-                        with open(output_file, 'rb') as file:
+                        with open(cards, 'rb') as file:
                             bot.send_document(
                                 chat_id=uid,
                                 document=file,
