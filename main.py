@@ -1566,7 +1566,66 @@ def parse_manual_anki_input(text):
         cards.append(card)
 
     return cards
-    
+
+import csv
+
+def save_json_cards_to_csv(cards: list, filename: str):
+    """
+    Saves a list of Anki cards (JSON format) to a CSV file, skipping cards with image_hint.
+
+    Args:
+        cards (list): A list of dictionaries, where each dictionary represents an Anki card.
+        filename (str): The desired name for the output CSV file.
+    """
+    # Define the fields for the CSV
+    fieldnames = ['front', 'back', 'tags']
+
+    with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+        # Write the header row
+        writer.writeheader()
+
+        # Write each card as a row, skipping those with image_hint
+        for card in cards:
+            if 'image_hint' not in card or not card['image_hint'].strip():
+                # Extract front, back, and tags, defaulting to empty string if not found
+                front = card.get('front', '')
+                back = card.get('back', '')
+                tag = card.get('tag', '')
+
+                # Write the row to the CSV
+                writer.writerow({'front': front, 'back': back, 'tags': tag})
+
+
+import csv
+
+def create_csv_from_plain_text(text_content: str, filename: str):
+    """
+    Creates a CSV file from plain text following a specific format.
+
+    Args:
+        text_content (str): The input text string with flashcard data.
+        filename (str): The desired name for the output CSV file.
+    """
+    # Split the content by empty lines to get card blocks
+    card_blocks = [block.strip() for block in text_content.split('\n\n') if block.strip()]
+
+    with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
+        writer = csv.writer(csvfile)
+
+        # Write the header row for the CSV
+        writer.writerow(['front', 'back', 'tags'])
+
+        for block in card_blocks:
+            lines = [line.strip() for line in block.split('\n') if line.strip()]
+            if len(lines) >= 2:
+                front = lines[0]
+                back = lines[1]
+                tag = lines[2] if len(lines) > 2 else ''
+                writer.writerow([front, back, tag])
+
+
 # -------------------------------------------------------------------
 #                     Quota Management
 # -------------------------------------------------------------------
@@ -4491,7 +4550,7 @@ def process_message(msg, message_id=None, chat_id=None):
         
                     # إنشاء البطاقات
                     if not can_generate(uid):
-                        cards, title = generate_anki_cards_from_text(content, major=major, user_id=uid)
+                        cards, title =generate_special_anki_cards_from_text(content, major=major, user_id=uid)
                     
                     else:
                         cards, title = generate_anki_cards_from_text(content, major=major, user_id=uid)
@@ -4516,10 +4575,10 @@ def process_message(msg, message_id=None, chat_id=None):
         
                     # تنظيف العنوان ليكون اسم ملف صالح
                     safe_title = re.sub(r'[^a-zA-Z0-9_\u0600-\u06FF]', '_', title)[:40]
-                    filename = f"{safe_title}_{uid}.apkg"
+                    filename = f"{safe_title}_{uid}.csv"
         
                     # حفظ الملف وإرساله مع تحديث الرسالة السابقة
-                    filepath = save_cards_to_apkg(cards, filename=filename, deck_name=safe_deck_name)
+                    filepath = save_json_cards_to_csv(cards, filename=filename)
         
                      # تحرير الرسالة الأخيرة لإظهار نجاح العملية
                     bot.edit_message_text(
@@ -4632,10 +4691,10 @@ def process_message(msg, message_id=None, chat_id=None):
                         time.sleep(step['delay'])
         
                     # معالجة الملف الفعلية
-                    cards = parse_manual_anki_input(msg.text)
+                    cards = create_csv_from_plain_text(msg.text)
                     if cards:
                         # إنشاء الملف
-                        output_file = f"{uid}_manual_anki.apkg"
+                        output_file = f"{uid}_manual_anki.csv"
                         save_cards_to_apkg(cards, filename=output_file, deck_name="مكتبتك التعليمية")
             
                         # إرسال الملف مع رسالة رسمية
