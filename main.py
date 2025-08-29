@@ -345,7 +345,7 @@ def generate_smart_response(prompt: str) -> str:
         try:
             logging.info("Attempting request with: 4. Google Gemini...")
             request_options = {"timeout": timeout_seconds}
-            response = gemini_model.generate_content(prompt, request_options=request_options, temperature=0.8)
+            response = gemini_model.generate_content(prompt, request_options=request_options)
             if response.text:
                 logging.info("✅ Success with Gemini.")
                 return response.text
