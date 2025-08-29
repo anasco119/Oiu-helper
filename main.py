@@ -4862,7 +4862,9 @@ def process_message(msg, message_id=None, chat_id=None):
                         
                     waiting_quiz = loading_msg.message_id
                     major = fetch_user_major(uid)
-                    file_path = user_files[uid]
+                    if path:
+                        
+                        file_path = user_files[uid]
                     level = "متوسط"
 
                     # إرسال رسالة "إختبارك جاهز" مع رابط الاختبار
