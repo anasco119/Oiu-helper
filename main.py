@@ -52,7 +52,7 @@ import telebot
 import requests
 import os
 
-# بوتك
+# بوتك يعمل
 import psutil
 import sqlite3
 import schedule
