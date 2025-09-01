@@ -56,56 +56,73 @@ import os
 
 
 # API keys
-UNSPLASH_KEY = os.getenv("UNSPLASH_KEY")   # ضعه في البيئة
-PEXELS_KEY = os.getenv("PEXELS_KEY")       # ضعه في البيئة
+import telebot
+import requests
+import os
 
-# ========= دوال البحث ==========
+
+# API keys
+UNSPLASH_KEY = os.getenv("UNSPLASH_KEY")
+PEXELS_KEY = os.getenv("PEXELS_KEY")
+
+# ========= دوال البحث (مع معالجة الأخطاء) ==========
 
 def search_wikimedia(query: str):
-    url = "https://commons.wikimedia.org/w/api.php"
-    params = {
-        "action": "query",
-        "format": "json",
-        "prop": "imageinfo",
-        "generator": "search",
-        "gsrsearch": query,
-        "gsrlimit": 1,
-        "iiprop": "url"
-    }
-    r = requests.get(url, params=params)
-    data = r.json()
-    pages = data.get("query", {}).get("pages", {})
-    for _, page in pages.items():
-        imageinfo = page.get("imageinfo", [])
-        if imageinfo:
-            return imageinfo[0].get("url")
+    try:
+        url = "https://commons.wikimedia.org/w/api.php"
+        params = {
+            "action": "query", "format": "json", "prop": "imageinfo",
+            "generator": "search", "gsrsearch": query, "gsrlimit": 1, "iiprop": "url"
+        }
+        r = requests.get(url, params=params, timeout=10) # أضفنا مؤقت
+        r.raise_for_status() # للتحقق من أخطاء HTTP مثل 4xx/5xx
+        data = r.json()
+        pages = data.get("query", {}).get("pages", {})
+        for _, page in pages.items():
+            imageinfo = page.get("imageinfo", [])
+            if imageinfo:
+                return imageinfo[0].get("url")
+    except Exception as e:
+        print(f"Error in search_wikimedia: {e}") # لطباعة الخطأ في الطرفية
     return None
 
 def search_unsplash(query: str):
-    url = "https://api.unsplash.com/search/photos"
-    headers = {"Authorization": f"Client-ID {UNSPLASH_KEY}"}
-    params = {"query": query, "per_page": 1}
-    r = requests.get(url, headers=headers, params=params)
-    data = r.json()
-    results = data.get("results", [])
-    if results:
-        return results[0]["urls"]["regular"]
+    if not UNSPLASH_KEY:
+        print("Error: UNSPLASH_KEY is not set.")
+        return None
+    try:
+        url = "https://api.unsplash.com/search/photos"
+        headers = {"Authorization": f"Client-ID {UNSPLASH_KEY}"}
+        params = {"query": query, "per_page": 1}
+        r = requests.get(url, headers=headers, params=params, timeout=10)
+        r.raise_for_status()
+        data = r.json()
+        results = data.get("results", [])
+        if results:
+            return results[0]["urls"]["regular"]
+    except Exception as e:
+        print(f"Error in search_unsplash: {e}")
     return None
 
 def search_pexels(query: str):
-    url = "https://api.pexels.com/v1/search"
-    headers = {"Authorization": PEXELS_KEY}
-    params = {"query": query, "per_page": 1}
-    r = requests.get(url, headers=headers, params=params)
-    data = r.json()
-    photos = data.get("photos", [])
-    if photos:
-        return photos[0]["src"]["medium"]
+    if not PEXELS_KEY:
+        print("Error: PEXELS_KEY is not set.")
+        return None
+    try:
+        url = "https://api.pexels.com/v1/search"
+        headers = {"Authorization": PEXELS_KEY}
+        params = {"query": query, "per_page": 1}
+        r = requests.get(url, headers=headers, params=params, timeout=10)
+        r.raise_for_status()
+        data = r.json()
+        photos = data.get("photos", [])
+        if photos:
+            return photos[0]["src"]["medium"]
+    except Exception as e:
+        print(f"Error in search_pexels: {e}")
     return None
 
 # ========= أمر تليجرام =========
-
-
 
 @bot.message_handler(commands=['getimage'])
 def handle_getimage(message):
@@ -118,21 +135,31 @@ def handle_getimage(message):
         bot.reply_to(message, "⚠️ استخدم: /getimage <وصف الصورة>")
         return
     
-    bot.reply_to(message, f"🔍 جاري البحث عن صورة لـ: {query} ...")
+    # إرسال رسالة "جاري البحث" وحفظها للتعديل لاحقًا
+    msg = bot.reply_to(message, f"🔍 جاري البحث عن صورة لـ: {query} ...")
 
-    # جرب من الثلاثة
-    img_url = (
-        search_wikimedia(query) or
-        search_unsplash(query) or
-        search_pexels(query)
-    )
+    # جرب من المصادر الثلاثة
+    img_url = None
+    
+    bot.edit_message_text("🔍 البحث في Wikimedia...", chat_id=msg.chat.id, message_id=msg.message_id)
+    img_url = search_wikimedia(query)
+
+    if not img_url:
+        bot.edit_message_text("🔍 البحث في Unsplash...", chat_id=msg.chat.id, message_id=msg.message_id)
+        img_url = search_unsplash(query)
+
+    if not img_url:
+        bot.edit_message_text("🔍 البحث في Pexels...", chat_id=msg.chat.id, message_id=msg.message_id)
+        img_url = search_pexels(query)
+
+    # حذف رسالة "جاري البحث" بعد الانتهاء
+    bot.delete_message(chat_id=msg.chat.id, message_id=msg.message_id)
 
     if img_url:
         bot.send_photo(message.chat.id, img_url, caption=f"📷 صورة لـ: {query}")
     else:
-        bot.reply_to(message, "❌ لم يتم العثور على صورة.")
+        bot.reply_to(message, f"❌ لم يتم العثور على صورة لـ: {query}")
 
-# ========= تشغيل البوت =========
 
 
 
