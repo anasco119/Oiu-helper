@@ -3102,39 +3102,24 @@ user_states = {}  # global
 
 import sqlite3
 
-def get_single_quiz_code(user_id):
+def get_latest_quiz_code(user_id: int) -> str | None:
     """
-    يسترجع رمز اختبار واحد (quiz_code) لمستخدم معين.
-
-    Args:
-        user_id: المعرف الفريد للمستخدم.
-
-    Returns:
-        رمز الاختبار (string) إذا وجد، وإلا يعود بـ None.
+    يجلب أحدث كود اختبار تم إنشاؤه بواسطة مستخدم معين من قاعدة البيانات.
     """
-    conn = sqlite3.connect("quiz_users.db")
-    c = conn.cursor()
-    
-    c.execute("""
-        SELECT quiz_code
-        FROM user_quizzes
-        WHERE user_id = ?
-        LIMIT 1
-    """, (user_id,))
-    
-    row = c.fetchone()
-    
-    conn.close()
-    
-    # التحقق من وجود الصف قبل محاولة الوصول إلى العنصر
-    if row:
-        return row[0]
-    return None
-
-# مثال على كيفية استخدام الدالة:
-# لنفترض أن المستخدم هو "uid"
-
-
+    try:
+        with sqlite3.connect("quiz_users.db", check_same_thread=False) as conn:
+            cursor = conn.cursor()
+            # نفرز بواسطة id تنازليًا للحصول على الأحدث دائمًا
+            cursor.execute(
+                "SELECT quiz_code FROM user_quizzes WHERE user_id = ? ORDER BY id DESC LIMIT 1",
+                (user_id,)
+            )
+            row = cursor.fetchone()
+            return row[0] if row else None
+    except Exception as e:
+        logging.error(f"Error fetching latest quiz code for {user_id}: {e}")
+        return None
+        
 
 # -------------------------------------------------------------------
 #                  Telegram Bot Handlers
@@ -3241,58 +3226,57 @@ def handle_main_menu(c):
 #
 @bot.message_handler(commands=['sharequiz'])
 def share_quiz(message):
-    try:
-        uid = message.from_user.id
-        chat_id = message.chat.id
+    uid = message.from_user.id
+    chat_id = message.chat.id
     
-        waiting_msg = bot.send_message(message.chat.id, "⏳ يرجى الإنتظار...")
-        quiz_code = get_single_quiz_code(uid)
-              # ← تأكد من تعيين chat_id هنا
+    waiting_msg = bot.send_message(chat_id, "⏳ جارٍ إنشاء رابط المشاركة...")
 
+    try:
+        # 1. استدعاء الدالة الجديدة لجلب أحدث كود
+        quiz_code = get_latest_quiz_code(uid)
+
+        # 2. التحقق مما إذا كان المستخدم قد أنشأ اختبارات
+        if not quiz_code:
+            bot.edit_message_text("⚠️ لم يتم العثور على اختبارات قمت بإنشائها لمشاركتها. قم بإنشاء اختبار أولاً.", chat_id=chat_id, message_id=waiting_msg.message_id)
+            return
+
+        # 3. جلب اسم المستخدم
         try:
             user_chat = bot.get_chat(uid)
             shared_by_name = user_chat.first_name or user_chat.username or f"user_{uid}"
         except Exception:
             shared_by_name = "صديقك"
 
+        # 4. تسجيل المشاركة في قاعدة البيانات (اختياري)
         log_quiz_share(quiz_code, uid, shared_by_name)
-        file_path = user_files[uid]
         
+        # 5. إنشاء رابط المشاركة
         share_link = f"https://t.me/QuizzyAI_bot?start=quiz_{quiz_code}"
         
-        msg_text_share = f"""📢 {shared_by_name} أرسل لك هذا الاختبار!  
+        # 6. إزالة الاعتماد على اسم الملف المؤقت
+        msg_text_share = f"📢 {shared_by_name} يتحدّاك في هذا الاختبار!\n\nجرب معلوماتك وأجب على الأسئلة 👇\n{share_link}"
 
-📂 الملف: {msg.document.file_name}
+        msg_text = f"""<b>🎉 شارك اختبارك الأخير مع زملائك!</b>
 
-جربه واختبر معلوماتك 👇  
-{share_link}
+انسخ الرابط أدناه أو اضغط لفتحه مباشرة:
+🔗 <a href="{share_link}">{share_link}</a>
+
+📝 عند فتح الرابط، سيبدأ الاختبار تلقائيًا.
 """
-        msg_text = f"""<b>🎉 شارك هذا الاختبار مع زملائك!</b>
-
-    انسخ الرابط أدناه أو اضغط لفتحه مباشرة:
-    🔗 <a href="{share_link}">{share_link}</a>
-
-    📝 عند فتح الرابط، سيبدأ الاختبار تلقائيًا بإذن الله.  
-    📢 بمشاركتك هذا الاختبار قد يصير عامًا.
-    """
-
         keyboard = types.InlineKeyboardMarkup()
         keyboard.add(
-            types.InlineKeyboardButton("🔗 نسخ الرابط", switch_inline_query=msg_text_share),
+            types.InlineKeyboardButton("📤 مشاركة التحدي", switch_inline_query=msg_text_share),
             types.InlineKeyboardButton("🏠 القائمة الرئيسية", callback_data="go_back_home")
         )
 
-        bot.edit_message_text(msg_text, chat_id=chat_id, message_id=waiting_msg.message.id, parse_mode="HTML", reply_markup=keyboard)
+        bot.edit_message_text(msg_text, chat_id=chat_id, message_id=waiting_msg.message_id, parse_mode="HTML", reply_markup=keyboard, disable_web_page_preview=True)
     
     except Exception as e:
         import traceback
-        logging.exception("process_message error: %s", e)
-        print("!!!!!!!!!!!!!!!!! حدث خطأ !!!!!!!!!!!!!!!!!!")
-        traceback.print_exc() # هذا السطر سيطبع الخطأ الكامل ومكانه بالضبط
-        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-        bot.send_message(uid, "حدث خطأ غير متوقع.")
-
-        
+        logging.error("share_quiz error: %s", e)
+        traceback.print_exc()
+        bot.edit_message_text("حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.", chat_id=chat_id, message_id=waiting_msg.message_id)
+    
     
 
 import sys
