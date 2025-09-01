@@ -4822,7 +4822,7 @@ def process_message(msg, message_id=None, chat_id=None):
         
                     # معالجة الملف الفعلية
                     output_file = f"{uid}_manual_anki.apkg"
-                    cards = parse_manual_anki_input(msg.text, output_file)
+                    cards = parse_manual_anki_input(msg.text)
                     if cards:
                         # إنشاء الملف
                         output_file = f"{uid}_manual_anki.apkg"
@@ -5056,6 +5056,8 @@ def process_message(msg, message_id=None, chat_id=None):
                         bot.delete_message(chat_id=chat_id, message_id=loading_msg.message_id)
                     except Exception as del_err:
                         print(f"لم يتمكن من حذف رسالة التحميل: {del_err}")
+
+                    bot.send_message(chat_id, "🏠 *الذهاب إلى القائمة الرئسية:*\n/start\n\n*مشاركة الإختبار:*\n/sharequiz", parse_mode="Markdown")
                 
                     bot.send_message(chat_id, quiz_msg, reply_markup=markup, parse_mode="HTML", disable_web_page_preview=True)
                     
