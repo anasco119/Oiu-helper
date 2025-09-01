@@ -990,7 +990,7 @@ def init_user_quiz_db(db_path='quiz_users.db'):
     cursor.execute("ALTER TABLE daily_stats ADD COLUMN channel_users INTEGER DEFAULT 0;")
     cursor.execute("ALTER TABLE daily_stats ADD COLUMN external_users INTEGER DEFAULT 0;")
 
-    cursor.execute(""""
+    cursor.execute("""
     CREATE TABLE IF NOT EXISTS resource_load (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
