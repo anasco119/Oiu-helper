@@ -4822,7 +4822,7 @@ def process_message(msg, message_id=None, chat_id=None):
         
                     # معالجة الملف الفعلية
                     output_file = f"{uid}_manual_anki.apkg"
-                    # cards = parse_manual_anki_input(msg.text, output_file)
+                    cards = parse_manual_anki_input(msg.text, output_file)
                     if cards:
                         # إنشاء الملف
                         output_file = f"{uid}_manual_anki.apkg"
