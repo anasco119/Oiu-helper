@@ -994,7 +994,7 @@ def init_user_quiz_db(db_path='quiz_users.db'):
     CREATE TABLE IF NOT EXISTS resource_load (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
-        source TEXT DEFAULT 'scheduled', -- 'scheduled' OR 'event'
+        source TEXT DEFAULT 'scheduled',
         cpu_percent REAL,
         memory_mb REAL,
         total_users INTEGER,
