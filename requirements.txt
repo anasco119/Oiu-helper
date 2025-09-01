@@ -17,3 +17,4 @@ schedule
 pillow
 psutil
 matplotlib
+pandas
