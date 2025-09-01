@@ -4721,7 +4721,7 @@ def process_message(msg, message_id=None, chat_id=None):
                         bot.send_document(
                             chat_id=uid,
                             document=file,
-                            caption=f"📂 {title}\n\n🎴 عدد البطاقات: {len(cards)}\n\nاستمتع بالدراسة!",
+                            caption=f"📂 {title}\n\n🎴 عدد البطاقات: {len(cards)}\n\n📉 التغطية: {coverage}",
                             reply_to_message_id=loading_msg.message_id
                         )
                         with state_lock:
@@ -4819,22 +4819,23 @@ def process_message(msg, message_id=None, chat_id=None):
                         time.sleep(step['delay'])
         
                     # معالجة الملف الفعلية
-                    output_file = f"{uid}_manual_anki.csv"
-                    cards = create_csv_from_plain_text(msg.text, output_file)
+                    output_file = f"{uid}_manual_anki.apkg"
+                    # cards = parse_manual_anki_input(msg.text, output_file)
                     if cards:
                         # إنشاء الملف
-                        output_file = f"{uid}_manual_anki.csv"
-                        # save_cards_to_apkg(cards, filename=output_file, deck_name="مكتبتك التعليمية")
+                        output_file = f"{uid}_manual_anki.apkg"
+                        filename = save_cards_to_apkg(cards, filename=output_file, deck_name="مكتبتك التعليمية")
             
                         # إرسال الملف مع رسالة رسمية
-                        with open(cards, 'rb') as file:
+                        with open(filename, 'rb') as file:
                             bot.send_document(
                                 chat_id=uid,
                                 document=file,
                                 caption=(
                                     f"🌿 *تم إنشاء ملفك التعليمي بنجاح.*\n"
                                     f"عدد البطاقات: {len(cards)} بطاقة\n"
-                                    f"مدة التنفيذ: {random.randint(3,7)} ثوانٍ\n\n"
+                                    f"مدة التنفيذ: {random.randint(3,7)} ثوانٍ\n"
+                                    f"التغطية: {coverage}\n\n"
                                     f"📚 ملف المراجعة جاهز للاستخدام."
                                 ),
                                 reply_to_message_id=message_id,
@@ -4885,9 +4886,9 @@ def process_message(msg, message_id=None, chat_id=None):
 
             finally:
                 # حذف الملف المؤقت من السيرفر إذا كان موجود
-                if os.path.exists(output_file):
+                if os.path.exists(filename):
                     try:
-                        os.remove(cards)
+                        os.remove(filename)
                         print(f"🗑️ تم حذف الملف المؤقت: {filepath}")
                     except Exception as e:
                         print(f"⚠️ فشل حذف الملف {filepath}: {e}")
