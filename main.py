@@ -53,6 +53,100 @@ import requests
 import os
 
 # بوتك
+import psutil
+import sqlite3
+import schedule
+import time
+from datetime import datetime
+
+DB_PATH = "quiz_users.db"
+
+def log_resource_usage(source="scheduled"):
+    with sqlite3.connect(DB_PATH, check_same_thread=False) as conn:
+        cursor = conn.cursor()
+        
+        cpu = psutil.cpu_percent(interval=1)
+        memory = psutil.virtual_memory().used / (1024 * 1024)
+
+        # إجمالي المستخدمين
+        cursor.execute("SELECT COUNT(*) FROM bot_users")
+        total_users = cursor.fetchone()[0]
+
+        # أعضاء القنوات
+        cursor.execute("SELECT COUNT(*) FROM bot_users WHERE is_channel_user=1")
+        channel_users = cursor.fetchone()[0]
+
+        # مستخدمين خارجيين
+        cursor.execute("SELECT COUNT(*) FROM bot_users WHERE is_external_user=1")
+        external_users = cursor.fetchone()[0]
+
+        # النشاط (مثال من جدول stat)
+        cursor.execute("SELECT tests_generated, files_processed FROM stat ORDER BY id DESC LIMIT 1")
+        row = cursor.fetchone()
+        tests_generated, files_processed = row if row else (0, 0)
+
+        cursor.execute("""
+            INSERT INTO resource_load (source, cpu_percent, memory_mb, total_users, channel_users, external_users, tests_generated, files_processed)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (source, cpu, memory, total_users, channel_users, external_users, tests_generated, files_processed))
+
+        conn.commit()
+
+# وظيفة مجدولة كل 20 دقيقة
+schedule.every(20).minutes.do(log_resource_usage)
+
+# حلقة تشغيل الجدولة (تشغلها بخيط منفصل thread عشان ما توقف البوت)
+def run_scheduler():
+    while True:
+        schedule.run_pending()
+        time.sleep(60)
+
+import matplotlib.pyplot as plt
+import sqlite3
+import pandas as pd
+import io
+
+@bot.message_handler(commands=['analyze'])
+def analyze_command(message):
+    if message.from_user.id not in ADMIN_IDS:
+        return
+
+    conn = sqlite3.connect(DB_PATH)
+    df = pd.read_sql_query("SELECT * FROM resource_load", conn)
+    conn.close()
+
+    if df.empty:
+        bot.reply_to(message, "لا توجد بيانات كافية للتحليل بعد 📭")
+        return
+
+    df['timestamp'] = pd.to_datetime(df['timestamp'])
+
+    # 🔹 ملخص نصي
+    summary = df.groupby("source")[["cpu_percent","memory_mb","total_users"]].agg(["mean","max"])
+    summary_text = summary.to_string()
+
+    # 🔹 رسم CPU مقابل عدد المستخدمين
+    plt.figure(figsize=(8,5))
+    for src in df['source'].unique():
+        subset = df[df['source']==src]
+        plt.scatter(subset['total_users'], subset['cpu_percent'], label=src, alpha=0.7)
+    plt.xlabel("Total Users")
+    plt.ylabel("CPU Usage (%)")
+    plt.title("CPU Usage vs Total Users")
+    plt.legend()
+    plt.grid(True)
+
+    # 🔹 حفظ الصورة في ذاكرة مؤقتة
+    img_buf = io.BytesIO()
+    plt.savefig(img_buf, format='png')
+    img_buf.seek(0)
+    plt.close()
+
+    # إرسال النص والصورة
+    bot.reply_to(message, f"📊 ملخص التحليل:\n```\n{summary_text}\n```", parse_mode="Markdown")
+    bot.send_photo(message.chat.id, img_buf)
+
+
 
 @bot.message_handler(commands=['channelreport'])
 def send_channel_report(message):
@@ -895,6 +989,21 @@ def init_user_quiz_db(db_path='quiz_users.db'):
     """)
     cursor.execute("ALTER TABLE daily_stats ADD COLUMN channel_users INTEGER DEFAULT 0;")
     cursor.execute("ALTER TABLE daily_stats ADD COLUMN external_users INTEGER DEFAULT 0;")
+
+    cursor.execute(""""
+    CREATE TABLE IF NOT EXISTS resource_load (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+        source TEXT DEFAULT 'scheduled', -- 'scheduled' OR 'event'
+        cpu_percent REAL,
+        memory_mb REAL,
+        total_users INTEGER,
+        channel_users INTEGER,
+        external_users INTEGER,
+        tests_generated INTEGER,
+        files_processed INTEGER
+    )
+    """)
     conn.commit()
     conn.close()
 
@@ -4425,6 +4534,8 @@ def unified_handler(msg):
     
     update_files_and_users(uid, files_count=1)
     update_daily_stats(files=1)
+    log_resource_usage(source="event")
+
 
 
     sent_msg = bot.reply_to(msg, "📝 جاري توليد المحتوى، يرجى الانتظار قليلاً...")
@@ -4811,6 +4922,8 @@ def process_message(msg, message_id=None, chat_id=None):
                     )
                     increment_count(uid)
                     notify_admin("توليد أنكي آلي", username, uid)
+                    log_resource_usage(source="event")
+                    
 
                     # إرسال الملف مع caption
                     with open(filepath, 'rb') as file:
@@ -4938,6 +5051,8 @@ def process_message(msg, message_id=None, chat_id=None):
                                 parse_mode="Markdown"
                             )
                             notify_admin("توليد أنكي يدوي", username, uid)
+                            log_resource_usage(source="event")
+                            
 
             
                         # حذف رسالة التقدم بعد الإرسال
@@ -5035,6 +5150,9 @@ def process_message(msg, message_id=None, chat_id=None):
                     
                     notify_admin("توليد اختبار ذكي", username, uid)
                     update_top_user(uid, tests=1)
+                    log_resource_usage(source="event")
+                    increment_count(uid)
+                    
                 else:
                     bot.edit_message_text("❌ فشل في إنشاء الاختبار. قد يكون المحتوى غير مناسب. يرجى المحاولة لاحقاً.", chat_id=original_chat_id, message_id=original_message_id)
 
@@ -5158,6 +5276,9 @@ def process_message(msg, message_id=None, chat_id=None):
 
                     update_top_user(uid, tests=1)
                     notify_admin("توليد اختبار", username, uid)
+                    log_resource_usage(source="event")
+                    increment_count(uid)
+                    
                     
                     
 
