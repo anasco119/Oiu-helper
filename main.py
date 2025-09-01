@@ -48,6 +48,91 @@ bot = telebot.TeleBot(BOT_TOKEN)
 bot2 = telebot.TeleBot(BOT_TOKEN_2)
 bot3 = telebot.TeleBot(BOT_TOKEN_3)
 
+import telebot
+import requests
+import os
+
+# بوتك
+
+
+# API keys
+UNSPLASH_KEY = os.getenv("UNSPLASH_KEY")   # ضعه في البيئة
+PEXELS_KEY = os.getenv("PEXELS_KEY")       # ضعه في البيئة
+
+# ========= دوال البحث ==========
+
+def search_wikimedia(query: str):
+    url = "https://commons.wikimedia.org/w/api.php"
+    params = {
+        "action": "query",
+        "format": "json",
+        "prop": "imageinfo",
+        "generator": "search",
+        "gsrsearch": query,
+        "gsrlimit": 1,
+        "iiprop": "url"
+    }
+    r = requests.get(url, params=params)
+    data = r.json()
+    pages = data.get("query", {}).get("pages", {})
+    for _, page in pages.items():
+        imageinfo = page.get("imageinfo", [])
+        if imageinfo:
+            return imageinfo[0].get("url")
+    return None
+
+def search_unsplash(query: str):
+    url = "https://api.unsplash.com/search/photos"
+    headers = {"Authorization": f"Client-ID {UNSPLASH_KEY}"}
+    params = {"query": query, "per_page": 1}
+    r = requests.get(url, headers=headers, params=params)
+    data = r.json()
+    results = data.get("results", [])
+    if results:
+        return results[0]["urls"]["regular"]
+    return None
+
+def search_pexels(query: str):
+    url = "https://api.pexels.com/v1/search"
+    headers = {"Authorization": PEXELS_KEY}
+    params = {"query": query, "per_page": 1}
+    r = requests.get(url, headers=headers, params=params)
+    data = r.json()
+    photos = data.get("photos", [])
+    if photos:
+        return photos[0]["src"]["medium"]
+    return None
+
+# ========= أمر تليجرام =========
+
+
+
+@bot.message_handler(commands=['getimage'])
+def handle_getimage(message):
+    if message.from_user.id != ADMIN_ID:
+        bot.reply_to(message, "❌ هذا الأمر مخصص للإدمن فقط.")
+        return
+    
+    query = message.text.replace("/getimage", "").strip()
+    if not query:
+        bot.reply_to(message, "⚠️ استخدم: /getimage <وصف الصورة>")
+        return
+    
+    bot.reply_to(message, f"🔍 جاري البحث عن صورة لـ: {query} ...")
+
+    # جرب من الثلاثة
+    img_url = (
+        search_wikimedia(query) or
+        search_unsplash(query) or
+        search_pexels(query)
+    )
+
+    if img_url:
+        bot.send_photo(message.chat.id, img_url, caption=f"📷 صورة لـ: {query}")
+    else:
+        bot.reply_to(message, "❌ لم يتم العثور على صورة.")
+
+# ========= تشغيل البوت =========
 
 
 
