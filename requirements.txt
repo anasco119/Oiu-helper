@@ -16,3 +16,4 @@ langdetect
 schedule
 pillow
 psutil
+matplotlib
