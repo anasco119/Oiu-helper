@@ -3222,49 +3222,16 @@ def share_quiz(message):
 
         bot.edit_message_text(msg_text, chat_id=chat_id, message_id=waiting_msg.message.id, parse_mode="HTML", reply_markup=keyboard)
     
-    
-    
-        
-@bot.message_handler(commands=['inspect'])
-def inspect_generated_anki(message):
-    # للأمان، فقط الأدمن يمكنه استدعاء هذا الأمر
-    if message.from_user.id != ADMIN_ID:
-        return
-
-    bot.send_message(message.chat.id, "⏳ حسنًا، سأقوم بإنشاء ملف Anki يدوي وفحصه الآن...")
-    
-    try:
-        # 1. إنشاء بيانات بسيطة لملف Anki يدوي
-        manual_text = "السؤال الأول\nالجواب الأول\n#tag1\n\nالسؤال الثاني\nالجواب الثاني"
-        cards = parse_manual_anki_input(manual_text)
-        
-        if not cards:
-            bot.send_message(message.chat.id, "فشل في تحليل النص اليدوي.")
-            return
-
-        # 2. حفظ الملف باسم مؤقت
-        filename = f"inspection_{message.from_user.id}.apkg"
-        deck_name = "Inspection Deck"
-        save_cards_to_apkg(cards, filename=filename, deck_name=deck_name)
-
-        # 3. تشغيل الفحص على الملف الناتج
-        report = inspect_apkg_and_get_report(filename)
-
-        # 4. إرسال التقرير إليك
-        bot.send_message(message.chat.id, report, parse_mode="Markdown")
-
-        # 5. (اختياري) إرسال الملف نفسه لتجربته
-        with open(filename, 'rb') as file:
-            bot.send_document(message.chat.id, file, caption="📄 هذا هو الملف الذي تم فحصه.")
-
     except Exception as e:
-        bot.send_message(message.chat.id, f"❌ حدث خطأ في عملية الإنشاء والفحص:\n{e}")
-        # طباعة الخطأ الكامل في سجلات الخادم لتشخيصه
-        print(traceback.format_exc())
-    finally:
-        # 6. تنظيف وحذف الملف المؤقت
-        if os.path.exists(filename):
-            os.remove(filename)
+        import traceback
+        logging.exception("process_message error: %s", e)
+        print("!!!!!!!!!!!!!!!!! حدث خطأ !!!!!!!!!!!!!!!!!!")
+        traceback.print_exc() # هذا السطر سيطبع الخطأ الكامل ومكانه بالضبط
+        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        bot.send_message(uid, "حدث خطأ غير متوقع.")
+
+        
+    
 
 import sys
 import genanki # تأكد من وجود هذا الاستيراد في أعلى الملف
