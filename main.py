@@ -54,6 +54,68 @@ import os
 
 # بوتك
 
+@bot.message_handler(commands=['channelreport'])
+def send_channel_report(message):
+    # التحقق من أن المستخدم هو الأدمن
+    if message.from_user.id != ADMIN_ID:
+        bot.reply_to(message, "❌ هذا الأمر مخصص للإدمن فقط.")
+        return
+
+    # إرسال رسالة أولية لإعلام الأدمن بالبدء
+    msg = bot.reply_to(message, "⏳ جارٍ إعداد تقرير القنوات، يرجى الانتظار...")
+
+    # قراءة متغير البيئة
+    raw_channels = os.getenv("ALLOWED_CHANNELS", "")
+    if not raw_channels.strip():
+        bot.edit_message_text("⚠️ لم يتم تعريف أي قنوات في متغير البيئة `ALLOWED_CHANNELS`.", chat_id=msg.chat.id, message_id=msg.message_id)
+        return
+
+    # تحويل النص إلى قائمة من أرقام القنوات
+    channel_ids = [int(cid.strip()) for cid in raw_channels.split(",") if cid.strip()]
+    
+    report_parts = ["📊 *تقرير حالة القنوات*"]
+    total_members = 0
+    successful_count = 0
+
+    # المرور على كل قناة لجمع المعلومات
+    for channel_id in channel_ids:
+        try:
+            # جلب معلومات القناة
+            chat = bot.get_chat(channel_id)
+            member_count = bot.get_chat_members_count(channel_id)
+            
+            total_members += member_count
+            successful_count += 1
+            
+            title = chat.title or "اسم غير متوفر"
+            username = f"(@{chat.username})" if chat.username else ""
+            
+            # إضافة معلومات القناة الناجحة إلى التقرير
+            report_parts.append(
+                f"\n✅ *{title}* {username}\n"
+                f"   - 🆔 `ID: {channel_id}`\n"
+                f"   - 👥 `الأعضاء: {member_count}`"
+            )
+        except Exception as e:
+            # إضافة رسالة خطأ في حال فشل الوصول للقناة
+            report_parts.append(
+                f"\n❌ *فشل الوصول للقناة*\n"
+                f"   - 🆔 `ID: {channel_id}`\n"
+                f"   - ⚠️ `السبب: تأكد من أن البوت مشرف في هذه القناة.`"
+            )
+            logging.error(f"Failed to get info for channel {channel_id}: {e}")
+
+    # إضافة ملخص في نهاية التقرير
+    report_parts.append("\n" + "─" * 20) # خط فاصل
+    report_parts.append("📈 *الملخص الإجمالي*")
+    report_parts.append(f"- عدد القنوات التي تم فحصها: {len(channel_ids)}")
+    report_parts.append(f"- القنوات التي تم الوصول إليها: {successful_count}")
+    report_parts.append(f"- إجمالي الأعضاء: *{total_members}*")
+
+    # تجميع وإرسال التقرير النهائي
+    final_report = "\n".join(report_parts)
+    bot.edit_message_text(final_report, chat_id=msg.chat.id, message_id=msg.message_id, parse_mode="Markdown")
+
 
 # API keys
 import telebot
