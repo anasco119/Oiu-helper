@@ -3038,6 +3038,40 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 state_lock = threading.Lock()
 user_states = {}  # global
 
+import sqlite3
+
+def get_single_quiz_code(user_id):
+    """
+    يسترجع رمز اختبار واحد (quiz_code) لمستخدم معين.
+
+    Args:
+        user_id: المعرف الفريد للمستخدم.
+
+    Returns:
+        رمز الاختبار (string) إذا وجد، وإلا يعود بـ None.
+    """
+    conn = sqlite3.connect("quiz_users.db")
+    c = conn.cursor()
+    
+    c.execute("""
+        SELECT quiz_code
+        FROM user_quizzes
+        WHERE user_id = ?
+        LIMIT 1
+    """, (user_id,))
+    
+    row = c.fetchone()
+    
+    conn.close()
+    
+    # التحقق من وجود الصف قبل محاولة الوصول إلى العنصر
+    if row:
+        return row[0]
+    return None
+
+# مثال على كيفية استخدام الدالة:
+# لنفترض أن المستخدم هو "uid"
+
 
 
 # -------------------------------------------------------------------
@@ -3143,7 +3177,54 @@ def handle_main_menu(c):
 #
 # ----- أضف هذا الأمر الجديد للبوت -----
 #
+@bot.message_handler(commands=['sharequiz'])
+def share_quiz(message):
+    try:
+        uid = message.from_user.id
+        chat_id = message.chat.id
+    
+        waiting_msg = bot.send_message(message.chat.id, "⏳ يرجى الإنتظار...")
+        quiz_code = get_single_quiz_code(uid)
+              # ← تأكد من تعيين chat_id هنا
 
+        try:
+            user_chat = bot.get_chat(uid)
+            shared_by_name = user_chat.first_name or user_chat.username or f"user_{uid}"
+        except Exception:
+            shared_by_name = "صديقك"
+
+        log_quiz_share(quiz_code, uid, shared_by_name)
+        file_path = user_files[uid]
+        
+        share_link = f"https://t.me/QuizzyAI_bot?start=quiz_{quiz_code}"
+        
+        msg_text_share = f"""📢 {shared_by_name} أرسل لك هذا الاختبار!  
+
+📂 الملف: {msg.document.file_name}
+
+جربه واختبر معلوماتك 👇  
+{share_link}
+"""
+        msg_text = f"""<b>🎉 شارك هذا الاختبار مع زملائك!</b>
+
+    انسخ الرابط أدناه أو اضغط لفتحه مباشرة:
+    🔗 <a href="{share_link}">{share_link}</a>
+
+    📝 عند فتح الرابط، سيبدأ الاختبار تلقائيًا بإذن الله.  
+    📢 بمشاركتك هذا الاختبار قد يصير عامًا.
+    """
+
+        keyboard = types.InlineKeyboardMarkup()
+        keyboard.add(
+            types.InlineKeyboardButton("🔗 نسخ الرابط", switch_inline_query=msg_text_share),
+            types.InlineKeyboardButton("🏠 القائمة الرئيسية", callback_data="go_back_home")
+        )
+
+        bot.edit_message_text(msg_text, chat_id=chat_id, message_id=waiting_msg.message.id, parse_mode="HTML", reply_markup=keyboard)
+    
+    
+    
+        
 @bot.message_handler(commands=['inspect'])
 def inspect_generated_anki(message):
     # للأمان، فقط الأدمن يمكنه استدعاء هذا الأمر
