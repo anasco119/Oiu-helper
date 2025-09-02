@@ -4892,7 +4892,7 @@ def process_message(msg, message_id=None, chat_id=None):
                 # تنظيف العنوان ليكون اسم ملف صالح
                 timestamp = int(time.time())
                 safe_title = re.sub(r'[^a-zA-Z0-9_\u0600-\u06FF]', '_', title)[:40]
-                filename = f"{title}_{timestamp}.apkg".replace(" ", "_")
+                output_filename = f"{title}_{timestamp}.apkg".replace(" ", "_")
                     
                     
                 deck_name = f"{safe_title}" # اسم مجموعة آمن بالإنجليزية
@@ -4911,7 +4911,7 @@ def process_message(msg, message_id=None, chat_id=None):
                     
 
 
-                with open(filepath, 'rb') as file:
+                with open(filename, 'rb') as file:
                     bot.send_document(
                         chat_id=uid,
                         document=file,
