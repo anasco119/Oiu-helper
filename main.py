@@ -4804,9 +4804,9 @@ def process_message(msg, message_id=None, chat_id=None):
         # ============================
         if state == "awaiting_anki_file_ai":
             # تعريف المتغيرات مبكرًا لضمان وجودها في блока finally
-            final_filename = None
+            
             temp_dir_to_clean = None
-            loading_msg = None
+            
             
             try:
                 logging.info("Handling awaiting_anki_file_ai for uid=%s", uid)
@@ -4851,81 +4851,81 @@ def process_message(msg, message_id=None, chat_id=None):
                                 text="❌ فشل في تلخيص المحتوى.\n\nيرجى إرسال ملف أصغر أو المحاولة لاحقاً."
                             )
         
-                    # مؤشر تقدم متحرك
-                    progress_phrases = [
-                        "📖 جاري تحليل المحتوى...",
-                        "🧠 معالجة المعلومات...",
-                        "🛠️ إنشاء البطاقات...",
-                        "✨ جاري التنسيق النهائي..."
-                    ]
+                # مؤشر تقدم متحرك
+                progress_phrases = [
+                    "📖 جاري تحليل المحتوى...",
+                    "🧠 معالجة المعلومات...",
+                    "🛠️ إنشاء البطاقات...",
+                    "✨ جاري التنسيق النهائي..."
+                ]
         
-                    for i, phrase in enumerate(progress_phrases):
-                        # إضافة شريط تقدم بصري
-                        progress_bar = "[" + "=" * (i+1) + " " * (len(progress_phrases)-i-1) + "]"
+                for i, phrase in enumerate(progress_phrases):
+                    # إضافة شريط تقدم بصري
+                    progress_bar = "[" + "=" * (i+1) + " " * (len(progress_phrases)-i-1) + "]"
             
-                        bot.edit_message_text(
-                            chat_id=uid,
-                            message_id=loading_msg.message_id,
-                            text=f"{progress_bar}\n\n{phrase}\n\n⏳ يرجى الانتظار..."
-                        )
-                        time.sleep(1.5)
-        
-                    # إضافة رسالة انتظار جذابة
                     bot.edit_message_text(
                         chat_id=uid,
                         message_id=loading_msg.message_id,
-                        text=f"🎯 {random.choice(waiting_messages_anki)}\n\n⚡ جاري الانتهاء من التحضير..."
+                        text=f"{progress_bar}\n\n{phrase}\n\n⏳ يرجى الانتظار..."
                     )
-                    time.sleep(random.randint(2, 5))
+                    time.sleep(1.5)
         
-                    # إنشاء البطاقات
-                    if can_generate(uid):
-                        cards, title =generate_special_anki_cards_from_text(content, major=major, user_id=uid)
+                # إضافة رسالة انتظار جذابة
+                bot.edit_message_text(
+                    chat_id=uid,
+                    message_id=loading_msg.message_id,
+                    text=f"🎯 {random.choice(waiting_messages_anki)}\n\n⚡ جاري الانتهاء من التحضير..."
+                )
+                time.sleep(random.randint(2, 5))
+        
+                # إنشاء البطاقات
+                if can_generate(uid):
+                    cards, title =generate_special_anki_cards_from_text(content, major=major, user_id=uid)
                     
-                    else:
-                        cards, title = generate_anki_cards_from_text(content, major=major, user_id=uid)
+                else:
+                    cards, title = generate_anki_cards_from_text(content, major=major, user_id=uid)
 
-                    if not cards:
-                        return bot.edit_message_text(
-                            chat_id=uid,
-                            message_id=loading_msg.message_id,
-                            text="❌ لم أتمكن من إنشاء أي بطاقات.\n\nقد يكون المحتوى غير مناسب أو حدث خطأ أثناء المعالجة."
-                        )
-                    
-
-                    # تنظيف العنوان ليكون اسم ملف صالح
-                    timestamp = int(time.time())
-                    safe_title = re.sub(r'[^a-zA-Z0-9_\u0600-\u06FF]', '_', title)[:40]
-                    filename = f"{title}_{timestamp}.apkg".replace(" ", "_")
-                    
-                    
-                    deck_name = f"{safe_title}" # اسم مجموعة آمن بالإنجليزية
-                    
-                    filename, temp_dir_to_clean = save_cards_to_apkg(cards, filename=output_filename, deck_name=deck_name)
-
-                     # تحرير الرسالة الأخيرة لإظهار نجاح العملية
-                    bot.edit_message_text(
+                if not cards:
+                    return bot.edit_message_text(
                         chat_id=uid,
                         message_id=loading_msg.message_id,
-                        text=f"✅ تم إنشاء {len(cards)} بطاقة بنجاح!\n\n📚 العنوان: {title}\n\n⚡ جاري إرسال الملف..."
+                        text="❌ لم أتمكن من إنشاء أي بطاقات.\n\nقد يكون المحتوى غير مناسب أو حدث خطأ أثناء المعالجة."
                     )
-                    increment_count(uid)
-                    notify_admin("توليد أنكي آلي", username, uid)
-                    log_resource_usage(source="event")
+                    
+
+                # تنظيف العنوان ليكون اسم ملف صالح
+                timestamp = int(time.time())
+                safe_title = re.sub(r'[^a-zA-Z0-9_\u0600-\u06FF]', '_', title)[:40]
+                filename = f"{title}_{timestamp}.apkg".replace(" ", "_")
+                    
+                    
+                deck_name = f"{safe_title}" # اسم مجموعة آمن بالإنجليزية
+                    
+                filename, temp_dir_to_clean = save_cards_to_apkg(cards, filename=output_filename, deck_name=deck_name)
+
+                    # تحرير الرسالة الأخيرة لإظهار نجاح العملية
+                bot.edit_message_text(
+                    chat_id=uid,
+                    message_id=loading_msg.message_id,
+                    text=f"✅ تم إنشاء {len(cards)} بطاقة بنجاح!\n\n📚 العنوان: {title}\n\n⚡ جاري إرسال الملف..."
+                )
+                increment_count(uid)
+                notify_admin("توليد أنكي آلي", username, uid)
+                log_resource_usage(source="event")
                     
 
 
-                    with open(filepath, 'rb') as file:
-                        bot.send_document(
-                            chat_id=uid,
-                            document=file,
-                            caption=f"📂 {title}\n\n🎴 عدد البطاقات: {len(cards)}\n\n📉 التغطية: {coverage}",
-                            reply_to_message_id=msg.message_id
-                        )
+                with open(filepath, 'rb') as file:
+                    bot.send_document(
+                        chat_id=uid,
+                        document=file,
+                        caption=f"📂 {title}\n\n🎴 عدد البطاقات: {len(cards)}\n\n📉 التغطية: {coverage}",
+                        reply_to_message_id=msg.message_id
+                    )
                     # تم الإرسال بنجاح، امسح الحالة
-                    with state_lock:
-                        user_states.pop(uid, None)
-                    logging.info("Finished ai_anki for uid=%s", uid)
+                with state_lock:
+                    user_states.pop(uid, None)
+                logging.info("Finished ai_anki for uid=%s", uid)
 
             except Exception as e:
                 logging.error(f"❌ حدث خطأ في awaiting_anki_file_ai: {traceback.format_exc()}")
