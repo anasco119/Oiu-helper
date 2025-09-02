@@ -4824,32 +4824,32 @@ def process_message(msg, message_id=None, chat_id=None):
             try:
                 # إذا كان المحتوى كبيراً
                 if len(content) > 10000:
-                    if can_generate(uid)
-                            try:
-                            # تحديث الرسالة لعملية التلخيص
-                                bot.edit_message_text(
-                                    chat_id=chat_id,
-                                    message_id=message_id,
-                                    text="📚 المحتوى كبير جداً\n🔍 جاري تلخيص المحتوى..."
-                            )
+                    if can_generate(uid):
+                        try:
+                        # تحديث الرسالة لعملية التلخيص
+                            bot.edit_message_text(
+                                chat_id=chat_id,
+                                message_id=message_id,
+                                text="📚 المحتوى كبير جداً\n🔍 جاري تلخيص المحتوى..."
+                        )
                 
-                                content = summarize_long_text(content)
+                            content = summarize_long_text(content)
                 
                             # تأكيد نجاح التلخيص
-                                bot.edit_message_text(
-                                    chat_id=uid,
-                                    message_id=loading_msg.message_id,
-                                    text="✅ تم تلخيص المحتوى بنجاح\n⏳ جاري إنشاء البطاقات..."
+                            bot.edit_message_text(
+                                chat_id=uid,
+                                message_id=loading_msg.message_id,
+                                text="✅ تم تلخيص المحتوى بنجاح\n⏳ جاري إنشاء البطاقات..."
                             )
-                                time.sleep(1)
+                            time.sleep(1)
                 
-                            except Exception as e:
+                        except Exception as e:
                             print("[ERROR] فشل في تلخيص المحتوى:", e)
-                                return bot.edit_message_text(
-                                    chat_id=uid,
-                                    message_id=loading_msg.message_id,
-                                    text="❌ فشل في تلخيص المحتوى.\n\nيرجى إرسال ملف أصغر أو المحاولة لاحقاً."
-                                )
+                            return bot.edit_message_text(
+                                chat_id=uid,
+                                message_id=loading_msg.message_id,
+                                text="❌ فشل في تلخيص المحتوى.\n\nيرجى إرسال ملف أصغر أو المحاولة لاحقاً."
+                            )
         
                     # مؤشر تقدم متحرك
                     progress_phrases = [
