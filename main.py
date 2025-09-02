@@ -4801,6 +4801,7 @@ def process_message(msg, message_id=None, chat_id=None):
             # تعريف المتغيرات مبكرًا لضمان وجودها في блока finally
             
             temp_dir_to_clean = None
+            filename = None
             
             
             try:
