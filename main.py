@@ -2427,26 +2427,22 @@ The flashcards must be written in the same language as the input content. If the
                 front = item.get("front") or item.get("question")
                 back = item.get("back") or item.get("answer")
                 tag = item.get("tag", "")
-                image_hint = item.get("image_hint", "").strip()
-                image_url = ""
+                image_hint = item.get("image_hint", "").strip()  # احتفظ بـ image_hint فقط
 
                 if isinstance(front, str) and isinstance(back, str) and front.strip() and back.strip():
-                    # البحث عن صورة إذا كان فيه image_hint
-                    if image_hint:
-                        image_url = search_image(image_hint)
-
                     cards.append({
                         "front": front.strip(),
                         "back": back.strip(),
                         "tag": tag.strip(),
-                        "image_url": image_url  # <-- رابط الصورة فقط
+                        "image_hint": image_hint  # غير من image_url إلى image_hint
                     })
                 else:
                     logging.warning(f"❌ Skipping invalid card: {item}")
 
             if len(cards) >= 5:
                 return cards, title
-
+        
+            
         except json.JSONDecodeError as e:
             logging.error(f"❌ Failed to parse Anki cards: {e}\nClean JSON:\n{clean_json}\nRaw:\n{raw_output}")
 
