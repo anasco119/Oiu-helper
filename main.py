@@ -4803,25 +4803,28 @@ def process_message(msg, message_id=None, chat_id=None):
         # Awaiting AI Anki
         # ============================
         if state == "awaiting_anki_file_ai":
+            # تعريف المتغيرات مبكرًا لضمان وجودها في блока finally
+            final_filename = None
+            temp_dir_to_clean = None
+            loading_msg = None
+            
             try:
                 logging.info("Handling awaiting_anki_file_ai for uid=%s", uid)
                 if not can_generate(uid):
                     return bot.send_message(uid, "⚠️ لقد استنفدت 3 اختبارات مجانية هذا الشهر.")
 
-            
-            # تعريف المتغيرات مبكرًا لضمان وجودها في блока finally
-            final_filename = None
-            temp_dir_to_clean = None
-            loading_msg = None
-
     
                 # إعداد رسالة التحميل الأولية
                 loading_msg = safe_edit_or_send("🔄 جاري معالجة الملف...", chat_id, message_id, "HTML")
+                
+            except Exception as e:
+                logging.error(f"❌ حدث خطأ في awaiting_anki_file_ai: {traceback.format_exc()}")
+                    
     
-                try:
-                    # إذا كان المحتوى كبيراً
-                    if len(content) > 10000:
-                        if can_generate(uid)
+            try:
+                # إذا كان المحتوى كبيراً
+                if len(content) > 10000:
+                    if can_generate(uid)
                             try:
                             # تحديث الرسالة لعملية التلخيص
                                 bot.edit_message_text(
@@ -4919,40 +4922,40 @@ def process_message(msg, message_id=None, chat_id=None):
                             caption=f"📂 {title}\n\n🎴 عدد البطاقات: {len(cards)}\n\n📉 التغطية: {coverage}",
                             reply_to_message_id=msg.message_id
                         )
-                # تم الإرسال بنجاح، امسح الحالة
+                    # تم الإرسال بنجاح، امسح الحالة
                     with state_lock:
                         user_states.pop(uid, None)
                     logging.info("Finished ai_anki for uid=%s", uid)
 
-                except Exception as e:
-                    logging.error(f"❌ حدث خطأ في awaiting_anki_file_ai: {traceback.format_exc()}")
-                    error_message = f"❌ حدث خطأ غير متوقع:\n{e}"
-                    if loading_msg:
-                        bot.edit_message_text(chat_id=uid, message_id=loading_msg.message_id, text=error_message)
-                    else:
-                        bot.send_message(uid, error_message)
-                    # مسح الحالة عند حدوث خطأ
-                    with state_lock:
-                        user_states.pop(uid, None)
+            except Exception as e:
+                logging.error(f"❌ حدث خطأ في awaiting_anki_file_ai: {traceback.format_exc()}")
+                error_message = f"❌ حدث خطأ غير متوقع:\n{e}"
+                if loading_msg:
+                    bot.edit_message_text(chat_id=uid, message_id=loading_msg.message_id, text=error_message)
+                else:
+                    bot.send_message(uid, error_message)
+                # مسح الحالة عند حدوث خطأ
+                with state_lock:
+                    user_states.pop(uid, None)
 
-                finally:
-                    # --- 5. (التعديل الرئيسي) التنظيف الآمن بعد انتهاء كل شيء ---
-                    logging.info("بدء عملية التنظيف النهائية لـ awaiting_ai_anki...")
-                    if filename and os.path.exists(filename):
-                        try:
-                            os.remove(filename)
-                            logging.info(f"تم حذف ملف .apkg المؤقت: {filename}")
-                        except Exception as e_remove:
-                            logging.error(f"خطأ أثناء حذف ملف .apkg: {e_remove}")
+            finally:
+                # --- 5. (التعديل الرئيسي) التنظيف الآمن بعد انتهاء كل شيء ---
+                logging.info("بدء عملية التنظيف النهائية لـ awaiting_ai_anki...")
+                if filename and os.path.exists(filename):
+                    try:
+                        os.remove(filename)
+                        logging.info(f"تم حذف ملف .apkg المؤقت: {filename}")
+                    except Exception as e_remove:
+                        logging.error(f"خطأ أثناء حذف ملف .apkg: {e_remove}")
                 
-                    if temp_dir_to_clean and os.path.exists(temp_dir_to_clean):
-                        try:
-                            shutil.rmtree(temp_dir_to_clean)
-                            logging.info(f"تم حذف المجلد المؤقت للصور: {temp_dir_to_clean}")
-                        except Exception as e_rmtree:
-                            logging.error(f"خطأ أثناء حذف المجلد المؤقت: {e_rmtree}")
+                if temp_dir_to_clean and os.path.exists(temp_dir_to_clean):
+                    try:
+                        shutil.rmtree(temp_dir_to_clean)
+                        logging.info(f"تم حذف المجلد المؤقت للصور: {temp_dir_to_clean}")
+                    except Exception as e_rmtree:
+                        logging.error(f"خطأ أثناء حذف المجلد المؤقت: {e_rmtree}")
 
-                return # تأكد من وجود return للخروج من الدالة بعد المعالجة
+            return # تأكد من وجود return للخروج من الدالة بعد المعالجة
 
 
 
