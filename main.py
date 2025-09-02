@@ -3430,8 +3430,7 @@ def simple_test(message):
     except Exception as e:
         bot.reply_to(message, f"❌ خطأ في الاختبار البسيط: {str(e)}")
 
-                logging.error(f"خطأ في معالجة الصورة {i+1}: {str(e)}")
-                continue
+    
         
                 
 @bot.message_handler(commands=['testankiimage'])
