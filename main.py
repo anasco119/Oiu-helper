@@ -3109,6 +3109,74 @@ def get_latest_quiz_code(user_id: int) -> str | None:
         logging.error(f"Error fetching latest quiz code for {user_id}: {e}")
         return None
         
+@bot.message_handler(commands=['testankiimage'])
+def test_anki_with_image(message):
+    if message.from_user.id != ADMIN_ID:
+        return bot.reply_to(message, "❌ هذا الأمر للإدمن فقط")
+
+    msg = bot.reply_to(message, "🧪 بدء اختبار شامل لعملية إنشاء Anki بالصور...")
+    
+    final_filename = None
+    temp_dir_to_clean = None
+
+    try:
+        # 1. فحص مفاتيح API أولاً
+        bot.edit_message_text("1️⃣ فحص مفاتيح API...", chat_id=msg.chat.id, message_id=msg.message_id)
+        api_keys_check = {
+            "UNSPLASH_KEY": bool(os.getenv("UNSPLASH_KEY")),
+            "PEXELS_KEY": bool(os.getenv("PEXELS_KEY")),
+        }
+        api_report = "تقرير مفاتيح API:\n" + "\n".join([f"- {key}: {'✅ موجود' if value else '❌ مفقود'}" for key, value in api_keys_check.items()])
+        bot.send_message(message.chat.id, api_report)
+        time.sleep(1)
+
+        # 2. إعداد بطاقات تجريبية
+        bot.edit_message_text("2️⃣ إعداد بطاقات تجريبية...", chat_id=msg.chat.id, message_id=msg.message_id)
+        test_cards = [
+            {
+                "front": "ما هو كوكب المريخ؟",
+                "back": "هو الكوكب الرابع في المجموعة الشمسية.",
+                "tag": "فلك",
+                "image_hint": "planet mars high resolution" # تلميح بحث جيد
+            },
+            {
+                "front": "ما هي عملية البناء الضوئي؟",
+                "back": "عملية تحويل الطاقة الضوئية إلى طاقة كيميائية.",
+                "tag": "أحياء",
+                "image_hint": "photosynthesis process in plants" # تلميح بحث آخر
+            }
+        ]
+        time.sleep(1)
+
+        # 3. استدعاء دالة الحفظ الرئيسية
+        bot.edit_message_text("3️⃣ بدء عملية الحفظ (بما في ذلك البحث والتحميل)...", chat_id=msg.chat.id, message_id=msg.message_id)
+        
+        output_filename = f"test_anki_{int(time.time())}.apkg"
+        
+        # استدعاء دالتك الرئيسية التي تستخدم في الوضع الفعلي
+        final_filename, temp_dir_to_clean = save_cards_to_apkg(test_cards, output_filename, "اختبار شامل")
+        
+        if not final_filename or not temp_dir_to_clean:
+            raise Exception("فشلت دالة save_cards_to_apkg في إنشاء الملف. تحقق من سجلات الخادم.")
+
+        # 4. إرسال النتيجة
+        bot.edit_message_text("4️⃣ تم إنشاء الملف بنجاح! جاري الإرسال...", chat_id=msg.chat.id, message_id=msg.message_id)
+        with open(final_filename, 'rb') as f:
+            bot.send_document(message.chat.id, f, caption="✅ إذا كان هذا الملف يحتوي على صور، فالنظام يعمل بشكل صحيح.")
+
+    except Exception as e:
+        error_msg = f"❌ حدث خطأ أثناء الاختبار:\n\n`{str(e)}`\n\nيرجى مراجعة سجلات الخادم (logs) لرؤية التفاصيل الكاملة."
+        logging.error(f"خطأ فادح في test_anki_with_image: {traceback.format_exc()}")
+        bot.edit_message_text(error_msg, chat_id=msg.chat.id, message_id=msg.message_id)
+
+    finally:
+        # 5. التنظيف النهائي
+        logging.info("بدء عملية التنظيف النهائية للاختبار...")
+        if final_filename and os.path.exists(final_filename):
+            os.remove(final_filename)
+        if temp_dir_to_clean and os.path.exists(temp_dir_to_clean):
+            shutil.rmtree(temp_dir_to_clean)
+        logging.info("انتهت عملية التنظيف.")
 
 # -------------------------------------------------------------------
 #                  Telegram Bot Handlers
@@ -3305,80 +3373,7 @@ def simple_test(message):
     except Exception as e:
         bot.reply_to(message, f"❌ خطأ في الاختبار البسيط: {str(e)}")
 
-    
-        
-                
-# (استبدل الدالة القديمة بهذه)
-@bot.message_handler(commands=['testankiimage'])
-def test_anki_with_image(message):
-    if message.from_user.id != ADMIN_ID:
-        return bot.reply_to(message, "❌ هذا الأمر للإدمن فقط")
 
-    msg = bot.reply_to(message, "🧪 بدء اختبار شامل لعملية إنشاء Anki بالصور...")
-    
-    final_filename = None
-    temp_dir_to_clean = None
-
-    try:
-        # 1. فحص مفاتيح API أولاً
-        bot.edit_message_text("1️⃣ فحص مفاتيح API...", chat_id=msg.chat.id, message_id=msg.message_id)
-        api_keys_check = {
-            "UNSPLASH_KEY": bool(os.getenv("UNSPLASH_KEY")),
-            "PEXELS_KEY": bool(os.getenv("PEXELS_KEY")),
-        }
-        api_report = "تقرير مفاتيح API:\n" + "\n".join([f"- {key}: {'✅ موجود' if value else '❌ مفقود'}" for key, value in api_keys_check.items()])
-        bot.send_message(message.chat.id, api_report)
-        time.sleep(1)
-
-        # 2. إعداد بطاقات تجريبية
-        bot.edit_message_text("2️⃣ إعداد بطاقات تجريبية...", chat_id=msg.chat.id, message_id=msg.message_id)
-        test_cards = [
-            {
-                "front": "ما هو كوكب المريخ؟",
-                "back": "هو الكوكب الرابع في المجموعة الشمسية.",
-                "tag": "فلك",
-                "image_hint": "planet mars high resolution" # تلميح بحث جيد
-            },
-            {
-                "front": "ما هي عملية البناء الضوئي؟",
-                "back": "عملية تحويل الطاقة الضوئية إلى طاقة كيميائية.",
-                "tag": "أحياء",
-                "image_hint": "photosynthesis process in plants" # تلميح بحث آخر
-            }
-        ]
-        time.sleep(1)
-
-        # 3. استدعاء دالة الحفظ الرئيسية
-        bot.edit_message_text("3️⃣ بدء عملية الحفظ (بما في ذلك البحث والتحميل)...", chat_id=msg.chat.id, message_id=msg.message_id)
-        
-        output_filename = f"test_anki_{int(time.time())}.apkg"
-        
-        # استدعاء دالتك الرئيسية التي تستخدم في الوضع الفعلي
-        final_filename, temp_dir_to_clean = save_cards_to_apkg(test_cards, output_filename, "اختبار شامل")
-        
-        if not final_filename or not temp_dir_to_clean:
-            raise Exception("فشلت دالة save_cards_to_apkg في إنشاء الملف. تحقق من سجلات الخادم.")
-
-        # 4. إرسال النتيجة
-        bot.edit_message_text("4️⃣ تم إنشاء الملف بنجاح! جاري الإرسال...", chat_id=msg.chat.id, message_id=msg.message_id)
-        with open(final_filename, 'rb') as f:
-            bot.send_document(message.chat.id, f, caption="✅ إذا كان هذا الملف يحتوي على صور، فالنظام يعمل بشكل صحيح.")
-
-    except Exception as e:
-        error_msg = f"❌ حدث خطأ أثناء الاختبار:\n\n`{str(e)}`\n\nيرجى مراجعة سجلات الخادم (logs) لرؤية التفاصيل الكاملة."
-        logging.error(f"خطأ فادح في test_anki_with_image: {traceback.format_exc()}")
-        bot.edit_message_text(error_msg, chat_id=msg.chat.id, message_id=msg.message_id)
-
-    finally:
-        # 5. التنظيف النهائي
-        logging.info("بدء عملية التنظيف النهائية للاختبار...")
-        if final_filename and os.path.exists(final_filename):
-            os.remove(final_filename)
-        if temp_dir_to_clean and os.path.exists(temp_dir_to_clean):
-            shutil.rmtree(temp_dir_to_clean)
-        logging.info("انتهت عملية التنظيف.")
-
-                        
 
 @bot.message_handler(commands=['debuganki'])
 def debug_environment(message):
