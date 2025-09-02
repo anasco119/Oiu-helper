@@ -47,6 +47,15 @@ OCR_API_KEY = os.getenv("OCR_SPACE_API_KEY", "helloworld")  # مفتاح افت�
 bot = telebot.TeleBot(BOT_TOKEN)
 bot2 = telebot.TeleBot(BOT_TOKEN_2)
 bot3 = telebot.TeleBot(BOT_TOKEN_3)
+# تهيئة logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler("bot_debug.log"),
+        logging.StreamHandler()
+    ]
+)
 
 import telebot
 import requests
@@ -1581,6 +1590,8 @@ def save_cards_to_apkg(cards: List[Dict], filename: str = 'anki_flashcards.apkg'
     دالة حفظ بطاقات Anki مع دعم الصور - نسخة معدلة للاختبار
     """
     try:
+        logging.info(f"بدء حفظ {len(cards)} بطاقة في ملف Anki")
+        
         # إنشاء النموذج والمجموعة
         model = genanki.Model(
             1607392319,
@@ -1607,6 +1618,7 @@ def save_cards_to_apkg(cards: List[Dict], filename: str = 'anki_flashcards.apkg'
         # إنشاء مجلد مؤقت للصور
         temp_dir = tempfile.mkdtemp()
         media_files = []
+        logging.info(f"المجلد المؤقت للصور: {temp_dir}")
 
         # معالجة كل بطاقة
         for idx, card in enumerate(cards, start=1):
@@ -1617,16 +1629,23 @@ def save_cards_to_apkg(cards: List[Dict], filename: str = 'anki_flashcards.apkg'
                 image_hint = card.get('image_hint', '').strip()
 
                 if not front or not back:
+                    logging.warning(f"تخطي البطاقة {idx}: front أو back فارغ")
                     continue
 
                 # معالجة الصورة إذا وجدت
                 if image_hint:
+                    logging.info(f"معالجة صورة للبطاقة {idx}: {image_hint}")
                     image_filename = search_and_download_image(image_hint, temp_dir)
                     if image_filename:
                         media_path = os.path.join(temp_dir, image_filename)
                         if os.path.exists(media_path):
                             media_files.append(media_path)
                             back += f"<br><br><img src='{image_filename}' style='max-width:100%; height:auto;'>"
+                            logging.info(f"تمت إضافة الصورة للبطاقة {idx}")
+                        else:
+                            logging.warning(f"الملف غير موجود: {media_path}")
+                    else:
+                        logging.warning(f"لم يتم تحميل صورة للبطاقة {idx}")
 
                 # إنشاء البطاقة
                 note = genanki.Note(
@@ -1634,32 +1653,35 @@ def save_cards_to_apkg(cards: List[Dict], filename: str = 'anki_flashcards.apkg'
                     fields=[front, back, tag]
                 )
                 deck.add_note(note)
+                logging.info(f"تمت إضافة البطاقة {idx}")
 
             except Exception as e:
-                logging.error(f"❌ خطأ في البطاقة #{idx}: {e}")
+                logging.error(f"خطأ في البطاقة #{idx}: {e}")
                 continue
 
         # إنشاء الحزمة النهائية
         package = genanki.Package(deck)
         
         if media_files:
-            logging.info(f"📦 إضافة {len(media_files)} صورة إلى الحزمة")
+            logging.info(f"إضافة {len(media_files)} صورة إلى الحزمة")
             package.media_files = media_files
         
         package.write_to_file(filename)
-        logging.info(f"✅ تم إنشاء ملف Anki: {filename}")
+        logging.info(f"تم إنشاء ملف Anki: {filename}")
         
         return filename
 
     except Exception as e:
-        logging.error(f"❌ خطأ في إنشاء ملف Anki: {e}")
+        logging.error(f"خطأ في إنشاء ملف Anki: {e}")
         return None
     finally:
-        # تنظيف الملفات المؤقتة (يمكنك تعليق هذا السطر للتحقق من الصور)
+        # تنظيف الملفات المؤقتة
         try:
             shutil.rmtree(temp_dir)
         except:
             pass
+
+
 # ----- أضف هذا الكود في ملف main.py -----
 #
 import zipfile
@@ -2180,75 +2202,77 @@ def save_quiz_to_db(quiz_data, user_id):
 
 
 
-import json
-import logging
-import requests
 
-        
+
 def search_and_download_image(query: str, temp_dir: str) -> str:
     """
     دالة مبسطة للبحث عن صورة وتحميلها مع تقرير مفصل
     """
     try:
-        # إخطار بالبدء
-        logging.info(f"🔍 البحث عن صورة: {query}")
+        logging.info(f"بدء البحث عن صورة: {query}")
         
         # البحث عن صورة من المصادر المختلفة
         img_url = None
-        sources = ["Wikimedia", "Unsplash", "Pexels"]
+        sources = [
+            ("Wikimedia", search_wikimedia),
+            ("Unsplash", search_unsplash), 
+            ("Pexels", search_pexels)
+        ]
         
-        for source in sources:
-            if source == "Wikimedia":
-                img_url = search_wikimedia(query)
-            elif source == "Unsplash":
-                img_url = search_unsplash(query)
-            elif source == "Pexels":
-                img_url = search_pexels(query)
-            
-            if img_url:
-                logging.info(f"✅ وجدت صورة في {source}: {img_url}")
-                break
+        for source_name, search_func in sources:
+            try:
+                img_url = search_func(query)
+                if img_url:
+                    logging.info(f"تم العثور على صورة في {source_name}: {img_url}")
+                    break
+            except Exception as e:
+                logging.warning(f"خطأ في البحث في {source_name}: {str(e)}")
+                continue
         
         if not img_url:
-            logging.warning(f"❌ لم يتم العثور على صورة لـ: {query}")
+            logging.warning(f"لم يتم العثور على صورة لـ: {query}")
             return ""
         
         # تحميل الصورة
-        response = requests.get(img_url, timeout=20)
-        response.raise_for_status()
-        
-        # تحديد الامتداد
-        content_type = response.headers.get('content-type', '')
-        if 'jpeg' in content_type or 'jpg' in content_type:
-            ext = 'jpg'
-        elif 'png' in content_type:
-            ext = 'png'
-        elif 'gif' in content_type:
-            ext = 'gif'
-        else:
-            # محاولة تحديد الامتداد من URL
-            ext = img_url.split('.')[-1].lower().split('?')[0]
-            if ext not in ['jpg', 'jpeg', 'png', 'gif']:
+        try:
+            response = requests.get(img_url, timeout=20)
+            response.raise_for_status()
+            
+            # تحديد الامتداد
+            content_type = response.headers.get('content-type', '')
+            if 'jpeg' in content_type or 'jpg' in content_type:
                 ext = 'jpg'
-        
-        # إنشاء اسم ملف فريد
-        filename = f"{hashlib.md5(query.encode()).hexdigest()[:8]}.{ext}"
-        filepath = os.path.join(temp_dir, filename)
-        
-        # حفظ الصورة
-        with open(filepath, 'wb') as f:
-            f.write(response.content)
-        
-        # التحقق من وجود الملف
-        if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
-            logging.info(f"✅ تم حفظ الصورة: {filename} ({os.path.getsize(filepath)} bytes)")
-            return filename
-        else:
-            logging.error("❌ فشل في حفظ الصورة")
+            elif 'png' in content_type:
+                ext = 'png'
+            elif 'gif' in content_type:
+                ext = 'gif'
+            else:
+                ext = img_url.split('.')[-1].lower().split('?')[0]
+                if ext not in ['jpg', 'jpeg', 'png', 'gif']:
+                    ext = 'jpg'
+            
+            # إنشاء اسم ملف فريد
+            filename = f"{hashlib.md5(query.encode()).hexdigest()[:8]}.{ext}"
+            filepath = os.path.join(temp_dir, filename)
+            
+            # حفظ الصورة
+            with open(filepath, 'wb') as f:
+                f.write(response.content)
+            
+            # التحقق من وجود الملف
+            if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
+                logging.info(f"تم حفظ الصورة: {filename} ({os.path.getsize(filepath)} bytes)")
+                return filename
+            else:
+                logging.error("فشل في حفظ الصورة")
+                return ""
+                
+        except Exception as e:
+            logging.error(f"خطأ في تحميل الصورة: {str(e)}")
             return ""
             
     except Exception as e:
-        logging.error(f"❌ خطأ في تحميل الصورة '{query}': {str(e)}")
+        logging.error(f"خطأ غير متوقع في search_and_download_image: {str(e)}")
         return ""
 
 
@@ -3246,123 +3270,7 @@ def get_latest_quiz_code(user_id: int) -> str | None:
 # -------------------------------------------------------------------
 #                  Telegram Bot Handlers
 # -------------------------------------------------------------------
-import logging
 
-@bot.message_handler(commands=['testankiimage'])
-def test_anki_with_image(message):
-    if message.from_user.id != ADMIN_ID:
-        bot.reply_to(message, "❌ هذا الأمر للإدمن فقط")
-        return
-
-    logging.info("تم استلام أمر testankiimage من الأدمن.")
-
-    # نص تجريبي للبطاقة
-    test_cards = [
-        {
-            "front": "ما هي عملية البناء الضوئي؟",
-            "back": "عملية تقوم بها النباتات لتحويل ضوء الشمس إلى طاقة كيميائية",
-            "tag": "علم الأحياء",
-            "image_hint": "photosynthesis diagram plants sunlight"
-        }
-    ]
-
-    # برومتات صور تجريبية
-    image_prompts = [
-        "photosynthesis process in plants",
-        "plant cell structure diagram",
-        "chloroplast in plant cell",
-        "sunlight energy conversion in plants"
-    ]
-
-    try:
-        # إرسال رسالة بدء المعالجة
-        msg = bot.reply_to(message, "🔍 جاري اختبار إنشاء ملف Anki مع الصور...")
-        logging.info("تم إرسال رسالة البدء.")
-
-        # إنشاء مجلد مؤقت
-        temp_dir = tempfile.mkdtemp()
-        logging.info(f"تم إنشاء المجلد المؤقت: {temp_dir}")
-
-        # معالجة الصور
-        media_files = []
-        for i, prompt in enumerate(image_prompts):
-            logging.info(f"جاري معالجة الصورة {i+1}: {prompt}")
-            bot.edit_message_text(f"🖼️ جاري تحميل الصورة {i+1}/{len(image_prompts)}...", 
-                                 chat_id=message.chat.id, 
-                                 message_id=msg.message_id)
-
-            filename = search_and_download_image(prompt, temp_dir)
-            if filename:
-                media_files.append(os.path.join(temp_dir, filename))
-                logging.info(f"تم تحميل الصورة بنجاح: {filename}")
-            else:
-                logging.warning(f"فشل في تحميل الصورة: {prompt}")
-            time.sleep(1)  # فواصل زمنية للتوضيح
-
-        logging.info(f"تم تحميل {len(media_files)} من أصل {len(image_prompts)} صور.")
-
-        # إنشاء ملف Anki
-        bot.edit_message_text("📦 جاري إنشاء ملف Anki...", 
-                             chat_id=message.chat.id, 
-                             message_id=msg.message_id)
-        logging.info("جاري إنشاء ملف Anki...")
-
-        timestamp = int(time.time())
-        filename = f"test_anki_{timestamp}.apkg"
-
-        # استخدام دالة save_cards_to_apkg المعدلة
-        result = save_cards_to_apkg(test_cards, filename, "اختبار الصور")
-        
-        if result:
-            logging.info(f"تم إنشاء ملف Anki بنجاح: {filename}")
-            # إرسال الملف
-            with open(filename, 'rb') as f:
-                bot.send_document(message.chat.id, f, 
-                                caption="✅ ملف Anki تجريبي مع الصور\n\n"
-                                        "📝 البطاقة: عملية البناء الضوئي\n"
-                                        "🖼️ الصور: 4 صور نباتية مختلفة")
-                logging.info("تم إرسال الملف.")
-
-            # إرسال تقرير بالصور التي تم تحميلها
-            report = "📊 تقرير تحميل الصور:\n\n"
-            for i, prompt in enumerate(image_prompts):
-                status = "✅ نجح" if i < len(media_files) else "❌ فشل"
-                report += f"{i+1}. {prompt}: {status}\n"
-
-            bot.send_message(message.chat.id, report)
-            logging.info("تم إرسال التقرير.")
-
-            # تنظيف الملفات
-            try:
-                os.remove(filename)
-                shutil.rmtree(temp_dir)
-                logging.info("تم تنظيف الملفات المؤقتة.")
-            except Exception as cleanup_error:
-                logging.error(f"خطأ أثناء التنظيف: {cleanup_error}")
-        else:
-            logging.error("فشل في إنشاء ملف Anki.")
-            bot.edit_message_text("❌ فشل في إنشاء ملف Anki", 
-                                 chat_id=message.chat.id, 
-                                 message_id=msg.message_id)
-
-    except Exception as e:
-        logging.exception("حدث خطأ غير متوقع في test_anki_with_image")
-        error_msg = f"❌ حدث خطأ أثناء الاختبار: {str(e)}"
-        try:
-            bot.edit_message_text(error_msg, 
-                                 chat_id=message.chat.id, 
-                                 message_id=msg.message_id)
-        except:
-            bot.reply_to(message, error_msg)
-
-        # تنظيف الملفات في حالة الخطأ
-        try:
-            if 'filename' in locals() and os.path.exists(filename):
-                os.remove(filename)
-            if 'temp_dir' in locals() and os.path.exists(temp_dir):
-                shutil.rmtree(temp_dir)
-        except:
-            pass
 
 
 @bot2.message_handler(commands=['start'])
@@ -3520,6 +3428,174 @@ def share_quiz(message):
 
 import sys
 import genanki # تأكد من وجود هذا الاستيراد في أعلى الملف
+
+
+@bot.message_handler(commands=['simpletest'])
+def simple_test(message):
+    if message.from_user.id != ADMIN_ID:
+        return
+        
+    try:
+        msg = bot.reply_to(message, "🔍 اختبار بسيط...")
+        
+        # اختبار بسيط بدون صور
+        test_cards = [
+            {
+                "front": "ما هي عملية البناء الضوئي؟",
+                "back": "عملية تقوم بها النباتات لتحويل ضوء الشمس إلى طاقة كيميائية",
+                "tag": "علم الأحياء"
+            }
+        ]
+        
+        filename = "simple_test.apkg"
+        result = save_cards_to_apkg(test_cards, filename, "اختبار بسيط")
+        
+        if result:
+            with open(filename, 'rb') as f:
+                bot.send_document(message.chat.id, f, caption="✅ اختبار ناجح")
+            os.remove(filename)
+        else:
+            bot.edit_message_text("❌ فشل الاختبار البسيط", 
+                                 chat_id=message.chat.id, 
+                                 message_id=msg.message_id)
+            
+    except Exception as e:
+        bot.reply_to(message, f"❌ خطأ في الاختبار البسيط: {str(e)}")
+
+@bot.message_handler(commands=['testankiimage'])
+def test_anki_with_image(message):
+    if message.from_user.id != ADMIN_ID:
+        bot.reply_to(message, "❌ هذا الأمر للإدمن فقط")
+        return
+    
+    logging.info(f"بدء اختبار Anki مع الصور للمستخدم: {message.from_user.id}")
+    
+    try:
+        # نص تجريبي للبطاقة
+        test_cards = [
+            {
+                "front": "ما هي عملية البناء الضوئي؟",
+                "back": "عملية تقوم بها النباتات لتحويل ضوء الشمس إلى طاقة كيميائية",
+                "tag": "علم الأحياء",
+                "image_hint": "photosynthesis diagram plants sunlight"
+            }
+        ]
+        
+        # برومتات صور تجريبية
+        image_prompts = [
+            "photosynthesis process in plants",
+            "plant cell structure diagram", 
+            "chloroplast in plant cell",
+            "sunlight energy conversion in plants"
+        ]
+        
+        # إرسال رسالة بدء المعالجة
+        msg = bot.reply_to(message, "🔍 جاري اختبار إنشاء ملف Anki مع الصور...")
+        logging.info("تم إرسال رسالة البدء")
+        
+        # إنشاء مجلد مؤقت
+        temp_dir = tempfile.mkdtemp()
+        logging.info(f"تم إنشاء المجلد المؤقت: {temp_dir}")
+        
+        # معالجة الصور
+        media_files = []
+        for i, prompt in enumerate(image_prompts):
+            logging.info(f"معالجة الصورة {i+1}: {prompt}")
+            
+            try:
+                bot.edit_message_text(f"🖼️ جاري تحميل الصورة {i+1}/{len(image_prompts)}...", 
+                                     chat_id=message.chat.id, 
+                                     message_id=msg.message_id)
+                
+                filename = search_and_download_image(prompt, temp_dir)
+                if filename:
+                    filepath = os.path.join(temp_dir, filename)
+                    media_files.append(filepath)
+                    logging.info(f"تم تحميل الصورة: {filename}")
+                else:
+                    logging.warning(f"فشل في تحميل الصورة: {prompt}")
+                    
+                time.sleep(1)
+                
+            except Exception as e:
+                logging.error(f"خطأ في معالجة الصورة {i+1}: {str(e)}")
+                continue
+        
+        logging.info(f"تم تحميل {len(media_files)} من أصل {len(image_prompts)} صور")
+        
+        # إنشاء ملف Anki
+        try:
+            bot.edit_message_text("📦 جاري إنشاء ملف Anki...", 
+                                 chat_id=message.chat.id, 
+                                 message_id=msg.message_id)
+            
+            timestamp = int(time.time())
+            filename = f"test_anki_{timestamp}.apkg"
+            logging.info(f"إنشاء ملف: {filename}")
+            
+            # استخدام دالة save_cards_to_apkg المعدلة
+            result = save_cards_to_apkg(test_cards, filename, "اختبار الصور")
+            
+            if result:
+                logging.info("تم إنشاء ملف Anki بنجاح")
+                
+                # إرسال الملف
+                with open(filename, 'rb') as f:
+                    bot.send_document(message.chat.id, f, 
+                                    caption="✅ ملف Anki تجريبي مع الصور\n\n"
+                                            "📝 البطاقة: عملية البناء الضوئي\n"
+                                            "🖼️ الصور: 4 صور نباتية مختلفة")
+                
+                # إرسال تقرير
+                report = "📊 تقرير تحميل الصور:\n\n"
+                for i, prompt in enumerate(image_prompts):
+                    status = "✅ نجح" if i < len(media_files) else "❌ فشل"
+                    report += f"{i+1}. {prompt}: {status}\n"
+                
+                bot.send_message(message.chat.id, report)
+                
+                # تنظيف الملفات
+                try:
+                    os.remove(filename)
+                    shutil.rmtree(temp_dir)
+                    logging.info("تم تنظيف الملفات المؤقتة")
+                except Exception as cleanup_error:
+                    logging.error(f"خطأ في التنظيف: {cleanup_error}")
+                    
+            else:
+                logging.error("فشل في إنشاء ملف Anki")
+                bot.edit_message_text("❌ فشل في إنشاء ملف Anki", 
+                                     chat_id=message.chat.id, 
+                                     message_id=msg.message_id)
+                
+        except Exception as e:
+            logging.error(f"خطأ في إنشاء ملف Anki: {str(e)}")
+            raise
+            
+    except Exception as e:
+        error_msg = f"❌ حدث خطأ أثناء الاختبار: {str(e)}"
+        logging.error(f"خطأ في test_anki_with_image: {traceback.format_exc()}")
+        
+        try:
+            bot.edit_message_text(error_msg, 
+                                 chat_id=message.chat.id, 
+                                 message_id=msg.message_id)
+        except:
+            bot.reply_to(message, error_msg)
+        
+        # تنظيف الملفات في حالة الخطأ
+        try:
+            if 'filename' in locals() and os.path.exists(filename):
+                os.remove(filename)
+        except:
+            pass
+            
+        try:
+            if 'temp_dir' in locals() and os.path.exists(temp_dir):
+                shutil.rmtree(temp_dir)
+        except:
+            pass
+            
 
 @bot.message_handler(commands=['debuganki'])
 def debug_environment(message):
