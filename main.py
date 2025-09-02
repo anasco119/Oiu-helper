@@ -1585,83 +1585,53 @@ import tempfile # <--- تأكد من استيراد هذه المكتبة في �
 
 import genanki
 
-def save_cards_to_apkg(cards: List[Dict], filename: str = 'anki_flashcards.apkg', deck_name: str = "My Flashcards") -> str:
+import shutil # تأكد من وجود هذا الاستيراد في أعلى الملف
+
+def save_cards_to_apkg(cards: List[Dict], filename: str = 'anki_flashcards.apkg', deck_name: str = "My Flashcards") -> Tuple[str, str]:
     """
-    دالة حفظ بطاقات Anki مع دعم الصور - نسخة معدلة للاختبار
+    دالة حفظ بطاقات Anki مع دعم الصور.
+    الآن تعيد اسم الملف ومسار المجلد المؤقت ليتم حذفه لاحقًا.
     """
+    temp_dir = None  # تعريف المتغير مسبقًا
     try:
         logging.info(f"بدء حفظ {len(cards)} بطاقة في ملف Anki")
         
-        # إنشاء النموذج والمجموعة
         model = genanki.Model(
-            1607392319,
-            'Simple Model with Tags and Images',
-            fields=[
-                {'name': 'Front'},
-                {'name': 'Back'},
-                {'name': 'Tag'}
-            ],
-            templates=[
-                {
-                    'name': 'Card 1',
-                    'qfmt': '{{Front}}<br><small style="color:gray">{{Tag}}</small>',
-                    'afmt': '{{FrontSide}}<hr id="answer">{{Back}}',
-                },
-            ]
+            1607392319, 'Simple Model with Tags and Images',
+            fields=[{'name': 'Front'}, {'name': 'Back'}, {'name': 'Tag'}],
+            templates=[{'name': 'Card 1', 'qfmt': '{{Front}}', 'afmt': '{{FrontSide}}<hr id="answer">{{Back}}'}]
         )
+        deck = genanki.Deck(int(str(uuid.uuid4().int)[:9]), deck_name)
 
-        deck = genanki.Deck(
-            deck_id=int(str(uuid.uuid4().int)[:9]),
-            name=deck_name
-        )
-
-        # إنشاء مجلد مؤقت للصور
         temp_dir = tempfile.mkdtemp()
         media_files = []
         logging.info(f"المجلد المؤقت للصور: {temp_dir}")
 
-        # معالجة كل بطاقة
         for idx, card in enumerate(cards, start=1):
-            try:
-                front = card.get('front', '').strip()
-                back = card.get('back', '').strip()
-                tag = card.get('tag', '').strip()
-                image_hint = card.get('image_hint', '').strip()
+            front = card.get('front', '').strip()
+            back = card.get('back', '').strip()
+            tag = card.get('tag', '').strip()
+            image_hint = card.get('image_hint', '').strip()
 
-                if not front or not back:
-                    logging.warning(f"تخطي البطاقة {idx}: front أو back فارغ")
-                    continue
-
-                # معالجة الصورة إذا وجدت
-                if image_hint:
-                    logging.info(f"معالجة صورة للبطاقة {idx}: {image_hint}")
-                    image_filename = search_and_download_image(image_hint, temp_dir)
-                    if image_filename:
-                        media_path = os.path.join(temp_dir, image_filename)
-                        if os.path.exists(media_path):
-                            media_files.append(media_path)
-                            back += f"<br><br><img src='{image_filename}' style='max-width:100%; height:auto;'>"
-                            logging.info(f"تمت إضافة الصورة للبطاقة {idx}")
-                        else:
-                            logging.warning(f"الملف غير موجود: {media_path}")
-                    else:
-                        logging.warning(f"لم يتم تحميل صورة للبطاقة {idx}")
-
-                # إنشاء البطاقة
-                note = genanki.Note(
-                    model=model,
-                    fields=[front, back, tag]
-                )
-                deck.add_note(note)
-                logging.info(f"تمت إضافة البطاقة {idx}")
-
-            except Exception as e:
-                logging.error(f"خطأ في البطاقة #{idx}: {e}")
+            if not front or not back:
+                logging.warning(f"تخطي البطاقة {idx}: front أو back فارغ")
                 continue
 
-        # إنشاء الحزمة النهائية
+            if image_hint:
+                image_filename = search_and_download_image(image_hint, temp_dir)
+                if image_filename:
+                    media_path = os.path.join(temp_dir, image_filename)
+                    if os.path.exists(media_path):
+                        media_files.append(media_path)
+                        back += f"<br><img src='{image_filename}'>"
+                        logging.info(f"تمت إضافة الصورة للبطاقة {idx}")
+                    else:
+                        logging.warning(f"الملف غير موجود بعد التحميل: {media_path}")
+            
+            note = genanki.Note(model=model, fields=[front, back, tag])
+            deck.add_note(note)
+
         package = genanki.Package(deck)
-        
         if media_files:
             logging.info(f"إضافة {len(media_files)} صورة إلى الحزمة")
             package.media_files = media_files
@@ -1669,17 +1639,15 @@ def save_cards_to_apkg(cards: List[Dict], filename: str = 'anki_flashcards.apkg'
         package.write_to_file(filename)
         logging.info(f"تم إنشاء ملف Anki: {filename}")
         
-        return filename
+        # === التغيير الرئيسي: لا تحذف هنا، بل أرجع المسار ===
+        return filename, temp_dir
 
     except Exception as e:
         logging.error(f"خطأ في إنشاء ملف Anki: {e}")
-        return None
-    finally:
-        # تنظيف الملفات المؤقتة
-        try:
+        # إذا حدث خطأ، قم بالتنظيف فورًا
+        if temp_dir and os.path.exists(temp_dir):
             shutil.rmtree(temp_dir)
-        except:
-            pass
+        return None, None
 
 
 # ----- أضف هذا الكود في ملف main.py -----
