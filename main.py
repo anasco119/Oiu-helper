@@ -1576,71 +1576,86 @@ import tempfile # <--- تأكد من استيراد هذه المكتبة في �
 
 import genanki
 
+def save_cards_to_apkg(cards: List[Dict], filename: str = 'anki_flashcards.apkg', deck_name: str = "My Flashcards") -> str:
+    """
+    دالة حفظ بطاقات Anki مع دعم الصور - نسخة معدلة للاختبار
+    """
+    try:
+        # إنشاء النموذج والمجموعة
+        model = genanki.Model(
+            1607392319,
+            'Simple Model with Tags and Images',
+            fields=[
+                {'name': 'Front'},
+                {'name': 'Back'},
+                {'name': 'Tag'}
+            ],
+            templates=[
+                {
+                    'name': 'Card 1',
+                    'qfmt': '{{Front}}<br><small style="color:gray">{{Tag}}</small>',
+                    'afmt': '{{FrontSide}}<hr id="answer">{{Back}}',
+                },
+            ]
+        )
 
-def save_cards_to_apkg(cards: List[Dict], filename: str = 'anki_flashcards.apkg', deck_name: str = "My Flashcards"):
-    model = genanki.Model(
-        1607392319,
-        'Simple Model with Tags',
-        fields=[
-            {'name': 'Front'},
-            {'name': 'Back'},
-            {'name': 'Tag'}
-        ],
-        templates=[
-            {
-                'name': 'Card 1',
-                'qfmt': '{{Front}}<br><small style="color:gray">{{Tag}}</small>',
-                'afmt': '{{FrontSide}}<hr id="answer">{{Back}}',
-            },
-        ]
-    )
+        deck = genanki.Deck(
+            deck_id=int(str(uuid.uuid4().int)[:9]),
+            name=deck_name
+        )
 
-    deck = genanki.Deck(
-        deck_id=int(str(uuid.uuid4().int)[:9]),
-        name=deck_name
-    )
+        # إنشاء مجلد مؤقت للصور
+        temp_dir = tempfile.mkdtemp()
+        media_files = []
 
-    temp_dir = tempfile.mkdtemp()  # إنشاء مجلد مؤقت خاص بهذه الدفعة
-    media_files = []
+        # معالجة كل بطاقة
+        for idx, card in enumerate(cards, start=1):
+            try:
+                front = card.get('front', '').strip()
+                back = card.get('back', '').strip()
+                tag = card.get('tag', '').strip()
+                image_hint = card.get('image_hint', '').strip()
 
-    for idx, card in enumerate(cards, start=1):
-        try:
-            front = card.get('front', '').strip()
-            back = card.get('back', '').strip()
-            tag = card.get('tag', '').strip()
-            image_hint = card.get('image_hint', '').strip()
+                if not front or not back:
+                    continue
 
-            if not front or not back:
+                # معالجة الصورة إذا وجدت
+                if image_hint:
+                    image_filename = search_and_download_image(image_hint, temp_dir)
+                    if image_filename:
+                        media_path = os.path.join(temp_dir, image_filename)
+                        if os.path.exists(media_path):
+                            media_files.append(media_path)
+                            back += f"<br><br><img src='{image_filename}' style='max-width:100%; height:auto;'>"
+
+                # إنشاء البطاقة
+                note = genanki.Note(
+                    model=model,
+                    fields=[front, back, tag]
+                )
+                deck.add_note(note)
+
+            except Exception as e:
+                logging.error(f"❌ خطأ في البطاقة #{idx}: {e}")
                 continue
 
-            # البحث عن الصورة وتحميلها إذا كان هناك تلميح
-            if image_hint:
-                image_filename = search_and_download_image(image_hint, temp_dir)
-                if image_filename:
-                    media_files.append(os.path.join(temp_dir, image_filename))
-                    back += f"<br><img src='{image_filename}' style='max-height:220px;'>"
-
-            # إنشاء البطاقة
-            note = genanki.Note(model=model, fields=[front, back, tag])
-            deck.add_note(note)
-
-        except Exception as e:
-            logging.error(f"❌ خطأ في البطاقة #{idx}: {e}")
-            continue
-
-    # إنشاء الحزمة النهائية
-    try:
+        # إنشاء الحزمة النهائية
         package = genanki.Package(deck)
+        
         if media_files:
+            logging.info(f"📦 إضافة {len(media_files)} صورة إلى الحزمة")
             package.media_files = media_files
+        
         package.write_to_file(filename)
         logging.info(f"✅ تم إنشاء ملف Anki: {filename}")
+        
         return filename
+
     except Exception as e:
         logging.error(f"❌ خطأ في إنشاء ملف Anki: {e}")
         return None
     finally:
-        # تنظيف الملفات المؤقتة (اختياري)
+        # تنظيف الملفات المؤقتة (يمكنك تعليق هذا السطر للتحقق من الصور)
         try:
             shutil.rmtree(temp_dir)
         except:
@@ -2169,42 +2184,73 @@ import json
 import logging
 import requests
 
+        
 def search_and_download_image(query: str, temp_dir: str) -> str:
     """
-    دالة مبسطة للبحث عن صورة وتحميلها وإرجاع اسم الملف المحلي فقط
+    دالة مبسطة للبحث عن صورة وتحميلها مع تقرير مفصل
     """
     try:
+        # إخطار بالبدء
+        logging.info(f"🔍 البحث عن صورة: {query}")
+        
         # البحث عن صورة من المصادر المختلفة
         img_url = None
-        img_url = search_wikimedia(query)
-        if not img_url:
-            img_url = search_unsplash(query)
-        if not img_url:
-            img_url = search_pexels(query)
+        sources = ["Wikimedia", "Unsplash", "Pexels"]
+        
+        for source in sources:
+            if source == "Wikimedia":
+                img_url = search_wikimedia(query)
+            elif source == "Unsplash":
+                img_url = search_unsplash(query)
+            elif source == "Pexels":
+                img_url = search_pexels(query)
+            
+            if img_url:
+                logging.info(f"✅ وجدت صورة في {source}: {img_url}")
+                break
         
         if not img_url:
+            logging.warning(f"❌ لم يتم العثور على صورة لـ: {query}")
             return ""
         
         # تحميل الصورة
-        response = requests.get(img_url, timeout=15)
+        response = requests.get(img_url, timeout=20)
         response.raise_for_status()
         
-        # حفظ الصورة بمجلد مؤقت
-        ext = img_url.split('.')[-1].lower()
-        if ext not in ['jpg', 'jpeg', 'png', 'gif']:
+        # تحديد الامتداد
+        content_type = response.headers.get('content-type', '')
+        if 'jpeg' in content_type or 'jpg' in content_type:
             ext = 'jpg'
-            
-        filename = f"{hashlib.md5(query.encode()).hexdigest()}.{ext}"
+        elif 'png' in content_type:
+            ext = 'png'
+        elif 'gif' in content_type:
+            ext = 'gif'
+        else:
+            # محاولة تحديد الامتداد من URL
+            ext = img_url.split('.')[-1].lower().split('?')[0]
+            if ext not in ['jpg', 'jpeg', 'png', 'gif']:
+                ext = 'jpg'
+        
+        # إنشاء اسم ملف فريد
+        filename = f"{hashlib.md5(query.encode()).hexdigest()[:8]}.{ext}"
         filepath = os.path.join(temp_dir, filename)
         
+        # حفظ الصورة
         with open(filepath, 'wb') as f:
             f.write(response.content)
-            
-        return filename  # إرجاع اسم الملف فقط (ليس المسار الكامل)
         
+        # التحقق من وجود الملف
+        if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
+            logging.info(f"✅ تم حفظ الصورة: {filename} ({os.path.getsize(filepath)} bytes)")
+            return filename
+        else:
+            logging.error("❌ فشل في حفظ الصورة")
+            return ""
+            
     except Exception as e:
-        logging.error(f"❌ فشل في تحميل الصورة: {e}")
+        logging.error(f"❌ خطأ في تحميل الصورة '{query}': {str(e)}")
         return ""
+
 
 def generate_Medical_quizzes(content: str, major: str, user_id: int, num_quizzes: int = 10):
     # (البرومبت المحسن من الخطوة 2 يجب وضعه هنا)
@@ -3200,6 +3246,105 @@ def get_latest_quiz_code(user_id: int) -> str | None:
 # -------------------------------------------------------------------
 #                  Telegram Bot Handlers
 # -------------------------------------------------------------------
+@bot.message_handler(commands=['testankiimage'])
+def test_anki_with_image(message):
+    if message.from_user.id != ADMIN_ID:
+        bot.reply_to(message, "❌ هذا الأمر للإدمن فقط")
+        return
+    
+    # نص تجريبي للبطاقة
+    test_cards = [
+        {
+            "front": "ما هي عملية البناء الضوئي؟",
+            "back": "عملية تقوم بها النباتات لتحويل ضوء الشمس إلى طاقة كيميائية",
+            "tag": "علم الأحياء",
+            "image_hint": "photosynthesis diagram plants sunlight"
+        }
+    ]
+    
+    # برومتات صور تجريبية
+    image_prompts = [
+        "photosynthesis process in plants",
+        "plant cell structure diagram",
+        "chloroplast in plant cell",
+        "sunlight energy conversion in plants"
+    ]
+    
+    try:
+        # إرسال رسالة بدء المعالجة
+        msg = bot.reply_to(message, "🔍 جاري اختبار إنشاء ملف Anki مع الصور...")
+        
+        # إنشاء مجلد مؤقت
+        temp_dir = tempfile.mkdtemp()
+        
+        # معالجة الصور
+        media_files = []
+        for i, prompt in enumerate(image_prompts):
+            bot.edit_message_text(f"🖼️ جاري تحميل الصورة {i+1}/{len(image_prompts)}...", 
+                                 chat_id=message.chat.id, 
+                                 message_id=msg.message_id)
+            
+            filename = search_and_download_image(prompt, temp_dir)
+            if filename:
+                media_files.append(os.path.join(temp_dir, filename))
+                time.sleep(1)  # فواصل زمنية للتوضيح
+        
+        # إنشاء ملف Anki
+        bot.edit_message_text("📦 جاري إنشاء ملف Anki...", 
+                             chat_id=message.chat.id, 
+                             message_id=msg.message_id)
+        
+        timestamp = int(time.time())
+        filename = f"test_anki_{timestamp}.apkg"
+        
+        # استخدام دالة save_cards_to_apkg المعدلة
+        result = save_cards_to_apkg(test_cards, filename, "اختبار الصور")
+        
+        if result:
+            # إرسال الملف
+            with open(filename, 'rb') as f:
+                bot.send_document(message.chat.id, f, 
+                                caption="✅ ملف Anki تجريبي مع الصور\n\n"
+                                        "📝 البطاقة: عملية البناء الضوئي\n"
+                                        "🖼️ الصور: 4 صور نباتية مختلفة")
+            
+            # إرسال تقرير بالصور التي تم تحميلها
+            report = "📊 تقرير تحميل الصور:\n\n"
+            for i, prompt in enumerate(image_prompts):
+                status = "✅ نجح" if i < len(media_files) else "❌ فشل"
+                report += f"{i+1}. {prompt}: {status}\n"
+            
+            bot.send_message(message.chat.id, report)
+            
+            # تنظيف الملفات
+            try:
+                os.remove(filename)
+                shutil.rmtree(temp_dir)
+            except:
+                pass
+        else:
+            bot.edit_message_text("❌ فشل في إنشاء ملف Anki", 
+                                 chat_id=message.chat.id, 
+                                 message_id=msg.message_id)
+    
+    except Exception as e:
+        error_msg = f"❌ حدث خطأ أثناء الاختبار: {str(e)}"
+        try:
+            bot.edit_message_text(error_msg, 
+                                 chat_id=message.chat.id, 
+                                 message_id=msg.message_id)
+        except:
+            bot.reply_to(message, error_msg)
+        
+        # تنظيف الملفات في حالة الخطأ
+        try:
+            if 'filename' in locals() and os.path.exists(filename):
+                os.remove(filename)
+            if 'temp_dir' in locals() and os.path.exists(temp_dir):
+                shutil.rmtree(temp_dir)
+        except:
+            pass
+
 
 
 @bot2.message_handler(commands=['start'])
@@ -4848,7 +4993,7 @@ def process_message(msg, message_id=None, chat_id=None):
                     time.sleep(random.randint(2, 5))
         
                     # إنشاء البطاقات
-                    if not can_generate(uid):
+                    if can_generate(uid):
                         cards, title =generate_special_anki_cards_from_text(content, major=major, user_id=uid)
                     
                     else:
