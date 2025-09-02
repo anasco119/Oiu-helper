@@ -3430,140 +3430,89 @@ def simple_test(message):
     except Exception as e:
         bot.reply_to(message, f"❌ خطأ في الاختبار البسيط: {str(e)}")
 
-@bot.message_handler(commands=['testankiimage'])
-def test_anki_with_image(message):
-    if message.from_user.id != ADMIN_ID:
-        bot.reply_to(message, "❌ هذا الأمر للإدمن فقط")
-        return
-    
-    logging.info(f"بدء اختبار Anki مع الصور للمستخدم: {message.from_user.id}")
-    
-    try:
-        # نص تجريبي للبطاقة
-        test_cards = [
-            {
-                "front": "ما هي عملية البناء الضوئي؟",
-                "back": "عملية تقوم بها النباتات لتحويل ضوء الشمس إلى طاقة كيميائية",
-                "tag": "علم الأحياء",
-                "image_hint": "photosynthesis diagram plants sunlight"
-            }
-        ]
-        
-        # برومتات صور تجريبية
-        image_prompts = [
-            "photosynthesis process in plants",
-            "plant cell structure diagram", 
-            "chloroplast in plant cell",
-            "sunlight energy conversion in plants"
-        ]
-        
-        # إرسال رسالة بدء المعالجة
-        msg = bot.reply_to(message, "🔍 جاري اختبار إنشاء ملف Anki مع الصور...")
-        logging.info("تم إرسال رسالة البدء")
-        
-        # إنشاء مجلد مؤقت
-        temp_dir = tempfile.mkdtemp()
-        logging.info(f"تم إنشاء المجلد المؤقت: {temp_dir}")
-        
-        # معالجة الصور
-        media_files = []
-        for i, prompt in enumerate(image_prompts):
-            logging.info(f"معالجة الصورة {i+1}: {prompt}")
-            
-            try:
-                bot.edit_message_text(f"🖼️ جاري تحميل الصورة {i+1}/{len(image_prompts)}...", 
-                                     chat_id=message.chat.id, 
-                                     message_id=msg.message_id)
-                
-                filename = search_and_download_image(prompt, temp_dir)
-                if filename:
-                    filepath = os.path.join(temp_dir, filename)
-                    media_files.append(filepath)
-                    logging.info(f"تم تحميل الصورة: {filename}")
-                else:
-                    logging.warning(f"فشل في تحميل الصورة: {prompt}")
-                    
-                time.sleep(1)
-                
-            except Exception as e:
                 logging.error(f"خطأ في معالجة الصورة {i+1}: {str(e)}")
                 continue
         
-        logging.info(f"تم تحميل {len(media_files)} من أصل {len(image_prompts)} صور")
+                
+@bot.message_handler(commands=['testankiimage'])
+def test_anki_with_image(message):
+    if message.from_user.id != ADMIN_ID:
+        return bot.reply_to(message, "❌ هذا الأمر للإدمن فقط")
+    
+    logging.info(f"بدء اختبار Anki مع الصور للمستخدم: {message.from_user.id}")
+    msg = bot.reply_to(message, "🔍 جاري اختبار إنشاء ملف Anki مع صورة...")
+    
+    # تعريف المتغيرات مبكرًا لضمان وجودها في блока finally
+    temp_dir_to_clean = None
+    final_filename = None
+
+    try:
+        # بطاقة تجريبية واحدة مع تلميح صورة واضح
+        test_cards = [
+            {
+                "front": "ما هي عملية البناء الضوئي؟",
+                "back": "هي عملية حيوية تقوم بها النباتات لتحويل ضوء الشمس إلى طاقة.",
+                "tag": "علم الأحياء",
+                "image_hint": "photosynthesis diagram for kids" # تلميح بسيط وواضح
+            },
+            {
+                "front": "ما هو كوكب المريخ؟",
+                "back": "هو الكوكب الرابع في المجموعة الشمسية ويُعرف بالكوكب الأحمر.",
+                "tag": "الفلك",
+                "image_hint": "planet mars high resolution"
+            }
+        ]
         
-        # إنشاء ملف Anki
-        try:
-            bot.edit_message_text("📦 جاري إنشاء ملف Anki...", 
-                                 chat_id=message.chat.id, 
-                                 message_id=msg.message_id)
+        bot.edit_message_text("⚙️ جاري إنشاء الملف وتحميل الصور...", chat_id=msg.chat.id, message_id=msg.message_id)
+
+        # اسم ملف فريد
+        timestamp = int(time.time())
+        output_filename = f"test_anki_{timestamp}.apkg"
+        
+        # === التغيير الرئيسي: استدعاء الدالة الجديدة واستقبال مسار التنظيف ===
+        final_filename, temp_dir_to_clean = save_cards_to_apkg(test_cards, output_filename, "اختبار الصور")
+        
+        if final_filename and temp_dir_to_clean:
+            logging.info("تم إنشاء ملف Anki بنجاح، جاري الإرسال...")
+            bot.edit_message_text("✅ نجح الإنشاء! جاري إرسال الملف...", chat_id=msg.chat.id, message_id=msg.message_id)
             
-            timestamp = int(time.time())
-            filename = f"test_anki_{timestamp}.apkg"
-            logging.info(f"إنشاء ملف: {filename}")
+            # إرسال الملف
+            with open(final_filename, 'rb') as f:
+                bot.send_document(message.chat.id, f, caption=f"✅ ملف Anki تجريبي مع {len(test_cards)} صور.")
             
-            # استخدام دالة save_cards_to_apkg المعدلة
-            result = save_cards_to_apkg(test_cards, filename, "اختبار الصور")
-            
-            if result:
-                logging.info("تم إنشاء ملف Anki بنجاح")
-                
-                # إرسال الملف
-                with open(filename, 'rb') as f:
-                    bot.send_document(message.chat.id, f, 
-                                    caption="✅ ملف Anki تجريبي مع الصور\n\n"
-                                            "📝 البطاقة: عملية البناء الضوئي\n"
-                                            "🖼️ الصور: 4 صور نباتية مختلفة")
-                
-                # إرسال تقرير
-                report = "📊 تقرير تحميل الصور:\n\n"
-                for i, prompt in enumerate(image_prompts):
-                    status = "✅ نجح" if i < len(media_files) else "❌ فشل"
-                    report += f"{i+1}. {prompt}: {status}\n"
-                
-                bot.send_message(message.chat.id, report)
-                
-                # تنظيف الملفات
-                try:
-                    os.remove(filename)
-                    shutil.rmtree(temp_dir)
-                    logging.info("تم تنظيف الملفات المؤقتة")
-                except Exception as cleanup_error:
-                    logging.error(f"خطأ في التنظيف: {cleanup_error}")
-                    
-            else:
-                logging.error("فشل في إنشاء ملف Anki")
-                bot.edit_message_text("❌ فشل في إنشاء ملف Anki", 
-                                     chat_id=message.chat.id, 
-                                     message_id=msg.message_id)
-                
-        except Exception as e:
-            logging.error(f"خطأ في إنشاء ملف Anki: {str(e)}")
-            raise
+            bot.delete_message(chat_id=msg.chat.id, message_id=msg.message_id) # حذف رسالة "جاري الإرسال"
+
+        else:
+            logging.error("فشل في إنشاء ملف Anki (save_cards_to_apkg returned None)")
+            bot.edit_message_text("❌ فشل في إنشاء ملف Anki.", chat_id=msg.chat.id, message_id=msg.message_id)
             
     except Exception as e:
-        error_msg = f"❌ حدث خطأ أثناء الاختبار: {str(e)}"
+        error_msg = f"❌ حدث خطأ فادح أثناء الاختبار: {str(e)}"
         logging.error(f"خطأ في test_anki_with_image: {traceback.format_exc()}")
-        
         try:
-            bot.edit_message_text(error_msg, 
-                                 chat_id=message.chat.id, 
-                                 message_id=msg.message_id)
+            bot.edit_message_text(error_msg, chat_id=msg.chat.id, message_id=msg.message_id)
         except:
             bot.reply_to(message, error_msg)
-        
-        # تنظيف الملفات في حالة الخطأ
-        try:
-            if 'filename' in locals() and os.path.exists(filename):
-                os.remove(filename)
-        except:
-            pass
-            
-        try:
-            if 'temp_dir' in locals() and os.path.exists(temp_dir):
-                shutil.rmtree(temp_dir)
-        except:
-            pass
-            
+
+    finally:
+        # === التغيير الرئيسي: التنظيف يحدث هنا بعد انتهاء كل العمليات ===
+        logging.info("بدء عملية التنظيف النهائية...")
+        if final_filename and os.path.exists(final_filename):
+            try:
+                os.remove(final_filename)
+                logging.info(f"تم حذف ملف .apkg المؤقت: {final_filename}")
+            except Exception as e:
+                logging.error(f"خطأ أثناء حذف ملف .apkg: {e}")
+                
+        if temp_dir_to_clean and os.path.exists(temp_dir_to_clean):
+            try:
+                shutil.rmtree(temp_dir_to_clean)
+                logging.info(f"تم حذف المجلد المؤقت للصور: {temp_dir_to_clean}")
+            except Exception as e:
+                logging.error(f"خطأ أثناء حذف المجلد المؤقت: {e}")
+
+
+                        
 
 @bot.message_handler(commands=['debuganki'])
 def debug_environment(message):
