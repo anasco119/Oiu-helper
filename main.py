@@ -4185,21 +4185,67 @@ def handle_main_menu(c):
             return
             
         if data == "ankiimage":
+            keyboard = InlineKeyboardMarkup(row_width=2)
+            
+            keyboard.add(InlineKeyboardButton("🎨 أنكي مع صور", callback_data="enableimage"))
+            keyboard.add(InlineKeyboardButton("🎴 أنكي بدون صور", callback_data="disableimage"))
+            
              # استدعاء الدالة الآمنة في خيط منفصل لتحديث الحالة إلى 'active'
             update_anki_photo_status(uid, 'active')
     
             # إرسال رسالة تأكيد للمستخدم
             bot.edit_message_text(
+                text = "لتخصيص تجربتك التعليمية، يرجى اختيار أحد الأوضاع التالية 👇\n\n"
+                "---\n"
+                "*🖼️ بطاقات Anki مع الصور*\n"
+                ".اختر هذا الوضع لتحويل بطاقاتك إلى تجربة تفاعلية. سيتم *تضمين صور* داخل كل ملف Anki، مما يساعدك على تذكر المعلومات بشكل أسرع وأفضل.\n\n"
+                "---\n"
+                "*📝 بطاقات Anki بدون صور*\n"
+                "اختر هذا الوضع للحصول على بطاقات Anki نصية فقط. هذا الخيار مثالي لمن يفضلون التركيز على المحتوى الأساسي، أو للحصول على نتائج أسرع في عملية الإنشاء.",
+                chat_id=chat_id,
+                message_id=message_id,
+                reply_markup=keyboard,
+                parse_mode="Markdown"
+            )
+            
+             
+        # إرسال رسالة تأكيد للمستخدم
+        elif data == "enableimage":
+            
+            bot.edit_message_text(
                 text="✅ تم تفعيل إرسال الصور مع بطاقات Anki بنجاح!",
                 chat_id=chat_id,
-                message_id=message_id
+                message_id=message_id,
+                reply_markup=keyboard
             )
+            # استدعاء الدالة الآمنة في خيط منفصل لتحديث الحالة إلى 'active'
+            update_anki_photo_status(uid, 'active')
+            time.sleep(1)
+    
+            
             try:
                 send_main_menu(chat_id, message_id)  # إظهار القائمة الرئيسية
             except:
                 pass
 
             return
+        elif data == "disableimage":
+        
+            bot.edit_message_text(
+                text="✔️ تم تفعيل بطاقات الانكي نص فقط",
+                chat_id=chat_id,
+                message_id=message_id,
+                reply_markup=keyboard
+            )
+            
+            
+            try:
+                send_main_menu(chat_id, message_id)  # إظهار القائمة الرئيسية
+            except:
+                pass
+
+            return
+
 
 
 
