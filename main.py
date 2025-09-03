@@ -133,46 +133,56 @@ def run_scheduler():
         time.sleep(60)
 
 
+import traceback # أضف هذا الاستيراد في أعلى الملف
 
 @bot.message_handler(commands=['analyze'])
 def analyze_command(message):
-    if message.from_user.id not in ADMIN_IDS:
+    # أولاً، التحقق من هوية الأدمن
+    if message.from_user.id != ADMIN_ID:
         return
 
-    conn = sqlite3.connect(DB_PATH)
-    df = pd.read_sql_query("SELECT * FROM resource_load", conn)
-    conn.close()
+    # ثانياً، إضافة معالجة الأخطاء
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        df = pd.read_sql_query("SELECT * FROM resource_load", conn)
+        conn.close()
 
-    if df.empty:
-        bot.reply_to(message, "لا توجد بيانات كافية للتحليل بعد 📭")
-        return
+        if df.empty:
+            bot.reply_to(message, "لا توجد بيانات كافية للتحليل بعد 📭")
+            return
 
-    df['timestamp'] = pd.to_datetime(df['timestamp'])
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
 
-    # 🔹 ملخص نصي
-    summary = df.groupby("source")[["cpu_percent","memory_mb","total_users"]].agg(["mean","max"])
-    summary_text = summary.to_string()
+        # 🔹 ملخص نصي
+        summary = df.groupby("source")[["cpu_percent","memory_mb","total_users"]].agg(["mean","max"])
+        summary_text = summary.to_string()
 
-    # 🔹 رسم CPU مقابل عدد المستخدمين
-    plt.figure(figsize=(8,5))
-    for src in df['source'].unique():
-        subset = df[df['source']==src]
-        plt.scatter(subset['total_users'], subset['cpu_percent'], label=src, alpha=0.7)
-    plt.xlabel("Total Users")
-    plt.ylabel("CPU Usage (%)")
-    plt.title("CPU Usage vs Total Users")
-    plt.legend()
-    plt.grid(True)
+        # 🔹 رسم CPU مقابل عدد المستخدمين
+        plt.figure(figsize=(8,5))
+        for src in df['source'].unique():
+            subset = df[df['source']==src]
+            plt.scatter(subset['total_users'], subset['cpu_percent'], label=src, alpha=0.7)
+        plt.xlabel("Total Users")
+        plt.ylabel("CPU Usage (%)")
+        plt.title("CPU Usage vs Total Users")
+        plt.legend()
+        plt.grid(True)
 
-    # 🔹 حفظ الصورة في ذاكرة مؤقتة
-    img_buf = io.BytesIO()
-    plt.savefig(img_buf, format='png')
-    img_buf.seek(0)
-    plt.close()
+        # 🔹 حفظ الصورة في ذاكرة مؤقتة
+        img_buf = io.BytesIO()
+        plt.savefig(img_buf, format='png')
+        img_buf.seek(0)
+        plt.close()
 
-    # إرسال النص والصورة
-    bot.reply_to(message, f"📊 ملخص التحليل:\n```\n{summary_text}\n```", parse_mode="Markdown")
-    bot.send_photo(message.chat.id, img_buf)
+        # إرسال النص والصورة
+        bot.reply_to(message, f"📊 ملخص التحليل:\n```\n{summary_text}\n```", parse_mode="Markdown")
+        bot.send_photo(message.chat.id, img_buf)
+
+    except Exception as e:
+        # إرسال رسالة خطأ مفصلة للأدمن عند حدوث أي مشكلة
+        bot.reply_to(message, f"❌ حدث خطأ أثناء إنشاء التقرير.\n\nالخطأ:\n`{e}`\n\n`{traceback.format_exc()}`")
+        logging.error(f"Error in /analyze command: {traceback.format_exc()}")
+
 
 
 
