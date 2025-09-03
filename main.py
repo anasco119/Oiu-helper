@@ -3642,10 +3642,10 @@ def handle_user_comment(message):
     # إعادة الحالة للوضع الطبيعي
     user_states[uid] = None
     time.sleep(2)
-        try:
-            send_main_menu(chat_id, message_id)  # إظهار القائمة الرئيسية
-        except:
-            pass
+    try:
+        send_main_menu(chat_id, message_id)  # إظهار القائمة الرئيسية
+    except:
+        pass
 
     return
 
