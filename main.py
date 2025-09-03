@@ -133,56 +133,89 @@ def run_scheduler():
         time.sleep(60)
 
 
-import traceback # أضف هذا الاستيراد في أعلى الملف
+import traceback # تأكد من وجود هذا الاستيراد في أعلى الملف
 
 @bot.message_handler(commands=['analyze'])
 def analyze_command(message):
-    # أولاً، التحقق من هوية الأدمن
     if message.from_user.id != ADMIN_ID:
         return
 
-    # ثانياً، إضافة معالجة الأخطاء
     try:
         conn = sqlite3.connect(DB_PATH)
-        df = pd.read_sql_query("SELECT * FROM resource_load", conn)
+        # جلب آخر 200 سجل فقط للتركيز على البيانات الحديثة
+        df = pd.read_sql_query("SELECT * FROM resource_load ORDER BY timestamp DESC LIMIT 200", conn)
         conn.close()
 
         if df.empty:
             bot.reply_to(message, "لا توجد بيانات كافية للتحليل بعد 📭")
             return
 
+        # تحويل عمود الوقت إلى كائن تاريخ ووقت لسهولة التعامل معه
         df['timestamp'] = pd.to_datetime(df['timestamp'])
+        df = df.sort_values(by='timestamp') # ترتيب البيانات حسب الزمن
 
-        # 🔹 ملخص نصي
-        summary = df.groupby("source")[["cpu_percent","memory_mb","total_users"]].agg(["mean","max"])
-        summary_text = summary.to_string()
+        # --- 1. إنشاء التقرير النصي المحسّن ---
+        
+        # الحصول على آخر قراءة
+        latest = df.iloc[-1]
+        
+        report_text = (
+            f"📊 **ملخص أداء البوت (آخر {len(df)} قراءة)**\n\n"
+            f"🔵 **استهلاك المعالج (CPU):**\n"
+            f"   -  الحالي: `{latest['cpu_percent']:.1f}%`\n"
+            f"   - المتوسط: `{df['cpu_percent'].mean():.1f}%`\n"
+            f"   - الأقصى: `{df['cpu_percent'].max():.1f}%`\n\n"
+            f"🧠 **استهلاك الذاكرة (Memory):**\n"
+            f"   - الحالي: `{latest['memory_mb']:.1f} MB`\n"
+            f"   - المتوسط: `{df['memory_mb'].mean():.1f} MB`\n"
+            f"   - الأقصى: `{df['memory_mb'].max():.1f} MB`\n\n"
+            f"👥 **المستخدمون:**\n"
+            f"   - الإجمالي: `{latest['total_users']}`\n"
+            f"   - أعضاء القنوات: `{latest['channel_users']}`\n"
+            f"   - مستخدمون خارجيون: `{latest['external_users']}`\n\n"
+            f"📈 **العمليات (آخر قراءة):**\n"
+            f"   - اختبارات مولدة: `{latest['tests_generated']}`\n"
+            f"   - ملفات معالجة: `{latest['files_processed']}`"
+        )
+        
+        bot.reply_to(message, report_text, parse_mode="Markdown")
 
-        # 🔹 رسم CPU مقابل عدد المستخدمين
-        plt.figure(figsize=(8,5))
-        for src in df['source'].unique():
-            subset = df[df['source']==src]
-            plt.scatter(subset['total_users'], subset['cpu_percent'], label=src, alpha=0.7)
-        plt.xlabel("Total Users")
-        plt.ylabel("CPU Usage (%)")
-        plt.title("CPU Usage vs Total Users")
-        plt.legend()
-        plt.grid(True)
+        # --- 2. إنشاء الرسم البياني الخطي المحسّن ---
 
-        # 🔹 حفظ الصورة في ذاكرة مؤقتة
+        fig, ax1 = plt.subplots(figsize=(10, 6)) # إنشاء شكل ومحور أساسي
+
+        # المحور الأول (يسار) لاستهلاك المعالج
+        ax1.plot(df['timestamp'], df['cpu_percent'], color='tab:blue', marker='o', linestyle='-', label='استخدام المعالج (%)')
+        ax1.set_xlabel("الوقت والتاريخ", fontsize=12)
+        ax1.set_ylabel("استخدام المعالج (%)", color='tab:blue', fontsize=12)
+        ax1.tick_params(axis='y', labelcolor='tab:blue')
+        ax1.grid(True, which='both', linestyle='--', linewidth=0.5)
+
+        # المحور الثاني (يمين) لاستهلاك الذاكرة
+        ax2 = ax1.twinx()
+        ax2.plot(df['timestamp'], df['memory_mb'], color='tab:red', marker='x', linestyle='--', label='استخدام الذاكرة (MB)')
+        ax2.set_ylabel("استخدام الذاكرة (MB)", color='tab:red', fontsize=12)
+        ax2.tick_params(axis='y', labelcolor='tab:red')
+
+        # تدوير عناوين محور السينات (الوقت) لتجنب تداخلها
+        fig.autofmt_xdate(rotation=45) 
+        
+        plt.title("مخطط استهلاك الموارد عبر الزمن", fontsize=14, pad=20)
+        fig.tight_layout() # لضمان عدم اقتصاص أي جزء من الرسم
+
+        # حفظ الصورة في ذاكرة مؤقتة
         img_buf = io.BytesIO()
-        plt.savefig(img_buf, format='png')
+        plt.savefig(img_buf, format='png', dpi=100)
         img_buf.seek(0)
-        plt.close()
+        plt.close(fig)
 
-        # إرسال النص والصورة
-        bot.reply_to(message, f"📊 ملخص التحليل:\n```\n{summary_text}\n```", parse_mode="Markdown")
-        bot.send_photo(message.chat.id, img_buf)
+        # إرسال الصورة
+        bot.send_photo(message.chat.id, img_buf, caption="تحليل استهلاك المعالج (بالأزرق) والذاكرة (بالأحمر) مع مرور الوقت.")
 
     except Exception as e:
-        # إرسال رسالة خطأ مفصلة للأدمن عند حدوث أي مشكلة
-        bot.reply_to(message, f"❌ حدث خطأ أثناء إنشاء التقرير.\n\nالخطأ:\n`{e}`\n\n`{traceback.format_exc()}`")
+        bot.reply_to(message, f"❌ حدث خطأ أثناء إنشاء التقرير.\n\nالخطأ:\n`{e}`\n\n`{traceback.format_exc()}`", parse_mode="Markdown")
         logging.error(f"Error in /analyze command: {traceback.format_exc()}")
-
+        
 
 
 
