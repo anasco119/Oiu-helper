@@ -4215,8 +4215,7 @@ def handle_main_menu(c):
             bot.edit_message_text(
                 text="✅ تم تفعيل إرسال الصور مع بطاقات Anki بنجاح!",
                 chat_id=chat_id,
-                message_id=message_id,
-                reply_markup=keyboard
+                message_id=message_id
             )
             # استدعاء الدالة الآمنة في خيط منفصل لتحديث الحالة إلى 'active'
             update_anki_photo_status(uid, 'active')
@@ -4234,8 +4233,7 @@ def handle_main_menu(c):
             bot.edit_message_text(
                 text="✔️ تم تفعيل بطاقات الانكي نص فقط",
                 chat_id=chat_id,
-                message_id=message_id,
-                reply_markup=keyboard
+                message_id=message_id
             )
             
             
