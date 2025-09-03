@@ -5116,8 +5116,9 @@ def process_message(msg, message_id=None, chat_id=None):
                     return bot.send_message(uid, "⚠️ لقد استنفدت 3 اختبارات مجانية هذا الشهر.")
 
                 if len(content) > 10000:
-                    bot.edit_message_text("🔍 المحتوى كبير، جاري تلخيصه...", chat_id=original_chat_id, message_id=original_message_id)
-                    content = summarize_long_text(content)
+                    if can_generate(uid):
+                        bot.edit_message_text("🔍 المحتوى كبير، جاري تلخيصه...", chat_id=original_chat_id, message_id=original_message_id)
+                        content = summarize_long_text(content)
         
                 # 2. عرض رسائل التقدم (لا نغير قيمة المتغيرات الأصلية)
                 bot.edit_message_text("🧠 جاري توليد الاختبار، الرجاء الانتظار...", chat_id=original_chat_id, message_id=original_message_id)
@@ -5143,6 +5144,7 @@ def process_message(msg, message_id=None, chat_id=None):
                     update_top_user(uid, tests=1)
                     log_resource_usage(source="event")
                     increment_count(uid)
+                    update_files_and_users(uid, tests_count=1)
                     
                 else:
                     bot.edit_message_text("❌ فشل في إنشاء الاختبار. قد يكون المحتوى غير مناسب. يرجى المحاولة لاحقاً.", chat_id=original_chat_id, message_id=original_message_id)
@@ -5174,13 +5176,15 @@ def process_message(msg, message_id=None, chat_id=None):
 
 
             if len(content) > 10000:
-                loading_msg = bot.edit_message_text("🔍 المحتوى كبير، جاري تلخيصه...", chat_id=chat_id, message_id=message_id)
-                try:
-                    print("[QUIZ] المحتوى كبير، جاري التلخيص...")
-                    content = summarize_long_text(content)
-                except Exception as e:
-                    print("[ERROR] تلخيص المحتوى فشل:", e)
-                    return bot.send_message(uid, "❌ فشل في تلخيص المحتوى. أرسل ملفًا أصغر أو حاول لاحقًا.")
+                if can_generate(uid):
+                    loading_msg = bot.edit_message_text("🔍 المحتوى كبير، جاري تلخيصه...", chat_id=chat_id, message_id=message_id)
+                    try:
+                    
+                        print("[QUIZ] المحتوى كبير، جاري التلخيص...")
+                        content = summarize_long_text(content)
+                    except Exception as e:
+                        print("[ERROR] تلخيص المحتوى فشل:", e)
+                        return bot.send_message(uid, "❌ فشل في تلخيص المحتوى. أرسل ملفًا أصغر أو حاول لاحقًا.")
 
             else:
                 loading_msg = bot.edit_message_text("🧠 جاري توليد الاختبار، الرجاء الانتظار...", chat_id=chat_id, message_id=message_id)
@@ -5269,6 +5273,7 @@ def process_message(msg, message_id=None, chat_id=None):
                     notify_admin("توليد اختبار", username, uid)
                     log_resource_usage(source="event")
                     increment_count(uid)
+                    update_files_and_users(uid, tests_count=1)
                     
                     
                     
