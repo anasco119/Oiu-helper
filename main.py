@@ -966,8 +966,8 @@ def init_user_quiz_db(db_path='quiz_users.db'):
     )
     """)
     # تأكد من وجود سجل واحد للتحديث
-    cursor.execute("INSERT OR IGNORE INTO stat (id, tests_generated, files_processed, total_users) VALUES (?, ?, ?, ?)", (1, 30, 82, 504))
-
+    cursor.execute("INSERT OR IGNORE INTO stat (id, tests_generated, files_processed, total_users) VALUES (?, ?, ?, ?)", 
+              (1, 0, 0, 0))
 
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS daily_stats (
