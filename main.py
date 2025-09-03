@@ -1056,29 +1056,26 @@ DB_NAME = "quiz_users.db"
 def get_tests_generated():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
-    cursor.execute("SELECT tests_generated FROM stat WHERE id = 1 LIMIT 1")
+    cursor.execute("SELECT tests_generated FROM stat WHERE id = 1")
     result = cursor.fetchone()
     conn.close()
     return result[0] if result else 0
-
 
 def get_files_processed():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
-    cursor.execute("SELECT files_processed FROM stat LIMIT 1")
+    cursor.execute("SELECT files_processed FROM stat WHERE id = 1")
     result = cursor.fetchone()
     conn.close()
     return result[0] if result else 0
-
 
 def get_total_users():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
-    cursor.execute("SELECT total_users FROM stat LIMIT 1")
+    cursor.execute("SELECT total_users FROM stat WHERE id = 1")
     result = cursor.fetchone()
     conn.close()
     return result[0] if result else 0
-
 
 # ----------------------------
 # ----    flask config  ----------------------------
