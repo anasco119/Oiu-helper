@@ -1074,6 +1074,30 @@ def is_anki_photo_active(user_id):
         if conn:
             conn.close()
 
+# تحديد مسار قاعدة البيانات
+db_path = 'quiz_users.db'
+
+def update_anki_photo_status(user_id, status):
+    """
+    دالة آمنة لتحديث حالة 'anki_photo' في قاعدة البيانات في خيط منفصل.
+    """
+    conn = None
+    try:
+        # الاتصال بقاعدة البيانات مع السماح بالوصول من خيوط متعددة
+        conn = sqlite3.connect(db_path, check_same_thread=False)
+        cursor = conn.cursor()
+
+        # تنفيذ أمر التحديث. نستخدم علامة الاستفهام '?' للحماية من SQL Injection
+        cursor.execute("UPDATE users SET anki_photo = ? WHERE id = ?", (status, user_id))
+        conn.commit()
+        print(f"تم تحديث حالة المستخدم {user_id} إلى {status} بنجاح.")
+
+    except sqlite3.Error as e:
+        print(f"حدث خطأ في قاعدة البيانات: {e}")
+    finally:
+        if conn:
+            conn.close()
+
 
 def init_all_dbs():
     init_medical_db()
@@ -3935,7 +3959,9 @@ def handle_main_menu(c):
                 reply_markup=settings_keyboard,
                 parse_mode="Markdown"
             )
-        
+
+
+    
         elif data == "go_games":
             raw = fetch_user_major(uid)
 
@@ -4151,6 +4177,23 @@ def handle_main_menu(c):
                 parse_mode="Markdown"
             )
 
+            try:
+                send_main_menu(chat_id, message_id)  # إظهار القائمة الرئيسية
+            except:
+                pass
+
+            return
+            
+        if data == "ankiimage"
+             # استدعاء الدالة الآمنة في خيط منفصل لتحديث الحالة إلى 'active'
+            update_anki_photo_status(uid, 'active')
+    
+            # إرسال رسالة تأكيد للمستخدم
+            bot.edit_message_text(
+                text="✅ تم تفعيل إرسال الصور مع بطاقات Anki بنجاح!",
+                chat_id=chat_id,
+                message_id=message_id
+            )
             try:
                 send_main_menu(chat_id, message_id)  # إظهار القائمة الرئيسية
             except:
