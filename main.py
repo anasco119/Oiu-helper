@@ -4184,7 +4184,7 @@ def handle_main_menu(c):
 
             return
             
-        if data == "ankiimage"
+        if data == "ankiimage":
              # استدعاء الدالة الآمنة في خيط منفصل لتحديث الحالة إلى 'active'
             update_anki_photo_status(uid, 'active')
     
