@@ -3515,6 +3515,7 @@ def unified_start_handler(message):
 
     # ✅ إذا لم يوجد باراميتر → عرض القائمة الرئيسية
     send_main_menu(chat_id)
+    update_files_and_users(uid)
 
 
 def send_main_menu(chat_id, message_id=None):
@@ -5040,6 +5041,7 @@ def process_message(msg, message_id=None, chat_id=None):
                 with state_lock:
                     user_states.pop(uid, None)
                 logging.info("Finished ai_anki for uid=%s", uid)
+                maybe_send_feedback_request(uid, chat_id)
 
             except Exception as e:
                 logging.error(f"❌ حدث خطأ في awaiting_anki_file_ai: {traceback.format_exc()}")
@@ -5270,6 +5272,7 @@ def process_message(msg, message_id=None, chat_id=None):
                     log_resource_usage(source="event")
                     increment_count(uid)
                     update_files_and_users(uid, tests_count=1)
+                    maybe_send_feedback_request(uid, chat_id)
                     
                 else:
                     bot.edit_message_text("❌ فشل في إنشاء الاختبار. قد يكون المحتوى غير مناسب. يرجى المحاولة لاحقاً.", chat_id=original_chat_id, message_id=original_message_id)
@@ -5399,7 +5402,7 @@ def process_message(msg, message_id=None, chat_id=None):
                     log_resource_usage(source="event")
                     increment_count(uid)
                     update_files_and_users(uid, tests_count=1)
-                    
+                    maybe_send_feedback_request(uid, chat_id)
                     
                     
 
