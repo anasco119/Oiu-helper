@@ -3630,7 +3630,7 @@ def handle_user_comment(message):
     uid = message.from_user.id
     username = message.from_user.username or "مستخدم"
     comment = message.text
-    full_username = @{username}
+    full_username = f"@{username}"
 
 
     # إرسال التعليق للأدمن عبر bot3
