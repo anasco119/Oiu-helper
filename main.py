@@ -877,6 +877,7 @@ def init_user_quiz_db(db_path='quiz_users.db'):
         last_reset  TEXT
     )
     """)
+    cursor.execute("ALTER TABLE users ADD COLUMN anki_photo TEXT DEFAULT 'inactive'")
 
     # جدول الأسئلة المقترحة من المستخدمين للعبة الاستنتاج
     cursor.execute("""
@@ -1037,6 +1038,41 @@ def fetch_user_major(uid, db_path="quiz_users.db"):
         logging.exception("fetch_user_major failed")
         return "General"
 
+def is_anki_photo_active(user_id):
+    """
+    تتحقق مما إذا كانت حالة anki_photo للمستخدم 'active'.
+    تفتح وتغلق اتصالها الخاص بقاعدة البيانات.
+    
+    Args:
+        user_id (int): معرف المستخدم في قاعدة البيانات.
+
+    Returns:
+        bool: True إذا كانت الحالة 'active'، و False إذا لم تكن كذلك.
+    """
+    db_path = 'quiz_users.db'
+    conn = None
+    try:
+        # فتح اتصال آمن بقاعدة البيانات
+        conn = sqlite3.connect(db_path, check_same_thread=False)
+        cursor = conn.cursor()
+
+        # الاستعلام عن حالة anki_photo للمستخدم المحدد
+        cursor.execute("SELECT anki_photo FROM users WHERE id = ?", (user_id,))
+        result = cursor.fetchone()
+
+        # إذا تم العثور على المستخدم وكانت حالته 'active'
+        if result and result[0] == 'active':
+            return True
+        else:
+            return False
+
+    except sqlite3.Error as e:
+        print(f"Database error: {e}")
+        return False
+        
+    finally:
+        if conn:
+            conn.close()
 
 
 def init_all_dbs():
@@ -3881,6 +3917,10 @@ def handle_main_menu(c):
             )
             settings_keyboard.add(
                 InlineKeyboardButton("📉 مستوى الإختبارات", callback_data="tests_level"),
+            )
+            settings_keyboard.add(
+                InlineKeyboardButton("🖼️ انكي مع صور", callback_data="ankiimage"),
+             
             )
             settings_keyboard.add(
                 InlineKeyboardButton("⬅️ رجوع", callback_data="go_back_home")
