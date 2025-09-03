@@ -5017,8 +5017,8 @@ def process_message(msg, message_id=None, chat_id=None):
                     if cards:
                         # إنشاء الملف
                         output_file = f"{uid}_manual_anki.apkg"
-                        filename = save_cards_to_apkg(cards, filename=output_file, deck_name="مكتبتك التعليمية")
-            
+                        filename, temp_dir_to_clean = save_cards_to_apkg(cards, filename=output_file, deck_name="My flashcards")
+
                         # إرسال الملف مع رسالة رسمية
                         with open(filename, 'rb') as file:
                             bot.send_document(
@@ -5069,25 +5069,35 @@ def process_message(msg, message_id=None, chat_id=None):
                     bot.send_message(uid, "❌ يرجى إرسال النص فقط لإنشاء بطاقات Anki يدويًا.")
                     
             except Exception as e:
+                logging.error(f"❌ حدث خطأ في awaiting_anki_file_ai: {traceback.format_exc()}")
+                error_message = f"❌ حدث خطأ غير متوقع:\n{e}"
+                if waiting_msg:
+                    bot.edit_message_text(chat_id=uid, message_id=loading_msg.message_id, text=error_message)
+                else:
+                    bot.send_message(uid, error_message)
+                # مسح الحالة عند حدوث خطأ
                 with state_lock:
                     user_states.pop(uid, None)
 
-                # التعامل مع أي خطأ أثناء الحفظ أو الإرسال
-                bot.send_message(
-                    chat_id=uid,
-                    text=f"❌ حدث خطأ أثناء إنشاء الملف:\n{e}"
-                )
-                print(traceback.format_exc())
-
             finally:
-                # حذف الملف المؤقت من السيرفر إذا كان موجود
-                if os.path.exists(filename):
+                # --- 5. (التعديل الرئيسي) التنظيف الآمن بعد انتهاء كل شيء ---
+                logging.info("بدء عملية التنظيف النهائية لـ awaiting_ai_anki...")
+                if filename and os.path.exists(filename):
                     try:
                         os.remove(filename)
-                        print(f"🗑️ تم حذف الملف المؤقت: {filepath}")
-                    except Exception as e:
-                        print(f"⚠️ فشل حذف الملف {filepath}: {e}")
-            
+                        logging.info(f"تم حذف ملف .apkg المؤقت: {filename}")
+                    except Exception as e_remove:
+                        logging.error(f"خطأ أثناء حذف ملف .apkg: {e_remove}")
+                
+                if temp_dir_to_clean and os.path.exists(temp_dir_to_clean):
+                    try:
+                        shutil.rmtree(temp_dir_to_clean)
+                        logging.info(f"تم حذف المجلد المؤقت للصور: {temp_dir_to_clean}")
+                    except Exception as e_rmtree:
+                        logging.error(f"خطأ أثناء حذف المجلد المؤقت: {e_rmtree}")
+
+            return # تأكد من وجود return للخروج من الدالة بعد المعالجة
+
                     
 
         # ============================
