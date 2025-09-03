@@ -4951,12 +4951,11 @@ def process_message(msg, message_id=None, chat_id=None):
                 time.sleep(random.randint(2, 5))
         
                 # إنشاء البطاقات
-                if can_generate(uid):
-                    cards, title =generate_special_anki_cards_from_text(content, major=major, user_id=uid)
-                    
+                if can_generate(uid) and is_anki_photo_active(uid):
+                    cards, title = generate_special_anki_cards_from_text(content, major=major, user_id=uid)
                 else:
                     cards, title = generate_anki_cards_from_text(content, major=major, user_id=uid)
-
+                    
                 if not cards:
                     return bot.edit_message_text(
                         chat_id=uid,
