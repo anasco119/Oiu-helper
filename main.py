@@ -3489,7 +3489,7 @@ def unified_start_handler(message):
 
         # ✅ إذا كان باراميتر anki_sample
         if param == "anki_sample":
-            user_states[chat_id] = "awaiting_anki_file_ai"  # حفظ الحالة
+            user_states[uid] = "awaiting_anki_file_ai"  # حفظ الحالة
             bot.send_message(
                 "📝 دعنا نبدأ بإنشاء **ملف بطاقاتك الأول**!\n"
                 "📂 أرسل ملف **PDF** أو **DOCX** أو **PPTX**، أو حتى نصًا مباشرًا 📜.\n"
