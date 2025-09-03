@@ -3706,7 +3706,7 @@ def handle_rating(call):
     elif rating in ["4", "5"]:
         bot.edit_message_text(
             chat_id=chat_id,
-            text=f"{random.choice(text_high, txt_thanks)}",
+            text=f"{random.choice([text_high, txt_thanks])}",
             message_id=message_id
         )
         time.sleep(2)
