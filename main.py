@@ -1,8 +1,7 @@
 import os
 import sqlite3
 import time # <--- أضف هذا السطر
-from datetime import date
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import telebot
 from telebot.types import ChatPermissions
 import threading
@@ -429,26 +428,49 @@ def maybe_send_feedback_request(uid: int, chat_id: int):
 
 def send_daily_report():
     try:
+        logging.info("🔄 بدء إعداد التقرير اليومي...")
+        
         with sqlite3.connect("quiz_users.db", check_same_thread=False) as conn:
             cursor = conn.cursor()
-            today = datetime.date.today().isoformat()
+            today = date.today().isoformat()
+            logging.info(f"📅 تاريخ اليوم: {today}")
 
             cursor.execute("""
                 SELECT tests_generated, files_processed, new_users, channel_users, external_users
                 FROM daily_stats
                 WHERE date=?
             """, (today,))
+            
             row = cursor.fetchone()
+            logging.info(f"📊 نتيجة الاستعلام: {row}")
+
             if row:
                 tests, files, new_users, channel_users, external_users = row
                 msg = f"📊 تقرير اليوم ({today}):\n" \
                       f"📝 الاختبارات المولدة: {tests}\n" \
                       f"📂 الملفات المعالجة: {files}\n" \
                       f"👥 المستخدمون الجدد: {new_users} (قنوات: {channel_users} | خارجي: {external_users})"
-                bot3.send_message(ADMIN_ID, msg)
-    except Exception as e:
-        logging.error(f"❌ Error sending daily report: {e}")
+            else:
+                msg = f"📊 تقرير اليوم ({today}):\n" \
+                      f"📝 الاختبارات المولدة: 0\n" \
+                      f"📂 الملفات المعالجة: 0\n" \
+                      f"👥 المستخدمون الجدد: 0 (قنوات: 0 | خارجي: 0)"
+                logging.warning("⚠️ لا توجد بيانات للتقرير اليومي")
 
+            logging.info(f"📨 جاري إرسال الرسالة: {msg}")
+            bot3.send_message(ADMIN_ID, msg)
+            logging.info("✅ تم إرسال التقرير اليومي بنجاح")
+            
+    except sqlite3.Error as db_error:
+        logging.error(f"🗄️ خطأ في قاعدة البيانات: {db_error}")
+        logging.error(traceback.format_exc())
+        bot3.send_message(ADMIN_ID, f"❌ خطأ في قاعدة البيانات عند إرسال التقرير: {db_error}")
+        
+    except Exception as e:
+        error_traceback = traceback.format_exc()
+        logging.error(f"❌ خطأ غير متوقع في send_daily_report: {e}")
+        logging.error(f"📋 Traceback:\n{error_traceback}")
+        bot3.send_message(ADMIN_ID, f"❌ فشل إرسال التقرير اليومي: {e}")
 
 def send_top_users_report(top_n: int = 5):
     try:
@@ -463,7 +485,42 @@ def send_top_users_report(top_n: int = 5):
     except Exception as e:
         logging.error(f"❌ Error sending top users report: {e}")
 
-
+@bot.message_handler(commands=['test_report'])
+def test_daily_report(message):
+    if message.from_user.id != ADMIN_ID:
+        return
+        
+    try:
+        logging.info("بدء اختبار التقرير اليومي...")
+        
+        # إرسال التقرير
+        send_daily_report()
+        
+        # إعلام المستخدم بنجاح العملية
+        bot.reply_to(message, "✅ تم إرسال التقرير اليومي للتجربة")
+        logging.info("تم إرسال التقرير بنجاح")
+        
+    except Exception as e:
+        # الحصول على traceback مفصل
+        error_traceback = traceback.format_exc()
+        
+        # تسجيل الخطأ الكامل في السجلات
+        logging.error(f"❌ فشل اختبار التقرير اليومي: {e}")
+        logging.error(f"📋 Traceback كامل:\n{error_traceback}")
+        
+        # إرسال تفاصيل الخطأ إلى الأدمن
+        error_msg = (
+            f"❌ فشل اختبار التقرير اليومي:\n\n"
+            f"📛 الخطأ: {e}\n\n"
+            f"🔍 التفاصيل:\n{error_traceback[:1000]}..."  # إرسال أول 1000 حرف فقط
+        )
+        
+        try:
+            bot.reply_to(message, error_msg)
+        except Exception as send_error:
+            # إذا فشل إرسال الرسالة الطويلة، أرسل رسالة مختصرة
+            logging.error(f"فشل إرسال تفاصيل الخطأ: {send_error}")
+            bot.reply_to(message, f"❌ فشل اختبار التقرير: {e}")
 # -------------------------------------------------------------------
 # -------- معالجات الطلبات -------------------------------------------------------------------
 
