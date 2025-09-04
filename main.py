@@ -2245,7 +2245,7 @@ def extract_json_from_string(text: str) -> str:
     # كخيار أخير، أرجع النص كما هو
     return text
     
-def generate_quizzes_from_text(content: str, major: str, user_id: int, num_quizzes: int = 10):
+def generate_quizzes_from_text(content: str, major: str, user_id: int, quiz_level: str num_quizzes: int = 10):
     prompt = (
         f"You are a strict AI quiz generator. Your only task is to generate a JSON array of {num_quizzes} quiz questions "
         f"that are based **strictly and only** on the information explicitly stated in the following content.\n\n"
@@ -2267,6 +2267,7 @@ def generate_quizzes_from_text(content: str, major: str, user_id: int, num_quizz
         "- ONLY return a raw JSON array. No markdown, no explanation, no formatting.\n"
         "- Do not include any introductory or closing text.\n"
         "- Ensure the JSON is valid and parsable.\n\n"
+        f"- Please generate a comprehensive quiz. The questions should be suitable for a student with an academic level of '{quiz_level}'."
         f"Content:\n{content}"
     )
 
@@ -2328,7 +2329,7 @@ def save_quiz_to_db(quiz_data, user_id):
 
 
 
-def generate_Medical_quizzes(content: str, major: str, user_id: int, num_quizzes: int = 10):
+def generate_Medical_quizzes(content: str, major: str, user_id: int, quiz_level: str, num_quizzes: int = 10):
     # (البرومبت المحسن من الخطوة 2 يجب وضعه هنا)
     prompt = (
         f"You are a medical education expert. Your task is to create a JSON-formatted quiz for {major} "
@@ -2342,6 +2343,7 @@ def generate_Medical_quizzes(content: str, major: str, user_id: int, num_quizzes
         "6. Language: English.\n"
         "7. CRITICAL: The 'questions' array MUST NOT be empty. If you cannot generate questions from the text, return an empty JSON object {} and nothing else.\n\n"
         "8. create only on clinical case"
+        f"Please generate a comprehensive quiz. The questions should be suitable for a student with an academic level of '{quiz_level}'."
         "## JSON OUTPUT STRUCTURE:\n"
         "{\n"
         "  \"title\": \"Medical Quiz in [major]\",\n"
