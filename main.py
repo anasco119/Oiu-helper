@@ -92,12 +92,19 @@ logging.basicConfig(
 
 DB_PATH = "quiz_users.db"
 
+
 def log_resource_usage(source="scheduled"):
     with sqlite3.connect(DB_PATH, check_same_thread=False) as conn:
         cursor = conn.cursor()
         
+        # --- التعديل هنا ---
+        # الحصول على العملية الحالية للبوت
+        process = psutil.Process(os.getpid())
+        # قياس الذاكرة الفعلية المستخدمة من قبل العملية الحالية فقط (RSS)
+        memory = process.memory_info().rss / (1024 * 1024) 
+        # --- نهاية التعديل ---
+
         cpu = psutil.cpu_percent(interval=1)
-        memory = psutil.virtual_memory().used / (1024 * 1024)
 
         # إجمالي المستخدمين
         cursor.execute("SELECT COUNT(*) FROM bot_users")
