@@ -4396,8 +4396,6 @@ def handle_main_menu(c):
             keyboard.add(InlineKeyboardButton("🎨 أنكي مع صور", callback_data="enableimage"))
             keyboard.add(InlineKeyboardButton("🎴 أنكي بدون صور", callback_data="disableimage"))
             
-             # استدعاء الدالة الآمنة في خيط منفصل لتحديث الحالة إلى 'active'
-            update_anki_photo_status(uid, 'active')
     
             # إرسال رسالة تأكيد للمستخدم
             bot.edit_message_text(
@@ -4442,6 +4440,8 @@ def handle_main_menu(c):
                 message_id=message_id
             )
             
+            # استدعاء الدالة الآمنة في خيط منفصل لتحديث الحالة إلى 'active'
+            update_anki_photo_status(uid, 'inactive')
             
             try:
                 send_main_menu(chat_id, message_id)  # إظهار القائمة الرئيسية
@@ -4453,27 +4453,81 @@ def handle_main_menu(c):
         if data == "test_level":
             keyboard = InlineKeyboardMarkup(row_width=2)
             
-            keyboard.add(InlineKeyboardButton("🧩 مبتدئ", callback_data="enableimage"))
-            keyboard.add(InlineKeyboardButton("📚 متوسط", callback_data="disableimage"))
-            keyboard.add(InlineKeyboardButton("🎓 متقدم", callback_data="disableimage"))
-
-             # استدعاء الدالة الآمنة في خيط منفصل لتحديث الحالة إلى 'active'
-            update_anki_photo_status(uid, 'active')
-    
+            keyboard.add(InlineKeyboardButton("🟢 مبتدئ (ابدأ رحلتك)", callback_data="essaytest"))
+            keyboard.add(InlineKeyboardButton("🟠 متوسط (تحدٍ معتدل)", callback_data="intermidtest"))
+            keyboard.add(InlineKeyboardButton("🔴 متقدم (مستعد للتحدي)", callback_data="advantest"))
+            
             # إرسال رسالة تأكيد للمستخدم
             bot.edit_message_text(
-                text = "لتخصيص تجربتك التعليمية، يرجى اختيار أحد الأوضاع التالية 👇\n\n"
-                "---\n"
-                "*🖼️ بطاقات Anki مع الصور*\n"
-                ".اختر هذا الوضع لتحويل بطاقاتك إلى تجربة تفاعلية. سيتم *تضمين صور* داخل كل ملف Anki، مما يساعدك على تذكر المعلومات بشكل أسرع وأفضل.\n\n"
-                "---\n"
-                "*📝 بطاقات Anki بدون صور*\n"
-                "اختر هذا الوضع للحصول على بطاقات Anki نصية فقط. هذا الخيار مثالي لمن يفضلون التركيز على المحتوى الأساسي، أو للحصول على نتائج أسرع في عملية الإنشاء.",
+                text = "اختر المستوى الذي يناسب رحلتك التعليمية 👇\n\n"\
+                "---\n"\
+                "*🧩 مستوى مبتدئ*\n"\
+                "ابدأ رحلتك من هنا بأسئلة أساسية وواضحة، مثالية لترسيخ المفاهيم الأولية وبناء أساس قوي.\n\n"\
+                "---\n"\
+                "*📚 مستوى متوسط*\n"\
+                "انتقل إلى هذا المستوى لتحدي نفسك بأسئلة ذات صعوبة معتدلة. إنه الخيار الأمثل لتعميق فهمك وتثبيت معلوماتك.\n\n"\
+                "---\n"\
+                "*🎓 مستوى متقدم*\n"\
+                "أسئلة متقدمة غير مباشرة. هذا الوضع مخصص لمن يسعى لإتقان الموضوع بالكامل واختبار معرفته الشاملة.\n"
                 chat_id=chat_id,
                 message_id=message_id,
                 reply_markup=keyboard,
                 parse_mode="Markdown"
-)
+            )
+        elif data == "essaytest":
+        
+            bot.edit_message_text(
+                text="✔️ تم أختيار وضع مبتدئ، سنرسل لك إختبارات واضحة تساعدك على الفهم",
+                chat_id=chat_id,
+                message_id=message_id
+            )
+            
+            # استدعاء الدالة الآمنة في خيط منفصل لتحديث الحالة إلى 'active'
+            update_quiz_level_status(uid, 'essay')
+            time.sleep(2)
+            
+            try:
+                send_main_menu(chat_id, message_id)  # إظهار القائمة الرئيسية
+            except:
+                pass
+
+            return
+        elif data == "intermidtest":
+        
+            bot.edit_message_text(
+                text = "✔️ تم اختيار وضع متوسط، سنرسل لك اختبارات معتدلة الصعوبة لتثبيت معلوماتك وتوسيع آفاقك.",
+                chat_id=chat_id,
+                message_id=message_id
+            )
+            
+            # استدعاء الدالة الآمنة في خيط منفصل لتحديث الحالة إلى 'active'
+            update_quiz_level_status(uid, 'intermediate')
+            time.sleep(2)
+            
+            try:
+                send_main_menu(chat_id, message_id)  # إظهار القائمة الرئيسية
+            except:
+                pass
+
+            return
+        elif data == "advantest":
+        
+            bot.edit_message_text(
+                text = "✔️ تم اختيار وضع متقدم، سنرسل لك اختبارات متقدمة ومعمقة لتحدي قدراتك واختبار إتقانك للموضوع.",
+                chat_id=chat_id,
+                message_id=message_id
+            )
+            
+            # استدعاء الدالة الآمنة في خيط منفصل لتحديث الحالة إلى 'active'
+            update_quiz_level_status(uid, 'advanced')
+            time.sleep(2)
+            
+            try:
+                send_main_menu(chat_id, message_id)  # إظهار القائمة الرئيسية
+            except:
+                pass
+
+            return
         
 
 
