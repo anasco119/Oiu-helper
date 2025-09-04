@@ -997,6 +997,8 @@ def init_user_quiz_db(db_path='quiz_users.db'):
     )
     """)
     cursor.execute("ALTER TABLE users ADD COLUMN anki_photo TEXT DEFAULT 'inactive'")
+    cursor.execute("ALTER TABLE users ADD COLUMN quiz_level TEXT DEFAULT 'intermediate'")
+    
 
     # جدول الأسئلة المقترحة من المستخدمين للعبة الاستنتاج
     cursor.execute("""
@@ -1217,7 +1219,38 @@ def update_anki_photo_status(user_id, status):
         if conn:
             conn.close()
 
+def update_quiz_level_status(user_id, status):
+    """
+    دالة آمنة لتحديث حالة 'anki_photo' في قاعدة البيانات في خيط منفصل.
+    """
+    conn = None
+    try:
+        # الاتصال بقاعدة البيانات مع السماح بالوصول من خيوط متعددة
+        conn = sqlite3.connect(db_path, check_same_thread=False)
+        cursor = conn.cursor()
 
+        # تنفيذ أمر التحديث. نستخدم علامة الاستفهام '?' للحماية من SQL Injection
+        cursor.execute("UPDATE users SET quiz_level = ? WHERE id = ?", (status, user_id))
+        conn.commit()
+        print(f"تم تحديث حالة المستخدم {user_id} إلى {status} بنجاح.")
+
+    except sqlite3.Error as e:
+        print(f"حدث خطأ في قاعدة البيانات: {e}")
+    finally:
+        if conn:
+            conn.close()
+            
+def fetch_quiz_level(uid, db_path="quiz_users.db"):
+    try:
+        with sqlite3.connect(db_path, check_same_thread=False) as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT quiz_level FROM users WHERE user_id=?", (uid,))
+            row = cur.fetchone()
+        return row[0] if row else "General"
+    except Exception:
+        logging.exception("fetch_user_major failed")
+        return "intermediate"
+        
 def init_all_dbs():
     init_medical_db()
     init_user_quiz_db()
