@@ -2245,7 +2245,7 @@ def extract_json_from_string(text: str) -> str:
     # كخيار أخير، أرجع النص كما هو
     return text
     
-def generate_quizzes_from_text(content: str, major: str, user_id: int, quiz_level: str num_quizzes: int = 10):
+def generate_quizzes_from_text(content: str, major: str, user_id: int, quiz_level: str, num_quizzes: int = 10):
     prompt = (
         f"You are a strict AI quiz generator. Your only task is to generate a JSON array of {num_quizzes} quiz questions "
         f"that are based **strictly and only** on the information explicitly stated in the following content.\n\n"
