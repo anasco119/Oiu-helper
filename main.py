@@ -5543,8 +5543,9 @@ def process_message(msg, message_id=None, chat_id=None):
                 time.sleep(2)
 
                 # 3. توليد الاختبار
+                quiz_level = fetch_quiz_level(uid)
                 print("[ADVANCED_QUIZ] بدء توليد الاختبار الطبي المتقدم...")
-                quiz_data = generate_Medical_quizzes(content=content, major="General Medicine", user_id=uid)
+                quiz_data = generate_Medical_quizzes(content=content, major="General Medicine", user_id=uid, quiz_level=quiz_level)
         
                 # طباعة للتحقق من القيم قبل الإرسال النهائي
                 print(f"[DEBUG] chat_id: {original_chat_id}, message_id: {original_message_id}, quiz_data is not None: {quiz_data is not None}")
@@ -5620,7 +5621,8 @@ def process_message(msg, message_id=None, chat_id=None):
             time.sleep(2)
 
             print("[QUIZ] استدعاء generate_quizzes_from_text...")
-            quizzes = generate_quizzes_from_text(content, major=major, user_id=uid, num_quizzes=10)
+            quiz_level = fetch_quiz_level(uid)
+            quizzes = generate_quizzes_from_text(content, major=major, user_id=uid, quiz_level=quiz_level, num_quizzes=10)
             print("[QUIZ] رجع:", type(quizzes), "بطول:", len(quizzes) if quizzes else "None")
 
         
