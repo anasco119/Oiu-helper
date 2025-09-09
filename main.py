@@ -2977,7 +2977,43 @@ def start_quiz(chat_id, quiz_code, bot):
     
 logger = logging.getLogger(__name__)
 
+MAX_QUESTION_LEN = 300
+MAX_OPTION_LEN = 100
 
+def validate_quiz_item(item):
+    """
+    يتحقق من صلاحية السؤال قبل إضافته إلى الاختبار.
+    يتأكد أن:
+    - السؤال ليس فارغًا
+    - هناك 4 خيارات بالضبط
+    - correct_index صحيح
+    - طول السؤال والخيارات مناسب
+    """
+    try:
+        q = item.get("question", "").strip()
+        opts = [str(opt).strip() for opt in item.get("options", [])]
+        corr = item.get("correct_index", -1)
+        expl = item.get("explanation", "").strip()
+
+        if not q or len(opts) != 4 or not (0 <= corr < 4):
+            return None
+
+        # تحقق من طول السؤال والخيارات
+        if len(q) > MAX_QUESTION_LEN:
+            logging.warning(f"Question too long, truncating: {q[:50]}...")
+            q = q[:MAX_QUESTION_LEN]
+
+        for i in range(4):
+            if len(opts[i]) > MAX_OPTION_LEN:
+                logging.warning(f"Option too long, truncating: {opts[i][:50]}...")
+                opts[i] = opts[i][:MAX_OPTION_LEN]
+
+        return {'question': q, 'options': opts, 'correct_index': corr, 'explanation': expl, 'answer': opts[corr]}
+    except Exception as e:
+        logging.error(f"Failed to validate quiz item: {item} | Error: {e}")
+        return None
+
+                       
 # نظام إدارة الحالة المحسن
 class QuizManager:
 
@@ -3037,7 +3073,8 @@ class QuizManager:
                 shared_by_name = owner_name
 
             # ----- تحويل أي بنية (dict أو list) إلى قائمة موحدة من القواميس -----
-            formatted_quizzes = []
+            formatted_quizzes = [validate_quiz_item(q) for q in quizzes_raw]
+            formatted_quizzes = [q for q in formatted_quizzes if q is not None]
             for q in quizzes_raw:
                 if isinstance(q, dict):
                 # بنية القاموس المتوقعة
@@ -3165,30 +3202,37 @@ class QuizManager:
             return False
             
             
-    def send_question(self, chat_id, bot2):
+    def send_question(self, chat_id, bot2, retries=3):
+        """
+        إرسال السؤال الحالي. إذا فشل، يحاول تجاوز السؤال أو إعادة المحاولة.
+        """
         state = self.active_quizzes.get(chat_id)
         if not state:
             return
-            
-        quiz = state['quizzes'][state['current_index']]
-        
-        try:
-            poll = bot2.send_poll(
-                chat_id=chat_id,
-                question=quiz['question'],
-                options=quiz['options'],
-                type='quiz',
-                correct_option_id=quiz['options'].index(quiz['answer']),
-                explanation=quiz['explanation'],
-                is_anonymous=False,
-                open_period=30
-            )
-            
-            state['last_poll_id'] = poll.message_id
-        except Exception as e:
-            print(f"Error sending poll: {e}")
-            self.handle_quiz_end(chat_id, bot2, error=True)
 
+        while state['current_index'] < len(state['quizzes']):
+            quiz = state['quizzes'][state['current_index']]
+            try:
+                poll = bot2.send_poll(
+                    chat_id=chat_id,
+                    question=quiz['question'],
+                    options=quiz['options'],
+                    type='quiz',
+                    correct_option_id=quiz['options'].index(quiz['answer']),
+                    explanation=quiz['explanation'],
+                    is_anonymous=False,
+                    open_period=30
+                )
+                state['last_poll_id'] = poll.message_id
+                return
+            except Exception as e:
+                logging.warning(f"Failed to send poll, skipping question: {quiz['question'][:50]}... Error: {e}")
+                state['current_index'] += 1
+                if retries <= 0:
+                    self.handle_quiz_end(chat_id, bot2, error=True)
+                    return
+                retries -= 1
+                
 
     def handle_answer(self, poll_answer, bot2):
         chat_id = poll_answer.user.id
@@ -3623,6 +3667,16 @@ def test_anki_generation(message):
         except Exception as e:
             bot.send_message(message.chat.id, f"❌ فشل إنشاء ملف الاختبار: {e}\n\n{traceback.format_exc()}")
 
+import random
+
+# قائمة روابط GIFs
+gif_urls = [
+    "https://raw.githubusercontent.com/username/repo/main/welcome1.gif",
+    "https://raw.githubusercontent.com/username/repo/main/welcome2.gif"
+]
+
+# اختيار GIF عشوائي
+selected_gif = random.choice(gif_urls)
 
 @bot.message_handler(commands=['start'])
 def unified_start_handler(message):
@@ -3668,49 +3722,67 @@ def unified_start_handler(message):
         return
 
     # ✅ إذا لم يوجد باراميتر → عرض القائمة الرئيسية
-    send_main_menu(chat_id)
+    send_main_menu(chat_id, gif_url=selected_gif)
     update_files_and_users(uid)
 
 
-def send_main_menu(chat_id, message_id=None):
-    keyboard = InlineKeyboardMarkup(row_width=2)
+
+def send_main_menu(chat_id, message_id=None, gif_url=None):
+    """
+    إرسال القائمة الرئيسية مع GIF ترحيبي (إذا تم تمرير gif_url).
+    """
+
+    # تمريره لدالة send_main_menu
+
+    # إنشاء الكيبورد بشكل عمودي (زر فوق زر)
+    keyboard = InlineKeyboardMarkup(row_width=1)
+    
     buttons = [
-        InlineKeyboardButton("📝 توليد اختبار", callback_data="go_generate"),
-        InlineKeyboardButton("📚 مراجعة سريعة", callback_data="soon_review"),
-        InlineKeyboardButton("📄 ملخص PDF", callback_data="soon_summary"),
-        InlineKeyboardButton("🧠 بطاقات Anki", callback_data="anki"),
-        InlineKeyboardButton("🎮 ألعاب تعليمية", callback_data="go_games"),
-        InlineKeyboardButton("⚙️ حسابي", callback_data="go_account_settings"),
+        InlineKeyboardButton("📝 التعلّم", callback_data="go_learning"),
+        InlineKeyboardButton("🗂️ مواردي", callback_data="go_my_resources"),
+        InlineKeyboardButton("🤝 المشاركة", callback_data="go_sharing"),
+        InlineKeyboardButton("👤 حسابي", callback_data="go_account_settings"),
+        InlineKeyboardButton("➕ أضفني إلى مجموعة", url=f"https://t.me/{bot.get_me().username}?startgroup=true"),
+        InlineKeyboardButton("ℹ️ مساعدة", callback_data="go_help"),
     ]
+    
     keyboard.add(*buttons)
-    keyboard.add(InlineKeyboardButton("➕ أضفني إلى مجموعة", url=f"https://t.me/{bot.get_me().username}?startgroup=true"))
 
     text = (
-        "👋 <b>أهلاً بك في TestGenie!</b> ✨\n\n"
-        "🎯 أدوات تعليمية ذكية بين يديك:\n"
-        "- اختبارات من ملفاتك\n"
-        "- بطاقات مراجعة (Anki)\n"
-        "- ملخصات PDF/Word <i>(قريباً)</i>\n"
-        "- ألعاب تعليمية ممتعة\n\n"
-        "📌 كل ما تحتاجه لتتعلّم بذكاء... بين يديك الآن.\n\n"
-        "👇 اختر ما يناسبك وابدأ الآن:"
+        "👋 أهلاً بك في TestGenie!\n\n"
+        "هذا البوت يساعدك على تحويل ملفاتك الدراسية إلى اختبارات وبطاقات مراجعة بسهولة.\n"
+        "- اختبارات من ملفاتك النصية أو الممسوحة ضوئيًا\n"
+        "- بطاقات Anki للمراجعة\n"
+        "- ألعاب تعليمية للمجموعات\n\n"
+        "👇 اختر القسم الذي تريد البدء به:"
     )
 
-    if message_id:
-        bot.edit_message_text(
-            text,
-            chat_id=chat_id,
-            message_id=message_id,
+    if gif_url:
+        # إرسال GIF ترحيبي مع النص والكيبورد
+        bot.send_animation(
+            chat_id,
+            animation=gif_url,
+            caption=text,
             reply_markup=keyboard,
             parse_mode="HTML"
         )
     else:
-        bot.send_message(
-            chat_id,
-            text,
-            reply_markup=keyboard,
-            parse_mode="HTML"
-        )
+        # إذا لم يُمرر GIF، إرسال النص فقط
+        if message_id:
+            bot.edit_message_text(
+                text,
+                chat_id=chat_id,
+                message_id=message_id,
+                reply_markup=keyboard,
+                parse_mode="HTML"
+            )
+        else:
+            bot.send_message(
+                chat_id,
+                text,
+                reply_markup=keyboard,
+                parse_mode="HTML"
+)
 
 
 
