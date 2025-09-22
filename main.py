@@ -3918,7 +3918,7 @@ def handle_main_menu(c):
 
 
             bot.edit_message_text(
-                text,
+                text=text,
                 chat_id=chat_id,
                 message_id=message_id,
                 reply_markup=keyboard,
@@ -3943,7 +3943,7 @@ def handle_main_menu(c):
             )
 
             bot.edit_message_text(
-                text,
+                text=text,
                 chat_id=chat_id,
                 message_id=message_id,
                 reply_markup=keyboard,
@@ -3964,7 +3964,7 @@ def handle_main_menu(c):
             )
 
             bot.edit_message_text(
-                text,
+                text=text,
                 chat_id=chat_id,
                 message_id=message_id,
                 reply_markup=keyboard,
@@ -3986,7 +3986,7 @@ def handle_main_menu(c):
             )
 
             bot.edit_message_text(
-                text,
+                text=text,
                 chat_id=chat_id,
                 message_id=message_id,
                 reply_markup=keyboard,
@@ -4007,7 +4007,7 @@ def handle_main_menu(c):
             )
 
             bot.edit_message_text(
-                text,
+                text=text,
                 chat_id=chat_id,
                 message_id=message_id,
                 reply_markup=keyboard,
@@ -4767,7 +4767,7 @@ def handle_main_menu(c):
 
 
 
-        elif data == "game_private":
+        if data == "game_private":
             try:
                 cursor.execute("SELECT major FROM users WHERE user_id = ?", (uid,))
                 row = cursor.fetchone()
@@ -4793,7 +4793,7 @@ def handle_main_menu(c):
                 bot.send_message(uid, "❌ حدث خطأ أثناء عرض الألعاب.")
 
     
-        elif data == "back_to_games":
+        if data == "back_to_games":
             try:
                 bot.delete_message(c.message.chat.id, c.message.message_id)
             except Exception as e:
@@ -4801,7 +4801,7 @@ def handle_main_menu(c):
     
     
 
-        elif data in ["game_vocab", "game_speed", "game_mistakes", "game_inference"]:
+        if data in ["game_vocab", "game_speed", "game_mistakes", "game_inference"]:
             game_type = data.split("_", 1)[1]
 
             # التحقق من إمكانية اللعب اليومي (6 مرات)
@@ -4878,7 +4878,7 @@ def handle_main_menu(c):
     
 
 
-        elif data.startswith("new_"):
+        if data.startswith("new_"):
             game_type = data.split("_", 1)[1]
 
             # تحقق من عدد المحاولات (كما في القسم الرئيسي)
@@ -4953,7 +4953,7 @@ def handle_main_menu(c):
                 except:
                     pass
 
-        elif data.startswith("ans_"):
+        if data.startswith("ans_"):
             parts = data.split("_")
             game_type = parts[1]
             selected = int(parts[2])
@@ -4980,7 +4980,7 @@ def handle_main_menu(c):
         # يمكنك إضافة المزيد من المعالجات الأخرى لـ callback_data هنا
 
 
-        elif data.startswith("soon_"):
+        if data.startswith("soon_"):
             feature_name = {
                 "soon_review": "📚 ميزة المراجعة السريعة",
                 "soon_summary": "📄 ملخصات PDF",
@@ -4989,11 +4989,11 @@ def handle_main_menu(c):
             bot.answer_callback_query(c.id)
             bot.send_message(chat_id, f"{feature_name} ستكون متاحة قريبًا... 🚧")
         
-        elif data.startswith("retry:"):
+        if data.startswith("retry:"):
             quiz_code = data[6:]
             quiz_manager.start_quiz(chat_id, quiz_code, bot)
         
-        elif data.startswith("share_quiz:"):
+        if data.startswith("share_quiz:"):
             quiz_code = data.split(":", 1)[1]
             chat_id = c.message.chat.id  # ← تأكد من تعيين chat_id هنا
 
@@ -5014,6 +5014,9 @@ def handle_main_menu(c):
             )
 
             bot.send_message(chat_id, msg_text, parse_mode="HTML", reply_markup=keyboard)
+        else:
+            bot.answer_callback_query(call.id, "قيد التطوير..!")
+    
 
     except Exception as e:
         logging.exception("Callback handler error: %s", e)
