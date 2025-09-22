@@ -3671,8 +3671,8 @@ import random
 
 # قائمة روابط GIFs
 gif_urls = [
-    "https://raw.githubusercontent.com/username/repo/main/welcome1.gif",
-    "https://raw.githubusercontent.com/username/repo/main/welcome2.gif"
+    "https://raw.githubusercontent.com/anasco119/Oiu-helper/Beta/images/ilmanar_20250909_223828_%D9%A0%D9%A0%D9%A0%D9%A4.gif",
+    "https://raw.githubusercontent.com/anasco119/Oiu-helper/Beta/images/ilmanar_20250909_225812_%D9%A0%D9%A0%D9%A0%D9%A8.gif"
 ]
 
 # اختيار GIF عشوائي
