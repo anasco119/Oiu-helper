@@ -650,7 +650,7 @@ def generate_gemini_response(prompt: str) -> str:
             logging.info("Trying: Groq Llama 3.1...")
             chat_completion = groq_client.chat.completions.create(
                 messages=[{"role": "user", "content": prompt}],
-                model="meta-llama/llama-3.1-8b-instruct",
+                model="llama-3.3-70b-versatile",
                 temperature=0.8,
                 timeout=timeout_seconds
             )
@@ -738,7 +738,7 @@ def generate_smart_response(prompt: str) -> str:
             logging.info("Trying: Groq Llama 3.1...")
             chat_completion = groq_client.chat.completions.create(
                 messages=[{"role": "user", "content": prompt}],
-                model="meta-llama/llama-3.1-8b-instruct",
+                model="llama-3.3-70b-versatile",
                 temperature=0.8,
                 timeout=timeout_seconds
             )
