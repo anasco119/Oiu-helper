@@ -3890,6 +3890,137 @@ def handle_main_menu(c):
         ]
 
 
+        if data == "go_learning":
+            keyboard = InlineKeyboardMarkup(row_width=2)
+            buttons = [
+                InlineKeyboardButton("👨‍🏫 إشرح PDF", callback_data="soon_review"),
+                InlineKeyboardButton("📄 ملخص PDF", callback_data="soon_summary"),
+                InlineKeyboardButton("🧠 بطاقات Anki", callback_data="anki"),
+                InlineKeyboardButton("📝 توليد اختبار", callback_data="go_generate"),
+                InlineKeyboardButton("⚙️ الإعدادات", callback_data="go_settings"),
+                InlineKeyboardButton("💬 إطرح سؤالا ", callback_data="aichat"),
+                ]
+            keyboard.add(*buttons)
+            keyboard.add(InlineKeyboardButton("➕ أضفني إلى مجموعة", url=f"https://t.me/{bot.get_me().username}?startgroup=true"))
+            keyboard.add(InlineKeyboardButton("📖 إرشادات", callback_data="instruct"))
+            keyboard.add(InlineKeyboardButton("↩️ رجوع", callback_data="back_main"))
+
+            text = (
+                "👋 <b>أهلاً بك في TestGenie!</b> ✨\n\n"
+                "🎯 أدوات تعليمية ذكية بين يديك:\n"
+                "- اختبارات من ملفاتك\n"
+                    "- بطاقات مراجعة (Anki)\n"
+                "- ملخصات PDF/Word\n"
+                "- ألعاب تعليمية ممتعة و أكثر\n\n"
+                "📌 كل ما تحتاجه لتتعلّم بذكاء... بين يديك الآن.\n\n"
+                "👇 اختر ما يناسبك وابدأ الآن:"
+            )
+
+
+            bot.edit_message_text(
+                text,
+                chat_id=chat_id,
+                message_id=message_id,
+                reply_markup=keyboard,
+                parse_mode="HTML"
+            )
+            
+        if data == "go_my_resources":
+            icon1 = "🗄 بنك الأسئلة", 
+            icon2 = "🆕🗄️ بنك الأسئلة"
+            keyboard = InlineKeyboardMarkup()
+            keyboard.add(InlineKeyboardButton("📄 ملفاتي", callback_data="my_files"))
+            keyboard.add(InlineKeyboardButton("➕ رفع ملف جديد", callback_data="upload_new"))
+            keyboard.add(InlineKeyboardButton(f"{random.choice((icon1, icon2))}", callback_data="qbank"))
+            keyboard.add(InlineKeyboardButton("⬅️ رجوع للقائمة الرئيسية", callback_data="back_main"))
+
+            text = (
+                "📚 <b>مصادري</b>\n\n"
+                "هنا يمكنك إدارة كل الملفات التي أرسلتها للبوت:\n"
+                "- استعراض الملفات المرفوعة\n"
+                "- رفع ملفات جديدة\n"
+                "- استخدام الملفات لتوليد اختبارات وبطاقات"
+            )
+
+            bot.edit_message_text(
+                text,
+                chat_id=chat_id,
+                message_id=message_id,
+                reply_markup=keyboard,
+                parse_mode="HTML"
+            )
+
+        if data == "go_sharing":
+            keyboard = InlineKeyboardMarkup()
+            keyboard.add(InlineKeyboardButton("🎮 ألعاب تعليمية", callback_data="go_games"))
+            keyboard.add(InlineKeyboardButton("🤝 شاركني البوت", url=f"https://t.me/{bot.get_me().username}?startgroup=true"))
+            keyboard.add(InlineKeyboardButton("⬅️ رجوع للقائمة الرئيسية", callback_data="back_main"))
+
+            text = (
+                "📢 <b>المشاركة</b>\n\n"
+                "ساعد أصدقاءك وزملاءك على التعلم معنا:\n"
+                "- جرّبوا الألعاب التعليمية في المجموعات 🎮\n"
+                "- أضف البوت لمجموعتك ليستفيد الجميع 👥"
+            )
+
+            bot.edit_message_text(
+                text,
+                chat_id=chat_id,
+                message_id=message_id,
+                reply_markup=keyboard,
+                parse_mode="HTML"
+            )
+
+        if data == "go_account":
+            keyboard = InlineKeyboardMarkup()
+            keyboard.add(InlineKeyboardButton("👤 بيانات الحساب", callback_data="account_info"))
+            keyboard.add(InlineKeyboardButton("💳 الترقية إلى Premium", callback_data="go_premium"))
+            keyboard.add(InlineKeyboardButton("⬅️ رجوع للقائمة الرئيسية", callback_data="back_main"))
+
+            text = (
+                "⚙️ <b>إعدادات الحساب</b>\n\n"
+                "من هنا يمكنك:\n"
+                "- عرض بيانات حسابك\n"
+                "- متابعة خطتك الحالية\n"
+                "- الترقية للوصول إلى ميزات إضافية"
+            )
+
+            bot.edit_message_text(
+                text,
+                chat_id=chat_id,
+                message_id=message_id,
+                reply_markup=keyboard,
+                parse_mode="HTML"
+            )
+
+        if data == "go_help":
+            keyboard = InlineKeyboardMarkup()
+            keyboard.add(InlineKeyboardButton("📖 دليل الاستخدام", callback_data="how_to_use"))
+            keyboard.add(InlineKeyboardButton("💬 تواصل مع الدعم", url="https://t.me/TsetGenieSupport"))
+            keyboard.add(InlineKeyboardButton("⬅️ رجوع للقائمة الرئيسية", callback_data="back_main"))
+
+            text = (
+                "ℹ️ <b>المساعدة</b>\n\n"
+                "هل تحتاج إلى مساعدة؟\n"
+                "- اقرأ دليل الاستخدام 📖\n"
+                "- أو تواصل معنا مباشرة عبر الدعم الفني 💬"
+            )
+
+            bot.edit_message_text(
+                text,
+                chat_id=chat_id,
+                message_id=message_id,
+                reply_markup=keyboard,
+                parse_mode="HTML"
+            )
+        if data == "back_main":
+            try:
+                send_main_menu(chat_id, message_id)
+            except:
+                pass
+            return
+                
+
 
 
     # ---------- صفحة الفئات الأولى ----------
