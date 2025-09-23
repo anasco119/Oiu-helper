@@ -3925,7 +3925,7 @@ def handle_main_menu(c):
                 parse_mode="HTML"
             )
             
-        if data == "go_my_resources":
+        elif data == "go_my_resources":
             icon1 = "🗄 بنك الأسئلة", 
             icon2 = "🆕🗄️ بنك الأسئلة"
             keyboard = InlineKeyboardMarkup()
@@ -3950,7 +3950,7 @@ def handle_main_menu(c):
                 parse_mode="HTML"
             )
 
-        if data == "go_sharing":
+        elif data == "go_sharing":
             keyboard = InlineKeyboardMarkup()
             keyboard.add(InlineKeyboardButton("🎮 ألعاب تعليمية", callback_data="go_games"))
             keyboard.add(InlineKeyboardButton("🤝 شاركني البوت", url=f"https://t.me/{bot.get_me().username}?startgroup=true"))
@@ -3971,7 +3971,7 @@ def handle_main_menu(c):
                 parse_mode="HTML"
             )
 
-        if data == "go_account":
+        elif data == "go_account":
             keyboard = InlineKeyboardMarkup()
             keyboard.add(InlineKeyboardButton("👤 بيانات الحساب", callback_data="account_info"))
             keyboard.add(InlineKeyboardButton("💳 الترقية إلى Premium", callback_data="go_premium"))
@@ -3993,7 +3993,7 @@ def handle_main_menu(c):
                 parse_mode="HTML"
             )
 
-        if data == "go_help":
+        elif data == "go_help":
             keyboard = InlineKeyboardMarkup()
             keyboard.add(InlineKeyboardButton("📖 دليل الاستخدام", callback_data="how_to_use"))
             keyboard.add(InlineKeyboardButton("💬 تواصل مع الدعم", url="https://t.me/TsetGenieSupport"))
@@ -4013,7 +4013,7 @@ def handle_main_menu(c):
                 reply_markup=keyboard,
                 parse_mode="HTML"
             )
-        if data == "back_main":
+        elif data == "back_main":
             try:
                 send_main_menu(chat_id, message_id)
             except:
@@ -5014,9 +5014,7 @@ def handle_main_menu(c):
             )
 
             bot.send_message(chat_id, msg_text, parse_mode="HTML", reply_markup=keyboard)
-        else:
-            bot.answer_callback_query(call.id, "قيد التطوير..!")
-    
+        
 
     except Exception as e:
         logging.exception("Callback handler error: %s", e)
