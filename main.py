@@ -3722,12 +3722,12 @@ def unified_start_handler(message):
         return
 
     # ✅ إذا لم يوجد باراميتر → عرض القائمة الرئيسية
-    send_main_menu(chat_id, gif_url=selected_gif)
+    send_ui(chat_id, gif_url=selected_gif)
     update_files_and_users(uid)
 
 
 
-def send_main_menu(chat_id, message_id=None, gif_url=None):
+def send_ui(chat_id, message_id=None, gif_url=None):
     """
     إرسال القائمة الرئيسية مع GIF ترحيبي (إذا تم تمرير gif_url).
     """
@@ -3784,7 +3784,51 @@ def send_main_menu(chat_id, message_id=None, gif_url=None):
                 parse_mode="HTML"
 )
 
+def send_main_menu(chat_id, message_id=None):
+    try:
+        keyboard = InlineKeyboardMarkup(row_width=2)
+        buttons = [
+            InlineKeyboardButton("👨‍🏫 إشرح PDF", callback_data="soon_review"),
+            InlineKeyboardButton("📄 ملخص PDF", callback_data="soon_summary"),
+            InlineKeyboardButton("🧠 بطاقات Anki", callback_data="anki"),
+            InlineKeyboardButton("📝 توليد اختبار", callback_data="go_generate"),
+            InlineKeyboardButton("⚙️ الإعدادات", callback_data="go_settings"),
+            InlineKeyboardButton("💬 إطرح سؤالا ", callback_data="aichat"),
+            ]
+        keyboard.add(*buttons)
+        keyboard.add(InlineKeyboardButton("➕ أضفني إلى مجموعة", url=f"https://t.me/{bot.get_me().username}?startgroup=true"))
+        keyboard.add(InlineKeyboardButton("📖 إرشادات", callback_data="instruct"))
+        keyboard.add(InlineKeyboardButton("↩️ رجوع", callback_data="back_main"))
 
+        text = (
+            "👋 <b>أهلاً بك في TestGenie!</b> ✨\n\n"
+            "🎯 أدوات تعليمية ذكية بين يديك:\n"
+            "- اختبارات من ملفاتك\n"
+                "- بطاقات مراجعة (Anki)\n"
+            "- ملخصات PDF/Word\n"
+            "- ألعاب تعليمية ممتعة و أكثر\n\n"
+            "📌 كل ما تحتاجه لتتعلّم بذكاء... بين يديك الآن.\n\n"
+            "👇 اختر ما يناسبك وابدأ الآن:"
+        )
+
+        if message_id:
+            bot.edit_message_text(
+                text=text,
+                chat_id=chat_id,
+                message_id=message_id,
+                reply_markup=keyboard,
+                parse_mode="HTML"
+            )
+        else:
+            bot.send_message(
+                text=text,
+                chat_id=chat_id,
+                reply_markup=keyboard,
+                parse_mode="HTML"
+            )
+    except Exception as e:
+            bot.send_message(message.chat.id, f"❌ فشل ارسال القائمة الرئسية: {e}\n\n{traceback.format_exc()}")
+            
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("rate_"))
 def handle_rating(call):
@@ -3917,10 +3961,9 @@ def handle_main_menu(c):
             )
 
 
-            bot.edit_message_text(
+            bot.send_message(
                 text=text,
                 chat_id=chat_id,
-                message_id=message_id,
                 reply_markup=keyboard,
                 parse_mode="HTML"
             )
@@ -3942,10 +3985,9 @@ def handle_main_menu(c):
                 "- استخدام الملفات لتوليد اختبارات وبطاقات"
             )
 
-            bot.edit_message_text(
+            bot.send_message(
                 text=text,
                 chat_id=chat_id,
-                message_id=message_id,
                 reply_markup=keyboard,
                 parse_mode="HTML"
             )
@@ -3963,10 +4005,9 @@ def handle_main_menu(c):
                 "- أضف البوت لمجموعتك ليستفيد الجميع 👥"
             )
 
-            bot.edit_message_text(
+            bot.send_message(
                 text=text,
                 chat_id=chat_id,
-                message_id=message_id,
                 reply_markup=keyboard,
                 parse_mode="HTML"
             )
@@ -3985,10 +4026,9 @@ def handle_main_menu(c):
                 "- الترقية للوصول إلى ميزات إضافية"
             )
 
-            bot.edit_message_text(
+            bot.send_message(
                 text=text,
                 chat_id=chat_id,
-                message_id=message_id,
                 reply_markup=keyboard,
                 parse_mode="HTML"
             )
@@ -4006,10 +4046,9 @@ def handle_main_menu(c):
                 "- أو تواصل معنا مباشرة عبر الدعم الفني 💬"
             )
 
-            bot.edit_message_text(
+            bot.send_message(
                 text=text,
                 chat_id=chat_id,
-                message_id=message_id,
                 reply_markup=keyboard,
                 parse_mode="HTML"
             )
