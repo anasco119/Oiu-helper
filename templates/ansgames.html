@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ANS GAMES - شحن الألعاب وخدمات الهواتف</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --dark-bg: #0d1117;
+            --darker-bg: #161b22;
+            --card-bg: #21262d;
+            --text-color: #c9d1d9;
+            --heading-color: #ffffff;
+            --accent-color: #58a6ff;
+            --light-accent: #79c0ff;
+            --border-color: #30363d;
+            --success-color: #28a745;
+            --whatsapp-color: #25D366;
+        }
+
+        [data-theme="light"] {
+            --dark-bg: #f8f9fa;
+            --darker-bg: #e9ecef;
+            --card-bg: #ffffff;
+            --text-color: #343a40;
+            --heading-color: #212529;
+            --accent-color: #007bff;
+            --light-accent: #0056b3;
+            --border-color: #dee2e6;
+            --success-color: #28a745;
+            --whatsapp-color: #25D366;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Cairo', sans-serif;
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            color: var(--text-color);
+            line-height: 1.7;
+            overflow-x: hidden;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        header {
+            background-color: var(--darker-bg);
+            padding: 15px 0;
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        header .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        header .logo {
+            font-size: 2.2rem;
+            color: var(--heading-color);
+            font-weight: 800;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        header .logo:hover {
+            color: var(--light-accent);
+        }
+
+        .theme-toggle {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle:hover {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            gap: 25px;
+            flex-wrap: wrap;
+        }
+
+        nav a {
+            color: var(--text-color);
+            text-decoration: none;
+            font-weight: 600;
+            padding-bottom: 5px;
+            position: relative;
+            transition: color 0.3s ease;
+            font-size: 1.05rem;
+        }
+
+        nav a::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: 0;
+            right: 0;
+            background-color: var(--accent-color);
+            transition: width 0.3s ease;
+        }
+
+        nav a:hover::after {
+            width: 100%;
+        }
+
+        nav a:hover {
+            color: var(--accent-color);
+        }
+
+        .hero {
+            background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)),
+                        url('https://images.unsplash.com/photo-1542751371-adc38448a05e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80') center center / cover no-repeat;
+            padding: 120px 0;
+            color: #fff;
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.7);
+            position: relative;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(0, 100, 0, 0.2) 0%, rgba(0, 50, 0, 0.4) 100%);
+        }
+
+        .hero .container {
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero h1 {
+            font-size: 4.5rem;
+            margin-bottom: 20px;
+            font-weight: 800;
+        }
+
+        .hero p {
+            font-size: 1.5rem;
+            max-width: 800px;
+            margin: 0 auto 40px auto;
+            color: #e0e0e0;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .hero .btn {
+            display: inline-block;
+            background-color: var(--accent-color);
+            color: #fff;
+            padding: 15px 35px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 1.2rem;
+            font-weight: 700;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .hero .btn:hover {
+            background-color: var(--light-accent);
+            transform: translateY(-3px);
+        }
+
+        .btn-bot {
+            display: inline-block;
+            background-color: var(--success-color);
+            color: #fff;
+            padding: 15px 35px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            font-size: 1.2rem;
+        }
+
+        .btn-bot:hover {
+            background-color: #5cd65c;
+            transform: translateY(-3px);
+        }
+
+        .btn-whatsapp {
+            display: inline-block;
+            background-color: var(--whatsapp-color);
+            color: #fff;
+            padding: 15px 35px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            font-size: 1.2rem;
+        }
+
+        .btn-whatsapp:hover {
+            background-color: #128C7E;
+            transform: translateY(-3px);
+        }
+
+        section {
+            padding: 60px 0;
+            text-align: center;
+        }
+
+        section h2 {
+            font-size: 2.8rem;
+            color: var(--heading-color);
+            margin-bottom: 40px;
+            position: relative;
+            padding-bottom: 15px;
+            display: inline-block;
+        }
+
+        section h2::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: 0;
+            width: 80px;
+            height: 4px;
+            background-color: var(--accent-color);
+            border-radius: 2px;
+        }
+
+        .section-intro {
+            max-width: 800px;
+            margin: 0 auto 40px;
+            font-size: 1.2rem;
+            line-height: 1.8;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-top: 40px;
+        }
+
+        .service-card, .game-card, .feature-card, .contribution-card {
+            background-color: var(--card-bg);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border: 1px solid var(--border-color);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .service-card::before, .feature-card::before, .contribution-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(to left, var(--accent-color), var(--success-color));
+        }
+
+        .service-card:hover, .game-card:hover, .feature-card:hover, .contribution-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .service-card .icon, .feature-card .icon, .contribution-card .icon {
+            font-size: 3rem;
+            color: var(--accent-color);
+            margin-bottom: 20px;
+        }
+
+        .service-card h3, .game-card h3, .feature-card h3, .contribution-card h3 {
+            font-size: 1.7rem;
+            color: var(--heading-color);
+            margin-bottom: 15px;
+        }
+
+        .service-card p, .feature-card p, .contribution-card p {
+            font-size: 1.05rem;
+            color: var(--text-color);
+            opacity: 0.9;
+        }
+
+        .game-card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 12px;
+            transition: transform 0.3s ease, filter 0.3s ease;
+        }
+
+        .game-card:hover img {
+            transform: scale(1.05);
+            filter: brightness(1.1);
+        }
+
+        .contact-section {
+            background-color: var(--darker-bg);
+            padding: 50px 0;
+            text-align: center;
+        }
+
+        .contact-links {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .contact-links a {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background-color: var(--accent-color);
+            color: #fff;
+            padding: 12px 25px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 1.1rem;
+            font-weight: 600;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .contact-links a:hover {
+            background-color: var(--light-accent);
+            transform: translateY(-3px);
+        }
+
+        footer {
+            padding: 30px;
+            text-align: center;
+            font-size: 0.95rem;
+            color: var(--text-color);
+            background-color: var(--darker-bg);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .islamic-decoration {
+            position: relative;
+            padding: 10px 0;
+        }
+
+        .islamic-decoration::before {
+            content: "﷽";
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 1.5rem;
+            color: var(--accent-color);
+            display: block;
+            margin-bottom: 15px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 3rem; }
+            .hero p { font-size: 1.2rem; }
+            .hero .btn, .btn-bot, .btn-whatsapp { padding: 12px 25px; font-size: 1.1rem; }
+            section { padding: 40px 0; }
+            section h2 { font-size: 2rem; margin-bottom: 30px; }
+            .service-card, .game-card, .feature-card, .contribution-card { padding: 25px; }
+            .service-card h3, .game-card h3, .feature-card h3, .contribution-card h3 { font-size: 1.5rem; }
+            .contact-links { flex-direction: column; gap: 15px; align-items: center; }
+            .hero-buttons { flex-direction: column; align-items: center; }
+            nav ul { gap: 15px; }
+        }
+
+        @media (max-width: 480px) {
+            header .logo { font-size: 1.6rem; }
+            nav a { font-size: 0.95rem; }
+            .hero h1 { font-size: 2.2rem; }
+            .hero p { font-size: 1rem; }
+            .service-card .icon, .feature-card .icon, .contribution-card .icon { font-size: 2.5rem; }
+            .service-card h3, .game-card h3, .feature-card h3, .contribution-card h3 { font-size: 1.3rem; }
+            .contact-links a { width: 90%; justify-content: center; }
+            .logo-section { flex-direction: column; gap: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="container">
+        <div class="logo-section">
+            <a href="#" class="logo">ANS GAMES</a>
+            <button class="theme-toggle" id="themeToggle">
+                <i class="fas fa-moon"></i>
+            </button>
+        </div>
+        <nav>
+            <ul>
+                <li><a href="#hero">الرئيسية</a></li>
+                <li><a href="#services">خدماتنا</a></li>
+                <li><a href="#games">الألعاب</a></li>
+                <li><a href="#contributions">مساهماتنا</a></li>
+                <li><a href="#why-us">لماذا نحن؟</a></li>
+                <li><a href="#contact">تواصل معنا</a></li>
+            </ul>
+        </nav>
+    </div>
+</header>
+
+<section class="hero" id="hero">
+    <div class="container">
+        <h1>بسم الله الرحمن الرحيم</h1>
+        <h1>عالم الألعاب بين يديك</h1>
+        <p>نقدم لكم خدمات شحن شدات الألعاب والجواهر بكل أمان وموثوقية، مع أفضل ألعاب البلايستيشن وخدمات الهواتف المتكاملة. نعمل وفق مبادئنا الإسلامية في التعامل.</p>
+        
+        <div class="hero-buttons">
+            <a href="#services" class="btn">اكتشف خدماتنا <i class="fas fa-arrow-left"></i></a>
+            <a href="https://Oiu-helper.onrender.com" target="_blank" class="btn-bot"><i class="fas fa-robot"></i> بوت مساعد الطلاب</a>
+            <a href="https://wa.me/249126263216?text=مرحباً، أريد طلب خدمة من ANS GAMES" target="_blank" class="btn-whatsapp"><i class="fab fa-whatsapp"></i> ارسل طلبًا</a>
+        </div>
+    </div>
+</section>
+
+<section class="services" id="services">
+    <div class="container">
+        <h2><i class="fas fa-gamepad"></i> خدماتنا المميزة</h2>
+        <p class="section-intro islamic-decoration">نسعى لتقديم أفضل الخدمات لعملائنا الكرام وفق مبادئ الصدق والأمانة التي نؤمن بها.</p>
+        <div class="grid-container">
+            <div class="service-card">
+                <div class="icon"><i class="fas fa-fire"></i></div>
+                <h3>شحن شدات ببجي</h3>
+                <p>احصل على شدات ببجي موبايل بأمان وبأفضل الأسعار. شحن فوري وموثوق لجميع حساباتك.</p>
+            </div>
+            <div class="service-card">
+                <div class="icon"><i class="fas fa-gem"></i></div>
+                <h3>جواهر فري فاير</h3>
+                <p>اشحن جواهر فري فاير بكل سهولة وقم بتخصيص شخصياتك وفتح الميزات الحصرية.</p>
+            </div>
+            <div class="service-card">
+                <div class="icon"><i class="fab fa-playstation"></i></div>
+                <h3>ألعاب بلايستيشن</h3>
+                <p>اكتشف مجموعتنا الواسعة من ألعاب البلايستيشن الجاهزة للعب. تجربة لا مثيل لها!</p>
+            </div>
+            <div class="service-card">
+                <div class="icon"><i class="fas fa-mobile-alt"></i></div>
+                <h3>خدمات الهواتف</h3>
+                <p>صيانة، تحديثات، وبرامج حماية لهاتفك. اجعل هاتفك يعمل بأقصى كفاءة.</p>
+            </div>
+             <div class="service-card">
+                <div class="icon"><i class="fas fa-robot"></i></div>
+                <h3>بوت مساعد الطلاب</h3>
+                <p>حلول ذكية لطلاب الجامعات والمدارس. مساعدة في الأبحاث، الواجبات، والمزيد.</p>
+            </div>
+            <div class="service-card">
+                <div class="icon"><i class="fas fa-gift"></i></div>
+                <h3>بطاقات هدايا الألعاب</h3>
+                <p>شحن بطاقات هدايا لألعابك المفضلة ومنصات الألعاب المختلفة. الهدية المثالية للاعبين.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="popular-games" id="games">
+    <div class="container">
+        <h2><i class="fas fa-star"></i> ألعاب شائعة</h2>
+        <p class="section-intro">نحرص على تقديم أفضل الألعاب وأكثرها شعبية لعملائنا الكرام.</p>
+        <div class="grid-container">
+            <div class="game-card">
+                <img src="https://images.unsplash.com/photo-1550745165-9bc0b252726f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80" alt="PUBG Mobile">
+                <h3>PUBG Mobile</h3>
+            </div>
+            <div class="game-card">
+                <img src="https://images.unsplash.com/photo-1552820728-8b83bb6b773f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80" alt="Free Fire">
+                <h3>Free Fire</h3>
+            </div>
+            <div class="game-card">
+                <img src="https://images.unsplash.com/photo-1542751110-97427bbecf20?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1084&q=80" alt="Call of Duty Mobile">
+                <h3>Call of Duty Mobile</h3>
+            </div>
+            <div class="game-card">
+                <img src="https://images.unsplash.com/photo-1593305841991-05c297ba4575?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1057&q=80" alt="GTA V">
+                <h3>GTA V (PS)</h3>
+            </div>
+            <div class="game-card">
+                <img src="https://images.unsplash.com/photo-1493711662062-fa541adb3fc8?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80" alt="FIFA 23">
+                <h3>FIFA 23 (PS)</h3>
+            </div>
+            <div class="game-card">
+                <img src="https://images.unsplash.com/photo-1550745165-9bc0b252726f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80" alt="Minecraft">
+                <h3>Minecraft</h3>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="contributions" id="contributions">
+    <div class="container">
+        <h2><i class="fas fa-hands-helping"></i> مساهماتنا</h2>
+        <p class="section-intro islamic-decoration">نسعى لدعم المجتمع من خلال تقديم خدمات تعليمية مجانية تنفع المسلمين.</p>
+        <div class="grid-container">
+            <div class="contribution-card">
+                <div class="icon"><i class="fab fa-telegram"></i></div>
+                <h3>قناة محادثات اللغة الإنجليزية</h3>
+                <p>نقدم دروسًا مجانية في اللغة الإنجليزية عبر قناة التليجرام لمساعدة الطلاب على تحسين مهاراتهم اللغوية.</p>
+                <a href="https://t.me/EnglishConvs" target="_blank" class="btn-bot" style="margin-top: 15px;">
+                    <i class="fab fa-telegram"></i> انضم للقناة @EnglishConvs
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="why-choose-us" id="why-us">
+    <div class="container">
+        <h2><i class="fas fa-question-circle"></i> لماذا تختار ANS GAMES؟</h2>
+        <p class="section-intro islamic-decoration">نعمل بأخلاقيات إسلامية ونحرص على رضا عملائنا في كل تعامل.</p>
+        <div class="grid-container">
+            <div class="feature-card">
+                <div class="icon"><i class="fas fa-shield-alt"></i></div>
+                <h3>شحن آمن وموثوق</h3>
+                <p>نضمن أمان بياناتك ومعاملاتك. جميع عمليات الشحن تتم بطرق رسمية وموثوقة 100%.</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon"><i class="fas fa-tachometer-alt"></i></div>
+                <h3>سرعة لا مثيل لها</h3>
+                <p>لا تنتظر طويلاً! استلم طلبك في أسرع وقت ممكن بعد تأكيد الدفع.</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon"><i class="fas fa-headset"></i></div>
+                <h3>دعم فني متميز</h3>
+                <p>فريق دعم جاهز للإجابة على استفساراتك ومساعدتك على مدار الساعة.</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon"><i class="fas fa-money-bill-wave"></i></div>
+                <h3>أفضل الأسعار</h3>
+                <p>نقدم أسعارًا تنافسية وعروضًا حصرية لعملائنا الكرام بشكل مستمر.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="contact-section" id="contact">
+    <div class="container">
+        <h2><i class="fas fa-comments"></i> تواصل معنا</h2>
+        <p class="section-intro">فريقنا مستعد دائمًا لمساعدتك والإجابة على استفساراتك. لا تتردد في التواصل معنا!</p>
+        <div class="contact-links">
+            <a href="https://wa.me/249126263216" target="_blank">
+                <i class="fab fa-whatsapp"></i> واتساب: +249126263216
+            </a>
+            <a href="https://t.me/ansgames" target="_blank">
+                <i class="fab fa-telegram-plane"></i> تيليجرام: ansgames
+            </a>
+        </div>
+    </div>
+</section>
+
+<footer>
+    <div class="container">
+        <p class="islamic-decoration">بسم الله الرحمن الرحيم</p>
+        <p>&copy; 2025 ANS GAMES. جميع الحقوق محفوظة.</p>
+        <p>استرجع أموالك بسهولة عبر سياسة الاسترداد لدينا.</p>
+    </div>
+</footer>
+
+<script>
+    // نظام تبديل الثيمات
+    const themeToggle = document.getElementById('themeToggle');
+    const body = document.body;
+    
+    // التحقق من تفضيلات المستخدم للنظام
+    const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    
+    // تعيين الثيم الافتراضي
+    if (localStorage.getItem('theme') === 'light' || (!localStorage.getItem('theme') && !prefersDarkScheme.matches)) {
+        body.setAttribute('data-theme', 'light');
+        themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+    } else {
+        body.setAttribute('data-theme', 'dark');
+        themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+    }
+    
+    // تبديل الثيم عند النقر على الزر
+    themeToggle.addEventListener('click', () => {
+        if (body.getAttribute('data-theme') === 'dark') {
+            body.setAttribute('data-theme', 'light');
+            themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+            localStorage.setItem('theme', 'light');
+        } else {
+            body.setAttribute('data-theme', 'dark');
+            themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+            localStorage.setItem('theme', 'dark');
+        }
+    });
+    
+    // تحسين التنقل السلس
+    document.querySelectorAll('nav a').forEach(anchor => {
+        anchor.addEventListener('click', function(e) {
+            e.preventDefault();
+            const targetId = this.getAttribute('href');
+            const targetElement = document.querySelector(targetId);
+            
+            window.scrollTo({
+                top: targetElement.offsetTop - 80,
+                behavior: 'smooth'
+            });
+        });
+    });
+</script>
+
+</body>
+</html>
