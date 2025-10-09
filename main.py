@@ -1338,7 +1338,7 @@ def supportme():
 
 
 @app.route('/ansgames')
-def supportme():
+def ansgames():
     # هنا تقوم بجلب البيانات الحقيقية من قاعدة البيانات أو أي مصدر آخر
     # هذه مجرد قيم افتراضية
     
