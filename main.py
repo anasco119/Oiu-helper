@@ -3677,14 +3677,7 @@ def test_anki_generation(message):
 
 import random
 
-# قائمة روابط GIFs
-gif_urls = [
-    "https://raw.githubusercontent.com/anasco119/Oiu-helper/Beta/images/ilmanar_20250909_223828_%D9%A0%D9%A0%D9%A0%D9%A4.gif",
-    "https://raw.githubusercontent.com/anasco119/Oiu-helper/Beta/images/ilmanar_20250909_225812_%D9%A0%D9%A0%D9%A0%D9%A8.gif"
-]
 
-# اختيار GIF عشوائي
-selected_gif = random.choice(gif_urls)
 
 @bot.message_handler(commands=['start'])
 def unified_start_handler(message):
@@ -3765,32 +3758,24 @@ def send_ui(chat_id, message_id=None, gif_url=None):
         "👇 اختر القسم الذي تريد البدء به:"
     )
 
-    if gif_url:
-        # إرسال GIF ترحيبي مع النص والكيبورد
-        bot.send_animation(
-            chat_id,
-            animation=gif_url,
-            caption=text,
+    
+    
+    # إذا لم يُمرر GIF، إرسال النص فقط
+    if message_id:
+        bot.edit_message_text(
+            text,
+            chat_id=chat_id,
+            message_id=message_id,
             reply_markup=keyboard,
             parse_mode="HTML"
         )
     else:
-        # إذا لم يُمرر GIF، إرسال النص فقط
-        if message_id:
-            bot.edit_message_text(
-                text,
-                chat_id=chat_id,
-                message_id=message_id,
-                reply_markup=keyboard,
-                parse_mode="HTML"
-            )
-        else:
-            bot.send_message(
-                chat_id,
-                text,
-                reply_markup=keyboard,
-                parse_mode="HTML"
-)
+        bot.send_message(
+            chat_id,
+            text,
+            reply_markup=keyboard,
+            parse_mode="HTML"
+    )
 
 def send_main_menu(chat_id, message_id=None):
     try:
