@@ -3723,7 +3723,7 @@ def unified_start_handler(message):
         return
 
     # ✅ إذا لم يوجد باراميتر → عرض القائمة الرئيسية
-    send_ui(chat_id, gif_url=selected_gif)
+    send_ui(chat_id)
     update_files_and_users(uid)
 
 
@@ -3763,7 +3763,7 @@ def send_ui(chat_id, message_id=None, gif_url=None):
     # إذا لم يُمرر GIF، إرسال النص فقط
     if message_id:
         bot.edit_message_text(
-            text,
+            text=text,
             chat_id=chat_id,
             message_id=message_id,
             reply_markup=keyboard,
@@ -3771,8 +3771,8 @@ def send_ui(chat_id, message_id=None, gif_url=None):
         )
     else:
         bot.send_message(
-            chat_id,
-            text,
+            chat_id=chat_id,
+            text=text,
             reply_markup=keyboard,
             parse_mode="HTML"
     )
@@ -3820,7 +3820,7 @@ def send_main_menu(chat_id, message_id=None):
                 parse_mode="HTML"
             )
     except Exception as e:
-            bot.send_message(message.chat.id, f"❌ فشل ارسال القائمة الرئسية: {e}\n\n{traceback.format_exc()}")
+        bot.send_message(message.chat.id, f"❌ فشل ارسال القائمة الرئسية: {e}\n\n{traceback.format_exc()}")
             
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("rate_"))
@@ -3832,7 +3832,7 @@ def handle_rating(call):
     rating = call.data.replace("rate_", "")  # النتيجة الآن "1" أو "2" أو "3" إلخ.
 
     text_low = "😔⭐ نأسف إن TestGenie لم يلبي توقعاتك. شاركنا رأيك لنحسّن الخدمة 🚀✨\n\nأترك تعليقا هنا"
-    text_mid = "🤔⭐ نشكرك على تقييمك لـ TestGenie! نطمح نوصل لتجربة أفضل ونسعد بأي ملاحظات منك 🙏💡\n\nيمكنك إرسال تعليق هنا\n\nℹ️ لا نقوم بتخزين اي بيانات عندك غير هذا التعليق"
+    text_mid = "🤔⭐ نشكرك على تقييمك لـ TestGenie! نطمح نوصل لتجربة أفضل ونسعد بأي ملاحظات منك 🙏💡\n\nيمكنك إرسال تعليق هنا\n\nℹ️ لا نقوم بتخزين اي بيانات عنك غير هذا التعليق"
     text_high = f"🌟👏 شكراً على دعمك لـ TestGenie! يسعدنا إن تجربتك كانت رائعة 🙌💡"
     txt_thanks = f"💌 شكراً لك @{username}! تم إرسال ملاحظاتك ({rating}⭐) إلى فريق TestGenie 🙏"
 
@@ -3888,7 +3888,7 @@ def handle_user_comment(message):
     send_comment("تعليق", full_username, uid, comment)
     
     # تأكيد للمستخدم
-    bot.send_message(message.chat.id, "🙏💡 شكراً لملاحظاتك! فريق TestGenie سيقوم بمتابعة بكل .")
+    bot.send_message(message.chat.id, "🙏💡 شكراً لملاحظاتك! فريق TestGenie سيقوم بمتابعة بكل أهتمام")
 
     # إعادة الحالة للوضع الطبيعي
     user_states[uid] = None
