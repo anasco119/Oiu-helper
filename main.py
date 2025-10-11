@@ -3954,9 +3954,10 @@ def handle_main_menu(c):
             )
 
 
-            bot.send_message(
+            bot.edit_message_text(
                 text=text,
                 chat_id=chat_id,
+                message_id=message_id,
                 reply_markup=keyboard,
                 parse_mode="HTML"
             )
@@ -3978,9 +3979,10 @@ def handle_main_menu(c):
                 "- استخدام الملفات لتوليد اختبارات وبطاقات"
             )
 
-            bot.send_message(
+            bot.edit_message_text(
                 text=text,
                 chat_id=chat_id,
+                message_id=message_id,
                 reply_markup=keyboard,
                 parse_mode="HTML"
             )
@@ -3998,9 +4000,10 @@ def handle_main_menu(c):
                 "- أضف البوت لمجموعتك ليستفيد الجميع 👥"
             )
 
-            bot.send_message(
+            bot.edit_message_text(
                 text=text,
                 chat_id=chat_id,
+                message_id=message_id,
                 reply_markup=keyboard,
                 parse_mode="HTML"
             )
@@ -4019,9 +4022,10 @@ def handle_main_menu(c):
                 "- الترقية للوصول إلى ميزات إضافية"
             )
 
-            bot.send_message(
+            bot.edit_message_text(
                 text=text,
                 chat_id=chat_id,
+                message_id=message_id,
                 reply_markup=keyboard,
                 parse_mode="HTML"
             )
@@ -4039,9 +4043,10 @@ def handle_main_menu(c):
                 "- أو تواصل معنا مباشرة عبر الدعم الفني 💬"
             )
 
-            bot.send_message(
+            bot.edit_message_text(
                 text=text,
                 chat_id=chat_id,
+                message_id=message_id,
                 reply_markup=keyboard,
                 parse_mode="HTML"
             )
@@ -4374,7 +4379,7 @@ def handle_main_menu(c):
             return
 
 
-        elif data == "go_account_settings":
+        if data == "go_account_settings":
             bot.answer_callback_query(c.id)
             settings_keyboard = InlineKeyboardMarkup()
             settings_keyboard.add(
