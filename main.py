@@ -3828,7 +3828,7 @@ def send_main_menu(chat_id, message_id=None):
 from telebot import types
 
 # 🟢 أمر /تبرع
-@bot.message_handler(commands=['تبرع'])
+@bot.message_handler(commands=['donate'])
 def donate_command(message):
     markup = types.InlineKeyboardMarkup(row_width=1)  # صفين (زر لكل صف)
     sudan_btn = types.InlineKeyboardButton("💰 التبرع داخل السودان", callback_data="donate_sudan")
@@ -3896,7 +3896,7 @@ def handle_bank_khartoum(call):
     text = (
         "🏦 *تفاصيل بنك الخرطوم:*\n\n"
         "💳 رقم الحساب: `1528348`\n"
-        "👤 الاسم: حسام الدين مروان\n"
+        "👤 الاسم: Hussam Aldein Marwan\n"
         "📍 البنك: بنك الخرطوم\n\n"
         "جزاك الله خيرًا على دعمك السخي 🙏"
     )
