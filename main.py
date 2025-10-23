@@ -3827,54 +3827,87 @@ def send_main_menu(chat_id, message_id=None):
 
 from telebot import types
 
-
-
-# ✅ أمر التبرع
-@bot.message_handler(commands=['donate'])
+# 🟢 أمر /تبرع
+@bot.message_handler(commands=['تبرع'])
 def donate_command(message):
-    markup = types.InlineKeyboardMarkup()
-    sudan_btn = types.InlineKeyboardButton("🇸🇩 داخل السودان", callback_data="donate_sudan")
-    paypal_btn = types.InlineKeyboardButton("🌍 عبر PayPal", callback_data="donate_paypal")
+    markup = types.InlineKeyboardMarkup(row_width=1)  # صفين (زر لكل صف)
+    sudan_btn = types.InlineKeyboardButton("💰 التبرع داخل السودان", callback_data="donate_sudan")
+    paypal_btn = types.InlineKeyboardButton("🌍 التبرع عبر PayPal", callback_data="donate_paypal")
     markup.add(sudan_btn, paypal_btn)
+
+    text = (
+        "✨ *شكرًا جزيلًا لرغبتك في دعم مشروعنا!* ✨\n\n"
+        "نحن نقدّر مساهمتك التي تساعدنا على الاستمرار والتطور 🙏\n\n"
+        "اختر الطريقة المناسبة للتبرع:"
+    )
+
     bot.send_message(
         message.chat.id,
-        "🤝 شكرًا لرغبتك في دعم مشروعنا!\nاختر طريقة التبرع المناسبة لك:",
+        text,
+        parse_mode="Markdown",
         reply_markup=markup
     )
 
-# ✅ معالجة أزرار التبرع
+# 🟢 معالجة أزرار التبرع
 @bot.callback_query_handler(func=lambda call: call.data.startswith("donate_"))
 def handle_donate_options(call):
     if call.data == "donate_sudan":
-        markup = types.InlineKeyboardMarkup()
+        markup = types.InlineKeyboardMarkup(row_width=1)
         bank_btn = types.InlineKeyboardButton("🏦 بنك الخرطوم", callback_data="bank_khartoum")
         markup.add(bank_btn)
+
+        text = (
+            "🇸🇩 *خيارات التبرع داخل السودان:*\n\n"
+            "يرجى اختيار البنك المحلي الذي ترغب بالتبرع عبره 👇"
+        )
+
         bot.edit_message_text(
             chat_id=call.message.chat.id,
             message_id=call.message.message_id,
-            text="💵 اختر البنك المحلي الذي ترغب بالتبرع من خلاله:",
+            text=text,
+            parse_mode="Markdown",
             reply_markup=markup
         )
 
     elif call.data == "donate_paypal":
-        paypal_link = "https://www.paypal.me/hosam2025"
+        markup = types.InlineKeyboardMarkup()
+        paypal_btn = types.InlineKeyboardButton(
+            "💳 التبرع الآن عبر PayPal", url="https://www.paypal.me/hosam2025"
+        )
+        markup.add(paypal_btn)
+
+        text = (
+            "🌍 *التبرع عبر PayPal*\n\n"
+            "يمكنك المساهمة عالميًا بسهولة وأمان من خلال الرابط أدناه 👇\n\n"
+            "_اضغط الزر أدناه لإتمام عملية التبرع:_"
+        )
+
         bot.edit_message_text(
             chat_id=call.message.chat.id,
             message_id=call.message.message_id,
-            text=f"🌍 يمكنك التبرع بسهولة عبر PayPal:\n{paypal_link}"
+            text=text,
+            parse_mode="Markdown",
+            reply_markup=markup
         )
 
-# ✅ معالجة زر بنك الخرطوم
+# 🟢 بنك الخرطوم
 @bot.callback_query_handler(func=lambda call: call.data == "bank_khartoum")
 def handle_bank_khartoum(call):
+    text = (
+        "🏦 *تفاصيل بنك الخرطوم:*\n\n"
+        "💳 رقم الحساب: `1528348`\n"
+        "👤 الاسم: حسام الدين مروان\n"
+        "📍 البنك: بنك الخرطوم\n\n"
+        "جزاك الله خيرًا على دعمك السخي 🙏"
+    )
+
     bot.edit_message_text(
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
-        text="🏦 بنك الخرطوم\n\nيمكنك إتمام التبرع عبر حساب البنك الموضح أدناه:\n"
-             "💳 رقم الحساب: 1528348\n"
-             "📱 الاسم: حسام الدين مروان\n\n"
-             "جزاك الله خيرًا على دعمك 🙏"
+        text=text,
+        parse_mode="Markdown"
     )
+
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("rate_"))
