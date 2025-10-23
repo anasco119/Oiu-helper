@@ -3821,7 +3821,61 @@ def send_main_menu(chat_id, message_id=None):
             )
     except Exception as e:
         bot.send_message(message.chat.id, f"❌ فشل ارسال القائمة الرئسية: {e}\n\n{traceback.format_exc()}")
-            
+
+
+
+
+from telebot import types
+
+
+
+# ✅ أمر التبرع
+@bot.message_handler(commands=['donate'])
+def donate_command(message):
+    markup = types.InlineKeyboardMarkup()
+    sudan_btn = types.InlineKeyboardButton("🇸🇩 داخل السودان", callback_data="donate_sudan")
+    paypal_btn = types.InlineKeyboardButton("🌍 عبر PayPal", callback_data="donate_paypal")
+    markup.add(sudan_btn, paypal_btn)
+    bot.send_message(
+        message.chat.id,
+        "🤝 شكرًا لرغبتك في دعم مشروعنا!\nاختر طريقة التبرع المناسبة لك:",
+        reply_markup=markup
+    )
+
+# ✅ معالجة أزرار التبرع
+@bot.callback_query_handler(func=lambda call: call.data.startswith("donate_"))
+def handle_donate_options(call):
+    if call.data == "donate_sudan":
+        markup = types.InlineKeyboardMarkup()
+        bank_btn = types.InlineKeyboardButton("🏦 بنك الخرطوم", callback_data="bank_khartoum")
+        markup.add(bank_btn)
+        bot.edit_message_text(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            text="💵 اختر البنك المحلي الذي ترغب بالتبرع من خلاله:",
+            reply_markup=markup
+        )
+
+    elif call.data == "donate_paypal":
+        paypal_link = "https://www.paypal.me/hosam2025"
+        bot.edit_message_text(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            text=f"🌍 يمكنك التبرع بسهولة عبر PayPal:\n{paypal_link}"
+        )
+
+# ✅ معالجة زر بنك الخرطوم
+@bot.callback_query_handler(func=lambda call: call.data == "bank_khartoum")
+def handle_bank_khartoum(call):
+    bot.edit_message_text(
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        text="🏦 بنك الخرطوم\n\nيمكنك إتمام التبرع عبر حساب البنك الموضح أدناه:\n"
+             "💳 رقم الحساب: 1528348\n"
+             "📱 الاسم: حسام الدين مروان\n\n"
+             "جزاك الله خيرًا على دعمك 🙏"
+    )
+
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("rate_"))
 def handle_rating(call):
